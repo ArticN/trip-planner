@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Planner de viagens: mapa, rota dia a dia, timeline e orçamento",
   "scripts": {
-    "dev": "npm run dev:server & npm run dev:web; wait",
+    "dev": "node scripts/dev.mjs",
     "dev:server": "node --watch server/index.js",
     "dev:web": "vite",
     "build": "vite build",

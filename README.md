@@ -8,7 +8,7 @@ cidades, hospedagens e orçamento (moeda da viagem + conversão para a sua moeda
 Requer **Node 22.13+**.
 
 ```bash
-npm ci
+npm ci          # rode de novo sempre que puxar mudanças do GitHub (instala dependências novas)
 npm run dev      # API em :3000 + Vite com hot reload em http://localhost:5173
 npm start        # só o app compilado (depois de npm run build) em http://localhost:3000
 ```
