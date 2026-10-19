@@ -109,8 +109,22 @@ async function migrate() {
     ]);
   }
 }
-export const ready = migrate();
-ready.catch((e) => console.error('falha ao preparar o banco:', e)); // sem isso a rejeição derruba o processo
+// prepara o banco uma vez; se falhar (ex.: rede instável), tenta de novo na próxima requisição
+let preparing = null;
+const prepare = () => {
+  if (!preparing) {
+    preparing = migrate();
+    preparing.catch((e) => { console.error('falha ao preparar o banco:', e); preparing = null; });
+  }
+  return preparing;
+};
+export const ready = prepare();
+// mensagem do erro com a causa de rede (ex.: ENOTFOUND, ECONNRESET), sem dados sensíveis
+const describe = (e) => {
+  const c = e?.cause;
+  const why = c ? [c.code, c.message].filter(Boolean).join(' ') : '';
+  return why && !String(e.message).includes(why) ? `${e.message} (${why})` : String(e.message);
+};
 
 // Ordena só os itens com horário entre si, mantendo itens sem horário nos seus lugares.
 function sortTimedSlots(items) {
@@ -185,7 +199,7 @@ const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(
 
 // espera o banco estar pronto (na Vercel cada instância nova passa por aqui uma vez)
 app.use('/api', h(async (_req, _res, next) => {
-  await ready.catch((e) => { throw Object.assign(new Error(e.message), { publicMessage: `não consegui acessar o banco: ${e.message}` }); });
+  await prepare().catch((e) => { throw Object.assign(new Error(describe(e)), { publicMessage: `não consegui acessar o banco: ${describe(e)}` }); });
   next();
 }));
 
