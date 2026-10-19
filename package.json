@@ -1,0 +1,27 @@
+{
+  "name": "japan-planner",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Planner de viagem: mapa, rota dia a dia, timeline e orçamento",
+  "scripts": {
+    "dev": "npm run dev:server & npm run dev:web; wait",
+    "dev:server": "node --watch server/index.js",
+    "dev:web": "vite",
+    "build": "vite build",
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "leaflet": "^1.9.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.11"
+  }
+}
