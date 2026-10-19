@@ -5,10 +5,12 @@ import { getTheme, toggleTheme } from './theme.js';
 import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
-import { ChecklistModal, StatsModal, CalendarModal, SearchModal, downloadIcs, parseLinks } from './Extras.jsx';
+import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
-import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal } from './Modals.jsx';
+import { fetchRate, roundRate } from './fx.js';
+import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal, RemindersModal } from './Modals.jsx';
+import { useReminders, notifyOn, setNotify } from './reminders.js';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
 } from './util.js';
@@ -48,6 +50,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     return () => { window.removeEventListener('pagehide', flushDelete); flushDelete(); };
   }, [flushDelete]);
   const [theme, setTheme] = useState(getTheme);
+  const [notify, setNotifyState] = useState(notifyOn);
   const nonce = useRef(0);
 
   const say = useCallback((msg) => { setToast(msg); setTimeout(() => setToast(''), 3200); }, []);
@@ -56,6 +59,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     try { setData(await api.trip(tripId)); setError(''); } catch (e) { setError(String(e.message || e)); }
   }, []);
   useEffect(() => { setData(null); reload(); }, [reload]);
+
+  useReminders(data?.trip, data?.activities, notify);
 
   // anexos ficam guardados no aparelho (o service worker guarda cada um na primeira vez que é pedido)
   useEffect(() => {
@@ -359,10 +364,29 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     setData((d) => ({ ...d, stays: d.stays.map((x) => (x.id === id ? saved : x)) }));
   };
 
-  const saveRate = async (r) => {
-    setData((d) => ({ ...d, trip: { ...d.trip, rate: r } }));
-    await api.saveTrip(tripId, { rate: r });
+  // câmbio: digitado à mão desliga a atualização automática; "auto" busca a cotação do dia
+  const saveRate = async (r, patch = { rate_auto: 0 }) => {
+    setData((d) => ({ ...d, trip: { ...d.trip, rate: r, ...patch } }));
+    await api.saveTrip(tripId, { rate: r, ...patch });
   };
+  const setRateAuto = async (on) => {
+    setData((d) => ({ ...d, trip: { ...d.trip, rate_auto: on ? 1 : 0 } }));
+    await api.saveTrip(tripId, { rate_auto: on ? 1 : 0 });
+    if (on) refreshRate(true);
+  };
+  const refreshRate = useCallback(async (force) => {
+    const t = data?.trip;
+    if (!t || t.currency === t.home_currency || t.rate_auto === 0 || !navigator.onLine) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (!force && t.rate_at === today) return;
+    try {
+      const q = await fetchRate(t.currency, t.home_currency);
+      const r = roundRate(q.rate);
+      setData((d) => ({ ...d, trip: { ...d.trip, rate: r, rate_at: today } }));
+      await api.saveTrip(tripId, { rate: r, rate_at: today });
+    } catch { /* fica a cotação anterior */ }
+  }, [data?.trip?.id, data?.trip?.rate_auto, data?.trip?.currency, data?.trip?.home_currency]);
+  useEffect(() => { refreshRate(false); }, [refreshRate]);
 
   const createStay = async (s) => {
     const created = await api.createStay(tripId, s);
@@ -401,6 +425,14 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     reload();
   };
 
+  const patchTrip = async (patch) => {
+    setData((d) => ({ ...d, trip: { ...d.trip, ...patch } }));
+    try { await api.saveTrip(tripId, patch); } catch { say('Erro ao salvar'); }
+  };
+  const setCalendar = async (on) => {
+    const r = on ? await api.calendar(tripId) : await api.uncalendar(tripId);
+    setData((d) => ({ ...d, trip: { ...d.trip, cal_token: r.cal_token } }));
+  };
   const setShare = async (on) => {
     try {
       const r = on ? await api.share(tripId) : await api.unshare(tripId);
@@ -469,6 +501,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button onClick={() => setModal('stats')}>Estatísticas</button>
             <button onClick={() => setModal('calendar')}>Calendário</button>
             <button onClick={() => setModal('share')}>Compartilhar roteiro</button>
+            <button onClick={() => setModal('offline')}>Mapa offline</button>
+            <button onClick={() => setModal('reminders')}>Lembretes</button>
             <button onClick={() => window.print()}>Imprimir ou salvar PDF</button>
             <button onClick={() => downloadIcs(trip, data.activities, cityMap)}>Exportar para agenda (.ics)</button>
             <a href={`/api/trips/${tripId}/export`}>Exportar backup (JSON)</a>
@@ -603,7 +637,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'stats' && <StatsModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onClose={() => setModal(null)} />}
       {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} initialDay={sel === 'trip' ? days[0] : sel} onPick={(d, aid) => { setModal(null); go(d); if (aid) setSelectedId(aid); }} onClose={() => setModal(null)} />}
       {modal === 'search' && <SearchModal data={data} cityMap={cityMap} onPick={onSearchPick} onClose={() => setModal(null)} />}
-      {modal === 'budget' && <BudgetModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} onClose={() => setModal(null)} />}
+      {modal === 'budget' && <BudgetModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} rateAuto={trip.rate_auto !== 0} rateAt={trip.rate_at} onRateAuto={setRateAuto} files={data.files || []} onClose={() => setModal(null)} />}
+      {modal === 'reminders' && <RemindersModal trip={trip} onSave={patchTrip} onCalendar={setCalendar} notify={notify} onNotify={async (on) => setNotifyState(await setNotify(on))} onClose={() => setModal(null)} />}
+      {modal === 'offline' && <OfflineMapModal cities={data.cities} onClose={() => setModal(null)} />}
       {modal === 'share' && <ShareModal trip={trip} onCreate={() => setShare(true)} onRemove={() => setShare(false)} onClose={() => setModal(null)} />}
       {toast && !undo && <div className="toast">{toast}</div>}
       {undo && (

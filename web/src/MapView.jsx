@@ -6,6 +6,20 @@ import { translatedBasemap, osmLayer } from './basemap.js';
 
 const WORLD_CENTER = [20, 0];
 
+// região da viagem (cidades, hospedagens e atividades), com um tamanho mínimo de ~60 km
+function regionOf(cities, stays, items) {
+  // voos ficam de fora: o aeroporto de origem (ex.: Guarulhos) não faz parte da região da viagem
+  const pts = [...cities.filter((c) => c.key !== 'transito'), ...stays, ...items.filter((a) => a.kind !== 'flight')].filter(hasCoords);
+  if (!pts.length) return null;
+  let b = L.latLngBounds(pts.map((p) => [p.lat, p.lng]));
+  const c = b.getCenter();
+  const min = 0.3;
+  if (b.getNorth() - b.getSouth() < min * 2 || b.getEast() - b.getWest() < min * 2) {
+    b = b.extend([c.lat - min, c.lng - min]).extend([c.lat + min, c.lng + min]);
+  }
+  return b;
+}
+
 function bearing(a, b) {
   const rad = (d) => (d * Math.PI) / 180;
   const y = Math.sin(rad(b.lng - a.lng)) * Math.cos(rad(b.lat));
@@ -61,7 +75,12 @@ export default function MapView({
 
   // ── cria o mapa uma vez
   useEffect(() => {
-    const map = L.map(elRef.current, { zoomControl: false, preferCanvas: false }).setView(WORLD_CENTER, 2);
+    // pontos e linhas em canvas (um só desenho) em vez de um elemento por ponto
+    const map = L.map(elRef.current, { zoomControl: false, preferCanvas: true, maxBoundsViscosity: 0.7 });
+    // já abre na região da viagem: o mapa nunca carrega o mundo inteiro
+    const region = regionOf(cities, stays, cities.length ? [] : items);
+    if (region) map.fitBounds(region, { animate: false, padding: [40, 40] }); else map.setView(WORLD_CENTER, 2);
+    elRef.current._leaflet_map = map; // usado nos testes
     const base = translatedBasemap(); // rótulos em português/inglês em vez de kanji etc.
     const osm = osmLayer();
     const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
@@ -85,6 +104,18 @@ export default function MapView({
     const c = mapRef.current?.getContainer();
     if (c) c.classList.toggle('picking', !!picking);
   }, [picking]);
+
+  // "recorte": dá para navegar só em volta da região da viagem e não afastar até o mundo inteiro,
+  // então o mapa-base só baixa e desenha os trechos dessa área
+  const regionKey = cities.filter(hasCoords).map((c) => `${c.lat.toFixed(2)},${c.lng.toFixed(2)}`).join('|');
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const region = regionOf(cities, stays, cities.length ? [] : items);
+    if (!region) { map.setMaxBounds(null); map.setMinZoom(0); return; }
+    map.setMaxBounds(region.pad(1.2));
+    map.setMinZoom(Math.max(2, map.getBoundsZoom(region.pad(0.8)) - 1));
+  }, [regionKey]);
 
   // ── redesenha camadas quando os dados mudam
   useEffect(() => {
@@ -192,7 +223,7 @@ export default function MapView({
       // nomes de cidade que se sobrepõem: fica o da cidade com mais pontos turísticos
       const declutter = () => {
         const z = map.getZoom();
-        detail.eachLayer((l) => { const el = l.getElement?.(); if (el) el.style.display = z >= 9 ? '' : 'none'; });
+        if (z >= 9) { if (!group.hasLayer(detail)) group.addLayer(detail); } else group.removeLayer(detail);
         const kept = [];
         [...cityMarkers].sort((x, y) => y.n - x.n).forEach(({ m }) => {
           const el = m.getElement()?.querySelector('.city-name');
@@ -225,9 +256,10 @@ export default function MapView({
     // enquadra o mapa só quando o contexto muda (dia/modo), não a cada edição
     const key = `${mode}|${fitKey}`;
     if (lastFit.current !== key && bounds.length) {
+      const first = lastFit.current == null;
       lastFit.current = key;
-      if (bounds.length === 1) map.setView(bounds[0], 15);
-      else map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true });
+      if (bounds.length === 1) map.setView(bounds[0], 15, { animate: !first });
+      else map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: !first });
     } else if (lastFit.current !== key) {
       lastFit.current = key;
     }

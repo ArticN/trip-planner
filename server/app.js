@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import express from 'express';
 import { db } from './db.js';
 import * as japan from './examples/japan.js';
+import { buildIcs } from '../web/src/ics.js';
 
 // viagens de exemplo que o usuário pode carregar na tela inicial
 const EXAMPLES = { japao: japan };
@@ -12,7 +13,7 @@ const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min'];
 
 const clean = (v) => (v === '' || v === undefined ? null : v);
 const pick = (body, fields) => fields.map((f) => (f in body ? clean(body[f]) : null));
@@ -83,7 +84,7 @@ async function migrate() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
       activity_id INTEGER, idea_id INTEGER,
-      name TEXT, type TEXT, size INTEGER, data BLOB,
+      name TEXT, type TEXT, size INTEGER, data BLOB, kind TEXT DEFAULT 'doc',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_files_trip ON files(trip_id);
@@ -99,7 +100,8 @@ async function migrate() {
   };
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180']]);
+  await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
 
   if (legacy) {
     const kv = Object.fromEntries((await db.all('SELECT key, value FROM trip')).map((r) => [r.key, r.value]));
@@ -192,7 +194,7 @@ async function getTrip(id) {
     db.all('SELECT * FROM checklist WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT * FROM ideas WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT * FROM days WHERE trip_id = ? ORDER BY day', [id]),
-    db.all('SELECT id, activity_id, idea_id, name, type, size, created_at FROM files WHERE trip_id = ? ORDER BY id', [id]),
+    db.all('SELECT id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE trip_id = ? ORDER BY id', [id]),
   ]);
   return { trip, cities, stays, activities, checklist, ideas, days, files };
 }
@@ -242,6 +244,19 @@ app.post('/api/logout', (req, res) => {
   res.json({ ok: true });
 });
 // ── link de compartilhamento: só leitura, sem senha, sem dados privados (notas, links, reservas, gastos, checklist)
+// agenda assinada (Google Agenda / Apple Calendário): o app de agenda busca sozinho de tempos em tempos,
+// com lembretes antes de cada atividade. Link secreto por viagem, sem senha (agendas não fazem login).
+app.get('/api/cal/:token', h(async (req, res) => {
+  const t = String(req.params.token || '').replace(/\.ics$/, '');
+  const row = t.length >= 16 && (await db.get('SELECT id FROM trips WHERE cal_token = ?', [t]));
+  if (!row) return res.status(404).type('text/plain').send('agenda não encontrada');
+  const d = await getTrip(row.id);
+  const cityMap = Object.fromEntries(d.cities.map((c) => [c.key, c]));
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(buildIcs(d.trip, d.activities, cityMap, { alarm: d.trip.remind_min ?? 30, flightAlarm: d.trip.remind_flight_min ?? 180, feed: true }));
+}));
+
 const SHARE_ACT = ['id', 'day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'lat', 'lng', 'sort', 'start_tz', 'end_tz', 'from_code', 'to_code'];
 const only = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k] ?? null]));
 app.get('/api/share/:token', h(async (req, res) => {
@@ -328,7 +343,7 @@ app.get('/api/trips/:id/export', needTrip, h(async (req, res) => {
   const d = await getTrip(req.tripId);
   const file = `${d.trip.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'viagem'}.json`;
   res.setHeader('Content-Disposition', `attachment; filename="${file}"`);
-  res.json({ ...d, trip: { ...d.trip, share_token: undefined } });
+  res.json({ ...d, trip: { ...d.trip, share_token: undefined, cal_token: undefined } });
 }));
 
 app.post('/api/trips/:id/share', needTrip, h(async (req, res) => {
@@ -339,6 +354,16 @@ app.post('/api/trips/:id/share', needTrip, h(async (req, res) => {
 app.delete('/api/trips/:id/share', needTrip, h(async (req, res) => {
   await db.run('UPDATE trips SET share_token = NULL WHERE id = ?', [req.tripId]);
   res.json({ share_token: null });
+}));
+
+app.post('/api/trips/:id/calendar', needTrip, h(async (req, res) => {
+  const t = crypto.randomBytes(18).toString('base64url');
+  await db.run('UPDATE trips SET cal_token = ? WHERE id = ?', [t, req.tripId]);
+  res.json({ cal_token: t });
+}));
+app.delete('/api/trips/:id/calendar', needTrip, h(async (req, res) => {
+  await db.run('UPDATE trips SET cal_token = NULL WHERE id = ?', [req.tripId]);
+  res.json({ cal_token: null });
 }));
 
 // cidades de todas as viagens, para o mapa de países
@@ -447,9 +472,10 @@ app.post('/api/:kind(activities|ideas)/:oid/files', express.raw({ type: () => tr
   name = name.replace(/[\\/\r\n"]/g, '_').slice(0, 160) || 'arquivo';
   // o corpo vai como octet-stream (para o express.json global não interpretar .json); o tipo real vem em X-File-Type
   const type = String(req.get('x-file-type') || 'application/octet-stream').split(';')[0].trim().toLowerCase().slice(0, 100);
-  const r = await db.run('INSERT INTO files (trip_id, activity_id, idea_id, name, type, size, data) VALUES (?,?,?,?,?,?,?)',
-    [owner.trip_id, isAct ? owner.id : null, isAct ? null : owner.id, name, type, data.length, data]);
-  res.status(201).json(await db.get('SELECT id, activity_id, idea_id, name, type, size, created_at FROM files WHERE id = ?', [r.lastInsertRowid]));
+  const kind = req.get('x-file-kind') === 'receipt' ? 'receipt' : 'doc'; // recibo do gasto real ou documento
+  const r = await db.run('INSERT INTO files (trip_id, activity_id, idea_id, name, type, size, data, kind) VALUES (?,?,?,?,?,?,?,?)',
+    [owner.trip_id, isAct ? owner.id : null, isAct ? null : owner.id, name, type, data.length, data, kind]);
+  res.status(201).json(await db.get('SELECT id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE id = ?', [r.lastInsertRowid]));
 }));
 app.get('/api/files/:fid', h(async (req, res) => {
   const f = await db.get('SELECT name, type, data FROM files WHERE id = ?', [Number(req.params.fid)]);

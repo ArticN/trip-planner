@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from './Modals.jsx';
+import { planTiles, estimateMB, downloadMaps, offlineInfo, clearMaps } from './offlineMap.js';
+import { buildIcs } from './ics.js';
 import { KINDS, KIND_KEYS, hasCoords, haversine, fmtKm, fmtDay, fmtDayLong, dayNum, dayWeek, daysBetween, actTz, endDayOf, zonedMs, toMin } from './util.js';
 
 // ── links de uma atividade: guardados como JSON [{ label, url }]
@@ -324,39 +326,8 @@ export function CalendarModal({ days, byDay, cityMap, daysInfo, fx, onPick, onCl
 
 // ── exporta o roteiro como calendário (.ics), para importar no Google Agenda / Apple Calendário
 export function downloadIcs(trip, activities, cityMap) {
-  const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, (m) => `\\${m}`);
-  const d8 = (d) => d.replace(/-/g, '');
-  const t6 = (t) => `${t.replace(':', '')}00`;
-  const next = (d) => { const x = new Date(`${d}T12:00:00`); x.setDate(x.getDate() + 1); return x.toISOString().slice(0, 10); };
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Trip Planner//PT-BR', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${esc(trip.name)}`];
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-  activities.forEach((a) => {
-    const desc = [a.details, a.notes, ...parseLinks(a.links).map((l) => l.url)].filter(Boolean).join('\n');
-    const loc = [a.location, cityMap[a.city]?.name].filter(Boolean).join(', ');
-    lines.push('BEGIN:VEVENT', `UID:tp-${trip.id}-${a.id}@trip-planner`, `DTSTAMP:${stamp}`);
-    const tz = actTz(a, trip.tz);
-    const utc = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-    if (a.start && tz.start) {
-      // com fuso: grava em UTC, e cada agenda mostra no fuso de quem estiver vendo
-      lines.push(`DTSTART:${utc(zonedMs(a.day, a.start, tz.start))}`);
-      if (a.end) lines.push(`DTEND:${utc(zonedMs(endDayOf(a), a.end, tz.end))}`);
-    } else if (a.start) {
-      // sem fuso: horário "flutuante", aparece igual em qualquer fuso
-      lines.push(`DTSTART:${d8(a.day)}T${t6(a.start)}`);
-      if (a.end) lines.push(`DTEND:${d8(endDayOf(a))}T${t6(a.end)}`);
-    } else {
-      lines.push(`DTSTART;VALUE=DATE:${d8(a.day)}`, `DTEND;VALUE=DATE:${d8(next(a.day))}`);
-    }
-    lines.push(`SUMMARY:${esc(a.title)}`);
-    if (loc) lines.push(`LOCATION:${esc(loc)}`);
-    if (desc) lines.push(`DESCRIPTION:${esc(desc)}`);
-    if (hasCoords(a)) lines.push(`GEO:${a.lat};${a.lng}`);
-    lines.push('END:VEVENT');
-  });
-  lines.push('END:VCALENDAR');
-  // RFC 5545: linhas com mais de 75 caracteres continuam na seguinte, começando com espaço
-  const fold = (l) => (l.length <= 74 ? l : l.match(/.{1,73}/gu).join('\r\n '));
-  const blob = new Blob([lines.map(fold).join('\r\n')], { type: 'text/calendar' });
+  const text = buildIcs(trip, activities, cityMap, { alarm: trip.remind_min ?? 30, flightAlarm: trip.remind_flight_min ?? 180 });
+  const blob = new Blob([text], { type: 'text/calendar' });
   const url = URL.createObjectURL(blob);
   const el = document.createElement('a');
   el.href = url;
@@ -414,6 +385,62 @@ export function SearchModal({ data, cityMap, onPick, onClose }) {
       )}
       {results.length > shown.length && <div className="muted small">Mostrando {shown.length} de {results.length}. Refine a busca.</div>}
       {!terms.length && <div className="muted small search-hint">Dica: aperte “/” em qualquer tela da viagem para abrir a busca.</div>}
+    </Modal>
+  );
+}
+
+// ── baixar o mapa das cidades para usar sem internet
+export function OfflineMapModal({ cities, onClose }) {
+  const list = cities.filter((c) => c.key !== 'transito' && c.lat != null && c.lng != null);
+  const [pick, setPick] = useState(() => new Set(list.map((c) => c.key)));
+  const [km, setKm] = useState(8);
+  const [prog, setProg] = useState(null);
+  const [info, setInfo] = useState(null);
+  const [err, setErr] = useState('');
+  const ctl = useRef(null);
+  useEffect(() => { offlineInfo().then(setInfo); return () => ctl.current?.abort(); }, []);
+  const chosen = list.filter((c) => pick.has(c.key));
+  const n = useMemo(() => planTiles(chosen, km).length, [chosen.length, km]);
+  const busy = prog && !prog.finished;
+  const start = async () => {
+    setErr(''); ctl.current = new AbortController();
+    setProg({ done: 0, total: 1, bytes: 0, failed: 0 });
+    try {
+      const r = await downloadMaps(chosen, km, (p) => setProg(p), ctl.current.signal);
+      setProg({ ...r, finished: true });
+      setInfo(await offlineInfo());
+    } catch (e) { setErr(`Não consegui baixar: ${e.message}`); setProg(null); }
+  };
+  const mb = (b) => `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
+  return (
+    <Modal title="Mapa offline" onClose={onClose} footer={<><span className="spacer" />{busy ? <button onClick={() => { ctl.current?.abort(); setProg(null); }}>Cancelar</button> : <button onClick={onClose}>Fechar</button>}</>}>
+      <p className="muted">Guarda no aparelho o mapa em volta das cidades escolhidas, para navegar no mapa sem internet. Faça isso no Wi-Fi antes de viajar.</p>
+      <div className="off-cities">
+        {list.map((c) => (
+          <label key={c.key} className="check-line">
+            <input type="checkbox" checked={pick.has(c.key)} disabled={busy} onChange={(e) => setPick((s) => { const x = new Set(s); e.target.checked ? x.add(c.key) : x.delete(c.key); return x; })} />
+            {c.name}
+          </label>
+        ))}
+      </div>
+      <label className="off-radius">Raio em volta de cada cidade
+        <select value={km} disabled={busy} onChange={(e) => setKm(Number(e.target.value))}>
+          {[4, 8, 12, 20].map((k) => <option key={k} value={k}>{k} km</option>)}
+        </select>
+      </label>
+      <p className="small muted">{n} trechos de mapa, cerca de {estimateMB(n)} MB.</p>
+      {prog && (
+        <div className="off-prog">
+          <div className="bar-t"><i style={{ width: `${Math.round((prog.done / prog.total) * 100)}%`, background: 'var(--accent)' }} /></div>
+          <span className="small">{prog.finished ? `Pronto: ${prog.done} itens, ${mb(prog.bytes)}${prog.failed ? ` (${prog.failed} falharam; tente de novo)` : ''}.` : `Baixando ${prog.done} de ${prog.total} · ${mb(prog.bytes)}`}</span>
+        </div>
+      )}
+      {err && <div className="warn">{err}</div>}
+      <div className="row" style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="primary" disabled={busy || !chosen.length} onClick={start}>{info ? 'Baixar de novo' : 'Baixar mapa'}</button>
+        {info && !busy && <button className="danger" onClick={async () => { await clearMaps(); setInfo(null); setProg(null); }}>Apagar mapas baixados</button>}
+      </div>
+      {info && !busy && <p className="small muted" style={{ marginTop: 10 }}>Já guardado: {info.cities?.join(', ') || 'mapa'}{info.km ? ` (${info.km} km)` : ''}{info.at ? `, em ${new Date(info.at).toLocaleDateString('pt-BR')}` : ''}.</p>}
     </Modal>
   );
 }

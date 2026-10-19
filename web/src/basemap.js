@@ -43,7 +43,12 @@ export function translatedBasemap() {
       if (!L.maplibreGL) throw new Error('plugin do MapLibre não carregou');
       let theme = getTheme();
       let loaded = false;
-      inner = L.maplibreGL({ style: STYLE[theme], attribution: ATTR, maplibregl });
+      inner = L.maplibreGL({
+        style: STYLE[theme], attribution: ATTR, maplibregl,
+        // mais leve: sem cópias do mundo lado a lado, sem animação de fade dos rótulos,
+        // resolução no máximo 2x (telas 3x desenham 2,25x mais pixels sem ganho visível) e cache de tiles menor
+        renderWorldCopies: false, fadeDuration: 0, pixelRatio: Math.min(window.devicePixelRatio || 1, 2), maxTileCacheSize: 120,
+      });
       group.addLayer(inner);
       const gl = inner.getMaplibreMap();
       gl.on('style.load', () => { loaded = true; relabel(gl); });

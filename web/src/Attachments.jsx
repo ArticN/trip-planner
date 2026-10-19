@@ -42,8 +42,9 @@ export function FileIcon({ type }) {
 }
 
 // lista para leitura (painel do pin, roteiro compartilhado não usa)
-export function FileList({ files }) {
-  if (!files?.length) return null;
+export function FileList({ files: all }) {
+  const files = (all || []).filter((f) => (f.kind || 'doc') === 'doc');
+  if (!files.length) return null;
   return (
     <ul className="file-list">
       {files.map((f) => (
@@ -59,7 +60,11 @@ export function FileList({ files }) {
 }
 
 // campo do editor: anexa na hora (item já salvo) ou guarda para enviar ao salvar (item novo)
-export function AttachmentsField({ files = [], pending = [], onAdd, onRemove, onPending }) {
+export function AttachmentsField({ files: allFiles = [], pending: allPending = [], onAdd, onRemove, onPending, kind = 'doc' }) {
+  const isReceipt = kind === 'receipt';
+  const files = allFiles.filter((f) => (f.kind || 'doc') === kind);
+  const pending = allPending.filter((f) => (f.kind || 'doc') === kind);
+  const others = allPending.filter((f) => (f.kind || 'doc') !== kind);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const pick = async (e) => {
@@ -69,14 +74,15 @@ export function AttachmentsField({ files = [], pending = [], onAdd, onRemove, on
     setBusy(true); setErr('');
     try {
       const { ok, errors } = await prepareFiles(list);
-      if (onPending) onPending([...pending, ...ok]);
+      ok.forEach((f) => { f.kind = kind; });
+      if (onPending) onPending([...others, ...pending, ...ok]);
       else for (const f of ok) await onAdd(f);
       if (errors.length) setErr(`Não anexei: ${errors.join(', ')}.`);
     } catch (x) { setErr(`Não consegui enviar: ${x.message}`); } finally { setBusy(false); }
   };
   return (
-    <div className="full fieldset attach">
-      <div className="legend">Anexos <span className="muted small">ingressos, passagens, vouchers (até 4 MB cada)</span></div>
+    <div className={`full fieldset attach${isReceipt ? ' receipt' : ''}`}>
+      <div className="legend">{isReceipt ? <>Recibo <span className="muted small">foto ou PDF do comprovante do gasto real</span></> : <>Anexos <span className="muted small">ingressos, passagens, vouchers (até 4 MB cada)</span></>}</div>
       {(files.length > 0 || pending.length > 0) && (
         <ul className="file-list edit">
           {files.map((f) => (
@@ -91,14 +97,14 @@ export function AttachmentsField({ files = [], pending = [], onAdd, onRemove, on
           {pending.map((f, i) => (
             <li key={`p${i}`} className="pending">
               <span className="file-a"><FileIcon type={f.type} /><span><b>{f.name}</b><small>{fmtSize(f.size)} · envia ao salvar</small></span></span>
-              <button type="button" className="icon-btn sm" onClick={() => onPending(pending.filter((_, j) => j !== i))} aria-label={`Remover ${f.name}`} title="Remover">×</button>
+              <button type="button" className="icon-btn sm" onClick={() => onPending([...others, ...pending.filter((_, j) => j !== i)])} aria-label={`Remover ${f.name}`} title="Remover">×</button>
             </li>
           ))}
         </ul>
       )}
       <label className={`btn-like${busy ? ' disabled' : ''}`}>
-        {busy ? 'Enviando…' : 'Anexar arquivo'}
-        <input type="file" multiple hidden disabled={busy} onChange={pick} accept="image/*,application/pdf,.pkpass,.txt,.eml,.html,.doc,.docx" />
+        {busy ? 'Enviando…' : isReceipt ? 'Foto do recibo' : 'Anexar arquivo'}
+        <input type="file" multiple hidden disabled={busy} onChange={pick} accept={isReceipt ? 'image/*,application/pdf' : 'image/*,application/pdf,.pkpass,.txt,.eml,.html,.doc,.docx'} />
       </label>
       {err && <div className="warn">{err}</div>}
     </div>

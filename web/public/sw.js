@@ -8,6 +8,7 @@ const APP = `app-${V}`;
 const API = `api-${V}`;
 const TILES = `tiles-${V}`;
 const FILES = 'files-v1';
+const OFFLINE = 'maps-offline'; // mapas baixados de propósito ("Baixar mapa offline"): nunca são apagados sozinhos
 const MAX_TILES = 3000;
 
 self.addEventListener('install', (e) => {
@@ -16,7 +17,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys()
-    .then((keys) => Promise.all(keys.filter((k) => ![APP, API, TILES, FILES].includes(k)).map((k) => caches.delete(k))))
+    .then((keys) => Promise.all(keys.filter((k) => ![APP, API, TILES, FILES, OFFLINE].includes(k)).map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -56,11 +57,22 @@ async function trimTiles() {
   } finally { trimming = false; }
 }
 
-async function staleWhileRevalidate(req, cacheName) {
+// o OpenFreeMap troca a versão dos tiles toda semana (/planet/<versão>/z/x/y.pbf);
+// a chave sem a versão faz um tile baixado continuar valendo depois da troca
+const tileKey = (url) => url.replace(/(tiles\.openfreemap\.org\/planet\/)[^/]+(\/\d+\/\d+\/\d+\.pbf)/, '$1_$2');
+
+async function tile(req) {
+  const key = tileKey(req.url);
+  const off = await (await caches.open(OFFLINE)).match(key);
+  if (off) return off;
+  return staleWhileRevalidate(req, TILES, key);
+}
+
+async function staleWhileRevalidate(req, cacheName, key = req) {
   const cache = await caches.open(cacheName);
-  const hit = await cache.match(req);
+  const hit = await cache.match(key);
   const update = fetch(req).then((res) => {
-    if (res.ok || res.type === 'opaque') { cache.put(req, res.clone()); trimTiles(); }
+    if (res.ok || res.type === 'opaque') { cache.put(key, res.clone()); trimTiles(); }
     return res;
   });
   if (hit) { update.catch(() => {}); return hit; }
@@ -80,7 +92,7 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(networkFirst(req, APP));
     return;
   }
-  if (isTile(url)) { e.respondWith(staleWhileRevalidate(req, TILES)); return; }
+  if (isTile(url)) { e.respondWith(tile(req)); return; }
   if (isFont(url)) e.respondWith(cacheFirst(req, APP));
 });
 

@@ -1,6 +1,20 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.11',
+    date: '2026-10-19',
+    title: 'Tempo, câmbio, deslocamento, mapa offline e lembretes',
+    items: [
+      'Previsão do tempo em cada dia (máxima, mínima e chance de chuva). Até 16 dias antes aparece a previsão; antes disso, como costuma fazer na mesma semana nos últimos 3 anos.',
+      'Câmbio atualizado sozinho com a cotação do dia. Digitar um valor no Orçamento desliga a atualização; a caixinha liga de novo.',
+      'Foto do recibo junto do “Gasto real” (abre a câmera no celular). O Orçamento mostra o link do recibo em cada item.',
+      'Tempo real de deslocamento entre as atividades: a pé pela rota das ruas, de transporte com estimativa e link da rota no Google Maps. Avisa quando não dá tempo de chegar.',
+      'Mapa offline (menu ⋯): baixa o mapa em volta das cidades da viagem para navegar sem internet.',
+      'Lembretes (menu ⋯): o roteiro vira uma agenda no iPhone ou no Google Agenda, com aviso antes de cada atividade e voo, mesmo com o app fechado.',
+      'Mapa mais leve: abre direto na região da viagem, não deixa afastar até o mundo inteiro e desenha menos coisas por vez.',
+    ],
+  },
+  {
     version: '1.10',
     date: '2026-10-19',
     title: 'Anexos nas atividades',

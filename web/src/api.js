@@ -30,6 +30,8 @@ export const api = {
   unshare: (id) => req('DELETE', `/api/trips/${id}/share`),
   shared: (token) => req('GET', `/api/share/${encodeURIComponent(token)}`),
   places: () => req('GET', '/api/places'),
+  calendar: (id) => req('POST', `/api/trips/${id}/calendar`),
+  uncalendar: (id) => req('DELETE', `/api/trips/${id}/calendar`),
   // atividades
   createActivity: (tripId, a) => req('POST', `/api/trips/${tripId}/activities`, a),
   updateActivity: (id, patch) => req('PUT', `/api/activities/${id}`, patch),
@@ -40,7 +42,7 @@ export const api = {
   uploadFile: async (owner, id, file) => {
     const res = await fetch(`/api/${owner === 'idea' ? 'ideas' : 'activities'}/${id}/files`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name || 'arquivo'), 'X-File-Type': file.type || 'application/octet-stream' },
+      headers: { 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name || 'arquivo'), 'X-File-Type': file.type || 'application/octet-stream', 'X-File-Kind': file.kind || 'doc' },
       body: file,
     });
     if (res.status === 401) window.dispatchEvent(new Event('auth-required'));

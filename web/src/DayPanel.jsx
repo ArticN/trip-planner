@@ -2,16 +2,34 @@ import { Stars } from './Stars.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
+import WeatherLine from './WeatherLine.jsx';
+import { travelTime, slack, gmapsDirections } from './travel.js';
 import {
-  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone,
+  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone, nowIn,
 } from './util.js';
 
+const MODE_LABEL = { foot: 'a pé', car: 'de carro', transit: 'de transporte' };
+
 function Gap({ a, b }) {
-  if (!hasCoords(a) || !hasCoords(b)) return null;
-  const km = haversine(a, b);
-  if (km < 0.05) return null;
-  const walk = km <= 2.5 ? ` · ~${Math.max(1, Math.round((km / 4.5) * 60))} min a pé` : '';
-  return <div className="gap">↓ {fmtKm(km)} em linha reta{walk}</div>;
+  const [t, setT] = useState(null);
+  const ok = hasCoords(a) && hasCoords(b) && haversine(a, b) >= 0.05;
+  const isMove = ['move', 'flight'].includes(a.kind) || ['move', 'flight'].includes(b.kind);
+  useEffect(() => {
+    let live = true;
+    if (ok && !isMove) travelTime(a, b).then((v) => live && setT(v)).catch(() => {});
+    return () => { live = false; };
+  }, [a.lat, a.lng, b.lat, b.lng, b.transport, ok, isMove]);
+  if (!ok) return null;
+  if (isMove || !t) return <div className="gap">↓ {fmtKm(haversine(a, b))} em linha reta</div>;
+  const free = slack(a, b);
+  const tight = free != null && free < t.min;
+  return (
+    <div className={`gap${tight ? ' tight' : ''}`}>
+      ↓ {fmtKm(t.km)} {MODE_LABEL[t.mode]} · {t.estimate ? '~' : ''}{fmtDuration(t.min)}
+      {tight && <b> · {free < 0 ? 'horários se sobrepõem' : free === 0 ? 'sem tempo para chegar' : `só ${free} min entre as duas`}</b>}
+      {' · '}<a href={gmapsDirections(a, b, t.mode)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>rota</a>
+    </div>
+  );
 }
 
 // tema do dia (ex.: "Templos de Higashiyama") e anotações livres
@@ -101,6 +119,11 @@ export default function DayPanel({
             <span key={k} className="chip" style={{ '--c': cityMap[k]?.color }}>{cityMap[k]?.emoji} {cityMap[k]?.name || k}</span>
           ))}
         </div>
+        {(() => {
+          const c = cityMap[cities[0]];
+          const at = c && c.lat != null ? c : here;
+          return at ? <WeatherLine lat={at.lat} lng={at.lng} day={day} today={nowIn(tripTz).day} /> : null;
+        })()}
         {sun && <div className="stay-line sun-line">Sol nasce às {sun.rise} e se põe às {sun.set}</div>}
         {checkout && <div className="stay-line">Check-out · {checkout.name}{checkout.check_out_time ? ` às ${checkout.check_out_time}` : ''}</div>}
         {stay && (
@@ -205,11 +228,11 @@ export default function DayPanel({
                       {a.review && <span>{a.review}</span>}
                     </div>
                   )}
-                  {(parseLinks(a.links).length > 0 || hasCoords(a) || files.some((f) => f.activity_id === a.id)) && (
+                  {(parseLinks(a.links).length > 0 || hasCoords(a) || files.some((f) => f.activity_id === a.id && (f.kind || 'doc') === 'doc')) && (
                     <div className="links">
                       {hasCoords(a) && <a href={directionsUrl(a)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Como chegar</a>}
                       {parseLinks(a.links).map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{linkLabel(l)}</a>)}
-                      {files.filter((f) => f.activity_id === a.id).map((f) => (
+                      {files.filter((f) => f.activity_id === a.id && (f.kind || 'doc') === 'doc').map((f) => (
                         <a key={`f${f.id}`} className="file-link" href={api.fileUrl(f.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={f.name}>
                           <Clip />{f.name}
                         </a>

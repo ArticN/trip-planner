@@ -171,6 +171,12 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
             <input type="number" min="0" step="any" value={draft.spent ?? ''} onChange={(e) => set({ spent: num(e.target.value) })} placeholder="quanto saiu de fato" />
           </label>
         )}
+        {!isIdea && (draft.spent != null || files.some((f) => f.kind === 'receipt') || (draft._pending || []).some((f) => f.kind === 'receipt')) && (
+          <AttachmentsField
+            kind="receipt" files={files} onAdd={onAddFile} onRemove={onRemoveFile}
+            pending={draft._pending || []} onPending={isNew ? (p) => set({ _pending: p }) : undefined}
+          />
+        )}
         <label>Local (texto)
           <input value={draft.location || ''} onChange={(e) => set({ location: e.target.value })} placeholder="Bairro / endereço" />
         </label>
@@ -297,8 +303,10 @@ export function StaysModal({ stays, cities, trip, onSave, onCreate, onDelete, on
   );
 }
 
-export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate, onClose }) {
+export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate, rateAuto, rateAt, onRateAuto, onClose, files = [] }) {
+  const receiptOf = (id) => files.filter((f) => f.activity_id === id && f.kind === 'receipt');
   const [rate, setRate] = useState(String(fx.rate));
+  useEffect(() => setRate(String(fx.rate)), [fx.rate]);
   const r = Number(rate.replace(',', '.')) || 0;
   const home = (n) => (fx.convert && r > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: fx.home }).format(n * r) : '');
   const withCost = activities.filter((a) => a.cost > 0 || a.spent != null);
@@ -320,9 +328,15 @@ export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate,
     <Modal title={`Orçamento (${fx.cur})`} onClose={onClose} wide footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
       <div className="budget-top">
         {fx.cur !== fx.home && (
-          <label>1 {fx.cur} =
-            <input value={rate} onChange={(e) => setRate(e.target.value)} onBlur={() => r > 0 && onRate(r)} inputMode="decimal" /> {fx.home}
-          </label>
+          <div className="rate-box">
+            <label>1 {fx.cur} =
+              <input value={rate} onChange={(e) => setRate(e.target.value)} onBlur={() => r > 0 && r !== fx.rate && onRate(r)} inputMode="decimal" /> {fx.home}
+            </label>
+            <label className="check-line">
+              <input type="checkbox" checked={!!rateAuto} onChange={(e) => onRateAuto(e.target.checked)} />
+              Atualizar sozinho com a cotação do dia{rateAuto && rateAt ? ` (atualizada em ${rateAt.slice(8)}/${rateAt.slice(5, 7)})` : ''}
+            </label>
+          </div>
         )}
         <div className="big"><b>{fx.fmt(total)}</b><span>previsto{home(total) ? ` · ${home(total)}` : ''}</span></div>
       </div>
@@ -333,7 +347,7 @@ export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate,
           <div className={diff > 0 ? 'over' : 'under'}><b>{diff > 0 ? '+' : diff < 0 ? '−' : ''}{fx.fmt(Math.abs(diff))}</b><span>{diff > 0 ? 'acima do previsto' : diff < 0 ? 'abaixo do previsto' : 'igual ao previsto'}</span></div>
         </div>
       )}
-      <p className="muted small">Só entram os custos que você preencheu nas atividades e hospedagens. Anote o “Gasto real” ao editar uma atividade para comparar com o previsto.{fx.cur !== fx.home && ' O câmbio é editável, confira o do dia.'} Moedas e câmbio podem ser alterados em “Editar viagem”.</p>
+      <p className="muted small">Só entram os custos que você preencheu nas atividades e hospedagens. Anote o “Gasto real” ao editar uma atividade para comparar com o previsto.{fx.cur !== fx.home && ' Com a atualização automática, o câmbio é a cotação comercial do dia; digitar um valor desliga a atualização.'} Moedas e câmbio podem ser alterados em “Editar viagem”.</p>
       {withCost.length === 0 && <div className="empty">Nenhum custo cadastrado ainda. Preencha o campo “Custo” ao editar uma atividade.</div>}
       <div className="two-col">
         <div>
@@ -341,7 +355,7 @@ export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate,
           <table className="tbl">
             <tbody>
               {withCost.sort((a, b) => a.day.localeCompare(b.day)).map((a) => (
-                <tr key={a.id}><td>{fmtDay(a.day)}</td><td>{a.title}</td><td className="r">{a.cost ? fx.fmt(a.cost) : '—'}{a.spent != null && <div className={`spent-cell ${a.spent > (a.cost || 0) ? 'over' : 'under'}`}>gasto {fx.fmt(a.spent)}</div>}</td><td className="r muted">{a.cost ? home(a.cost) : ''}</td></tr>
+                <tr key={a.id}><td>{fmtDay(a.day)}</td><td>{a.title}</td><td className="r">{a.cost ? fx.fmt(a.cost) : '—'}{a.spent != null && <div className={`spent-cell ${a.spent > (a.cost || 0) ? 'over' : 'under'}`}>gasto {fx.fmt(a.spent)}</div>}{receiptOf(a.id).map((f) => <a key={f.id} className="receipt-link" href={`/api/files/${f.id}`} target="_blank" rel="noreferrer">recibo</a>)}</td><td className="r muted">{a.cost ? home(a.cost) : ''}</td></tr>
               ))}
               {staysCost.map((s) => (
                 <tr key={`s${s.id}`}><td>{fmtDay(s.check_in)}</td><td>Hospedagem · {s.name}</td><td className="r">{fx.fmt(s.cost)}</td><td className="r muted">{home(s.cost)}</td></tr>
@@ -426,7 +440,7 @@ export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
           {!isNew && <button onClick={onDuplicate}>Duplicar</button>}
           <span className="spacer" />
           <button onClick={onClose}>Cancelar</button>
-          <button className="primary" disabled={!valid} onClick={() => onSave({ ...d, name: d.name.trim(), rate: sameCur ? 1 : Number(String(d.rate).replace(',', '.')) || 1 })}>{isNew ? 'Criar viagem' : 'Salvar'}</button>
+          <button className="primary" disabled={!valid} onClick={() => { const rate = sameCur ? 1 : Number(String(d.rate).replace(',', '.')) || 1; onSave({ ...d, name: d.name.trim(), rate, ...(trip.id && rate !== Number(trip.rate) ? { rate_auto: 0 } : {}) }); }}>{isNew ? 'Criar viagem' : 'Salvar'}</button>
         </>
       }
     >
@@ -556,6 +570,63 @@ export function ShareModal({ trip, onCreate, onRemove, onClose }) {
       ) : (
         <button className="primary" disabled={busy} onClick={run(onCreate)}>Criar link</button>
       )}
+    </Modal>
+  );
+}
+
+// lembretes: na agenda do celular (assinatura .ics, funciona com o app fechado) e neste aparelho com o app aberto
+export function RemindersModal({ trip, onSave, onCalendar, notify, onNotify, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [copied, setCopied] = useState(false);
+  const https = trip.cal_token ? `${window.location.origin}/api/cal/${trip.cal_token}.ics` : '';
+  const webcal = https.replace(/^https?:/, 'webcal:');
+  const run = (fn) => async () => { setBusy(true); setErr(''); try { await fn(); } catch (e) { setErr(e.message); } finally { setBusy(false); } };
+  return (
+    <Modal title="Lembretes" onClose={onClose} footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
+      <div className="form">
+        <label>Antes de cada atividade
+          <select value={trip.remind_min ?? 30} onChange={(e) => onSave({ remind_min: Number(e.target.value) })}>
+            {[[0, 'sem lembrete'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [45, '45 min'], [60, '1 hora'], [90, '1h30']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </label>
+        <label>Antes de voos
+          <select value={trip.remind_flight_min ?? 180} onChange={(e) => onSave({ remind_flight_min: Number(e.target.value) })}>
+            {[[0, 'sem lembrete'], [60, '1 hora'], [120, '2 horas'], [180, '3 horas'], [240, '4 horas'], [1440, '1 dia']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div className="section-title">Na agenda do celular</div>
+      <p className="muted small">Funciona mesmo com o app fechado: o roteiro vira uma agenda que o celular atualiza sozinho (a cada poucas horas), com os lembretes acima. Mudanças no roteiro chegam na agenda na próxima atualização.</p>
+      {https ? (
+        <>
+          <div className="share-link">
+            <input readOnly value={https} onFocus={(e) => e.target.select()} aria-label="Link da agenda" />
+            <button onClick={async () => { try { await navigator.clipboard.writeText(https); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* campo selecionável */ } }}>{copied ? 'Copiado' : 'Copiar'}</button>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            <a className="btn-like primary" href={webcal}>Adicionar no iPhone / Mac</a>
+            <a className="btn-like" href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`} target="_blank" rel="noreferrer">Adicionar no Google Agenda</a>
+            <span className="spacer" />
+            <button className="danger" disabled={busy} onClick={run(() => onCalendar(false))}>Desativar</button>
+          </div>
+          <ul className="muted small tips">
+            <li>iPhone: em Ajustes › Calendário › Contas › (esta agenda), deixe “Remover Alertas” desligado para os lembretes tocarem.</li>
+            <li>Google Agenda ignora os lembretes do arquivo: depois de adicionar, abra as configurações da agenda e escolha as notificações padrão.</li>
+            <li>O link dá acesso ao roteiro com notas: não compartilhe. Desativar invalida o link.</li>
+          </ul>
+        </>
+      ) : (
+        <button className="primary" disabled={busy} onClick={run(() => onCalendar(true))}>Criar agenda com lembretes</button>
+      )}
+
+      <div className="section-title">Neste aparelho, com o app aberto</div>
+      <label className="check-line">
+        <input type="checkbox" checked={notify} disabled={busy} onChange={(e) => run(() => onNotify(e.target.checked))()} />
+        Mostrar notificação antes de cada atividade enquanto o app estiver aberto
+      </label>
+      {err && <div className="warn">{err}</div>}
     </Modal>
   );
 }

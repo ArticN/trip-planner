@@ -743,3 +743,29 @@ div.ms-pop { padding: 10px 12px; }
 .file-ic.pdf { color: #e5534b; }
 .file-link { display: inline-flex; align-items: center; gap: 4px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-link .clip { flex: none; }
+
+/* ── previsão do tempo */
+.wx-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wx-line b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.wx-ic { flex: none; color: var(--ink-2); }
+.wx-ic.sun, .wx-ic.partly { color: var(--accent); }
+.wx-ic.rain, .wx-ic.storm { color: var(--blue); }
+
+.rate-box { display: grid; gap: 6px; }
+.check-line { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.check-line input { width: auto; margin: 0; }
+
+.attach.receipt { padding-top: 10px; }
+.receipt-link { display: block; font-size: 12px; color: var(--accent); }
+
+.gap a { color: var(--muted); text-decoration: underline; }
+.gap.tight { color: var(--warn); }
+.gap.tight b { font-weight: 500; }
+
+.off-cities { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 14px; margin: 12px 0; }
+.off-cities .check-line { font-size: 14px; color: var(--ink); }
+.off-radius { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.off-radius select { width: auto; }
+.off-prog { display: grid; gap: 6px; margin-top: 8px; }
+
+.tips { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 4px; }
