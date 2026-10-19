@@ -3,6 +3,7 @@ import { api } from './api.js';
 import MapView from './MapView.jsx';
 import Mark from './Mark.jsx';
 import { setTripAccent } from './theme.js';
+import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import PinPanel from './PinPanel.jsx';
 import { KINDS, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
 
@@ -14,7 +15,8 @@ export default function ShareView({ token }) {
   const [error, setError] = useState('');
   const [sel, setSel] = useState('trip');
   const [selectedId, setSelectedId] = useState(null);
-  const [mobileView, setMobileView] = useState('list');
+  const sheet = useSheet('half');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     api.shared(token).then(setData).catch((e) => setError(/404/.test(e.message) ? 'Este link não existe ou foi desativado.' : 'Não consegui abrir o roteiro agora.'));
@@ -48,7 +50,7 @@ export default function ShareView({ token }) {
   const stayFor = (day) => data.stays.find((s) => s.check_in <= day && day < s.check_out) || null;
   const pinned = items.find((a) => a.id === selectedId && a.lat != null) || null;
   const go = (d) => { setSel(d); setSelectedId(null); };
-  const pick = (a) => { setSelectedId(a.id); if (a.lat != null) setMobileView('map'); };
+  const pick = (a) => { setSelectedId(a.id); if (a.lat != null && isMobile) sheet.setDetent('peek'); };
 
   return (
     <div className="app share">
@@ -64,8 +66,9 @@ export default function ShareView({ token }) {
         <span className="share-badge hide-sm">Somente leitura</span>
       </header>
 
-      <div className="main" data-view={mobileView}>
-        <aside className="side">
+      <div className="main" data-detent={sheet.detent}>
+        <aside className="side" ref={sheet.ref}>
+          <SheetHandle detent={sheet.detent} handleProps={sheet.handleProps} onKey={() => sheet.setDetent((d) => (d === 'full' ? 'half' : 'full'))} />
           <nav className="strip" aria-label="Dias da viagem">
             <button className={`dchip trip${sel === 'trip' ? ' on' : ''}`} onClick={() => go('trip')}><b>Geral</b></button>
             {days.map((d) => (
@@ -122,7 +125,8 @@ export default function ShareView({ token }) {
             cities={data.cities}
             stayByDay={sel === 'trip' ? null : stayFor(sel)}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={(id) => { setSelectedId(id); if (isMobile && id) sheet.setDetent('peek'); }}
+            padBottom={isMobile && sheet.detent !== 'full' ? heightOf(sheet.detent, window.innerHeight - 56) : 0}
             onEdit={noop}
             editPositions={false}
             onMove={noop}
@@ -136,9 +140,6 @@ export default function ShareView({ token }) {
           {pinned && <PinPanel a={pinned} n={pinned.n} cityMap={cityMap} fx={fx} tripTz={trip.tz} onClose={() => setSelectedId(null)} />}
         </section>
       </div>
-      <button className="view-toggle primary" onClick={() => setMobileView((v) => (v === 'map' ? 'list' : 'map'))}>
-        {mobileView === 'map' ? 'Roteiro' : 'Mapa'}
-      </button>
     </div>
   );
 }

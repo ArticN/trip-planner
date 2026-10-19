@@ -1,6 +1,17 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.15',
+    date: '2026-10-19',
+    title: 'Celular: roteiro e mapa juntos',
+    items: [
+      'No celular, o roteiro agora é um painel que desliza por cima do mapa, como no Google Maps. Arraste a alça para escolher a altura: só a barra de dias, meio a meio ou a tela cheia. Um toque na alça também sobe um nível.',
+      'Tocar num pino do mapa encolhe o painel e mostra os detalhes do lugar.',
+      'Botão + flutuante: cria uma atividade no dia aberto, ou uma ideia na visão geral.',
+      'As ferramentas do mapa ficam numa linha só, que desliza para o lado. O mapa enquadra os pontos na parte que o painel não cobre.',
+    ],
+  },
+  {
     version: '1.14',
     date: '2026-10-19',
     title: 'Interface mais limpa',

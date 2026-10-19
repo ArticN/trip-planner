@@ -107,7 +107,7 @@ function jitterMap(items) {
 
 export default function MapView({
   mode, items, stays, cities, stayByDay, selectedId, onSelect, onEdit, editPositions, onMove,
-  picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground,
+  picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
@@ -323,8 +323,9 @@ export default function MapView({
     if (lastFit.current !== key && bounds.length) {
       const first = lastFit.current == null;
       lastFit.current = key;
-      if (bounds.length === 1) map.setView(bounds[0], 15, { animate: !first });
-      else map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: !first });
+      // no celular o painel cobre o pé do mapa: o enquadramento desconta a altura dele
+      const fit = { paddingTopLeft: [50, 70], paddingBottomRight: [50, 50 + padBottom], maxZoom: 15, animate: !first };
+      map.fitBounds(bounds.length === 1 ? L.latLngBounds([bounds[0], bounds[0]]) : bounds, fit);
     } else if (lastFit.current !== key) {
       lastFit.current = key;
     }

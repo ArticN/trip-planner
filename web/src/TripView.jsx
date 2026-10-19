@@ -12,6 +12,7 @@ import PinPanel from './PinPanel.jsx';
 import { fetchRate, roundRate } from './fx.js';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal, RemindersModal } from './Modals.jsx';
 import { useReminders, notifyOn, setNotify } from './reminders.js';
+import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
 } from './util.js';
@@ -27,7 +28,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
-  const [mobileView, setMobileView] = useState('list'); // celular: roteiro ou mapa em tela cheia
+  // celular: o roteiro é um painel deslizante por cima do mapa
+  const sheet = useSheet('half');
+  const isMobile = useIsMobile();
   const [editPositions, setEditPositions] = useState(false);
   const [showStaysDay, setShowStaysDay] = useState(true);
   const [showStaysTrip, setShowStaysTrip] = useState(false);
@@ -338,7 +341,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       go(item.day);
       setSelectedId(item.id);
       if (hasCoords(item)) setFlyTarget({ lat: item.lat, lng: item.lng, nonce: ++nonce.current });
-      setMobileView('list');
+      sheet.setDetent('half');
     } else if (type === 'idea') {
       setTimeout(() => openIdea(item), 0);
     } else if (type === 'stay') {
@@ -503,8 +506,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         </details>
       </header>
 
-      <div className="main" data-view={mobileView}>
-        <aside className="side">
+      <div className="main" data-detent={sheet.detent}>
+        <aside className="side" ref={sheet.ref}>
+          <SheetHandle detent={sheet.detent} handleProps={sheet.handleProps} onKey={() => sheet.setDetent((d) => (d === 'full' ? 'half' : d === 'half' ? 'full' : 'half'))} />
           <nav className="strip" aria-label="Dias da viagem">
             <button className={`dchip trip${sel === 'trip' ? ' on' : ''}`} onClick={() => go('trip')}><b>Geral</b></button>
             {daysInfo.map((d) => (
@@ -549,7 +553,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             cities={data.cities}
             stayByDay={sel === 'trip' ? null : stayFor(sel)}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={(id) => { setSelectedId(id); if (isMobile && id) sheet.setDetent('peek'); }}
+            padBottom={isMobile && sheet.detent !== 'full' ? heightOf(sheet.detent, window.innerHeight - 56) : 0}
             onEdit={openEdit}
             editPositions={editPositions}
             onMove={onMarkerMove}
@@ -594,6 +599,11 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
               </div>
             </div>
           )}
+          {isMobile && !picking && !editPositions && sheet.detent !== 'full' && (
+            <button className="fab" onClick={() => (sel === 'trip' ? openIdea(null) : openNew())} aria-label={sel === 'trip' ? 'Nova ideia' : 'Nova atividade neste dia'} title={sel === 'trip' ? 'Nova ideia' : 'Nova atividade neste dia'}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+          )}
           {picking && (
             <div className="pick-banner">
               Clique no mapa para definir o local
@@ -633,9 +643,6 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           <button onClick={undo.run}>Desfazer</button>
         </div>
       )}
-      <button className="view-toggle primary" onClick={() => setMobileView((v) => (v === 'map' ? 'list' : 'map'))}>
-        {mobileView === 'map' ? 'Roteiro' : 'Mapa'}
-      </button>
 
       <PrintView days={days} byDay={byDay} cityMap={cityMap} stays={data.stays} trip={trip} fx={fx} checklist={data.checklist} />
     </div>
