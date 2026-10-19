@@ -1,6 +1,16 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.17',
+    date: '2026-10-19',
+    title: 'O dia como tempo',
+    items: [
+      'O espaço entre duas atividades agora acompanha o tempo livre entre elas: um intervalo de três horas fica bem maior que um de dez minutos. Na linha ao lado dos horários, o trecho colorido é o deslocamento estimado e o pontilhado é o tempo que sobra, com “45min livre” escrito quando passa de meia hora. Quando não dá tempo de chegar, a linha fica âmbar.',
+      'Voos e trens têm cara de bilhete, com picote entre o horário e o trecho e os códigos dos aeroportos em destaque.',
+      'A hospedagem do dia virou um cartão com ícone de estado: no check-in a porta aparece aberta e acesa, no check-out fechada e apagada, e nos outros dias aparece a cama. O número da reserva e o link ficam no mesmo cartão.',
+    ],
+  },
+  {
     version: '1.16',
     date: '2026-10-19',
     title: 'A viagem como linha de metrô',

@@ -211,7 +211,11 @@ input, select, textarea {
 .empty { margin: 12px 16px; padding: 22px; text-align: center; background: var(--card); border: 1px solid var(--edge); border-radius: var(--radius); color: var(--muted); }
 
 .timeline { list-style: none; margin: 0; padding: 0 12px; }
-.gap { margin: 2px 0 2px 78px; font-size: 12.5px; color: var(--muted); }
+.gap { position: relative; display: flex; align-items: center; min-height: var(--h, 20px); margin: 0; padding-left: 78px; font-size: 12.5px; color: var(--muted); }
+.gap-axis { position: absolute; left: 30px; top: 0; bottom: 0; width: 0; border-left: 2px dotted var(--hover-line); }
+.gap-axis i { position: absolute; left: -2px; top: 0; width: 2px; border-radius: 1px; background: var(--accent); }
+.gap.tight .gap-axis i { background: var(--warn); }
+.gap-free { color: var(--ink-2); }
 .item {
   display: grid; grid-template-columns: 52px 26px 1fr auto; gap: 8px; align-items: start; padding: 12px;
   background: var(--card); border: 1px solid var(--edge); border-radius: var(--radius); cursor: pointer; position: relative;
@@ -243,7 +247,8 @@ input, select, textarea {
 .day-foot { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px 0; }
 .day-foot button { white-space: nowrap; }
 .item + .gap, li + li { margin-top: 0; }
-.timeline li { margin-bottom: 6px; }
+.timeline li { margin-bottom: 0; }
+.timeline li:not(:has(> .gap)) { margin-top: 6px; }
 
 /* ── painel da viagem */
 .section-title { padding: 18px 16px 8px; font-size: 14px; font-weight: 500; color: var(--muted); }
@@ -972,3 +977,24 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .nb-cur b { font-size: 16px; font-family: var(--serif); font-weight: 400; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .nb-cur span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 900px) { .now-board { grid-template-columns: minmax(0, 0.8fr) minmax(0, 2fr) minmax(0, 0.8fr); } }
+
+/* hospedagem do dia: check-in com a porta aberta e acesa, check-out com a porta fechada e apagada */
+.stay-card { display: grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: start; margin-top: 8px; padding: 9px 12px; border-radius: var(--r-box); background: var(--card); border: 1px solid var(--edge); }
+.stay-card .ic { color: var(--muted); margin-top: 2px; }
+.stay-card div { display: grid; gap: 1px; min-width: 0; }
+.stay-card small { font-size: 12px; color: var(--muted); }
+.stay-card b { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stay-card span { font-size: 12.5px; color: var(--muted); }
+.stay-card a { color: var(--accent); text-decoration: none; }
+.stay-card.in { background: var(--accent-soft); border-color: transparent; }
+.stay-card.in .ic, .stay-card.in small { color: var(--accent); }
+.stay-card.out { background: none; border-style: dashed; }
+.stay-card.out b { color: var(--ink-2); font-weight: 400; }
+
+/* voo e trem com cara de bilhete: picote entre a hora e o trecho */
+.item.ticket { --cut: 68px;
+  -webkit-mask: radial-gradient(circle 7px at var(--cut) 0, transparent 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at var(--cut) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat; /* taste-skill-ignore: recorta os semicírculos do picote */
+  mask: radial-gradient(circle 7px at var(--cut) 0, transparent 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at var(--cut) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat; /* taste-skill-ignore: recorta os semicírculos do picote */ }
+.item.ticket::before { content: ''; position: absolute; left: var(--cut); top: 10px; bottom: 10px; border-left: 2px dashed var(--line); }
+.item.ticket .leg { font-size: 13px; color: var(--muted); }
+.item.ticket .leg b { font-size: 18px; font-family: var(--serif); font-weight: 400; letter-spacing: 0.04em; color: var(--ink); }

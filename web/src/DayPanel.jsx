@@ -11,6 +11,10 @@ import {
 
 const MODE_LABEL = { foot: 'a pé', car: 'de carro', transit: 'de transporte' };
 
+// o intervalo entre duas atividades desenhado como tempo: a altura acompanha os minutos livres,
+// e o trecho cheio do eixo é o deslocamento estimado
+const PX_PER_MIN = 0.5;
+
 function Gap({ a, b }) {
   const [t, setT] = useState(null);
   const ok = hasCoords(a) && hasCoords(b) && haversine(a, b) >= 0.05;
@@ -20,15 +24,24 @@ function Gap({ a, b }) {
     if (ok && !isMove) travelTime(a, b).then((v) => live && setT(v)).catch(() => {});
     return () => { live = false; };
   }, [a.lat, a.lng, b.lat, b.lng, b.transport, ok, isMove]);
-  if (!ok) return null;
-  if (isMove || !t) return <div className="gap">↓ {fmtKm(haversine(a, b))} em linha reta</div>;
   const free = slack(a, b);
-  const tight = free != null && free < t.min;
+  const move = ok && !isMove && t ? t.min : 0;
+  const rest = free != null ? free - move : null;
+  if (!ok && !(rest >= 30)) return null;
+  const tight = !!move && free != null && free < move;
+  const h = free > 0 ? Math.min(150, Math.max(20, free * PX_PER_MIN)) : 20;
+  const fill = tight ? 100 : free > 0 && move ? Math.min(100, (move / free) * 100) : 0;
   return (
-    <div className={`gap${tight ? ' tight' : ''}`}>
-      ↓ {fmtKm(t.km)} {MODE_LABEL[t.mode]} · {t.estimate ? '~' : ''}{fmtDuration(t.min)}
-      {tight && <b> · {free < 0 ? 'horários se sobrepõem' : free === 0 ? 'sem tempo para chegar' : `só ${free} min entre as duas`}</b>}
-      {' · '}<a href={gmapsDirections(a, b, t.mode)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>rota</a>
+    <div className={`gap${tight ? ' tight' : ''}`} style={{ '--h': `${h}px` }}>
+      <span className="gap-axis" aria-hidden="true"><i style={{ height: `${fill}%` }} /></span>
+      <span className="gap-txt">
+        {ok && (isMove || !t
+          ? <>{fmtKm(haversine(a, b))} em linha reta</>
+          : <>{fmtKm(t.km)} {MODE_LABEL[t.mode]} · {t.estimate ? '~' : ''}{fmtDuration(t.min)}</>)}
+        {tight && <b> · {free < 0 ? 'horários se sobrepõem' : free === 0 ? 'sem tempo para chegar' : `só ${free} min entre as duas`}</b>}
+        {!tight && rest >= 30 && <span className="gap-free">{ok ? ' · ' : ''}{fmtDuration(rest)} livre</span>}
+        {ok && !isMove && t && <>{' · '}<a href={gmapsDirections(a, b, t.mode)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>rota</a></>}
+      </span>
     </div>
   );
 }
@@ -126,14 +139,32 @@ export default function DayPanel({
           return at ? <WeatherLine lat={at.lat} lng={at.lng} day={day} today={nowIn(tripTz).day} /> : null;
         })()}
         {sun && <div className="stay-line sun-line">Sol nasce às {sun.rise} e se põe às {sun.set}</div>}
-        {checkout && <div className="stay-line">Check-out · {checkout.name}{checkout.check_out_time ? ` às ${checkout.check_out_time}` : ''}</div>}
+        {checkout && (
+          <div className="stay-card out">
+            <Icon name="checkout" size={20} />
+            <div>
+              <small>Check-out{checkout.check_out_time ? ` até ${checkout.check_out_time}` : ''}</small>
+              <b>{checkout.name}</b>
+            </div>
+          </div>
+        )}
         {stay && (
-          <div className="stay-line">
-            {stay.check_in === day ? 'Check-in' : 'Hospedagem'} · {stay.name}
-            {stay.check_in === day && stay.check_in_time ? ` a partir das ${stay.check_in_time}` : ''}
-            {stay.check_out === day && stay.check_out_time ? ` · saída às ${stay.check_out_time}` : ''}
-            {stay.booking ? ` · reserva ${stay.booking}` : ''}
-            {stay.link ? <> · <a href={stay.link} target="_blank" rel="noreferrer">ver reserva</a></> : null}
+          <div className={`stay-card ${stay.check_in === day ? 'in' : 'here'}`}>
+            <Icon name={stay.check_in === day ? 'checkin' : 'stay'} size={20} />
+            <div>
+              <small>
+                {stay.check_in === day ? `Check-in${stay.check_in_time ? ` a partir das ${stay.check_in_time}` : ''}` : 'Hospedagem'}
+                {stay.check_out === day && stay.check_out_time ? ` · saída às ${stay.check_out_time}` : ''}
+              </small>
+              <b>{stay.name}</b>
+              {(stay.booking || stay.link) && (
+                <span>
+                  {stay.booking ? `Reserva ${stay.booking}` : ''}
+                  {stay.booking && stay.link ? ' · ' : ''}
+                  {stay.link ? <a href={stay.link} target="_blank" rel="noreferrer">ver reserva</a> : null}
+                </span>
+              )}
+            </div>
           </div>
         )}
         <div className="stats">
@@ -207,7 +238,7 @@ export default function DayPanel({
           const endDay = endDayOf(a);
           const endPlus = a.end && endDay !== a.day ? ` (+${daysBetween(a.day, endDay)}d)` : '';
           const leg = a.from_code || a.to_code || a.ref;
-          const cls = ['item', a.id === nowId ? 'now' : '', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
+          const cls = ['item', ['flight', 'move'].includes(a.kind) ? 'ticket' : '', a.id === nowId ? 'now' : '', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
           return (
             <li key={a.id}>
               {prev && visible.includes(prev) && <Gap a={prev} b={a} />}
