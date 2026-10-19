@@ -102,6 +102,7 @@ async function migrate() {
   }
 }
 export const ready = migrate();
+ready.catch((e) => console.error('falha ao preparar o banco:', e)); // sem isso a rejeição derruba o processo
 
 // Ordena só os itens com horário entre si, mantendo itens sem horário nos seus lugares.
 function sortTimedSlots(items) {
@@ -173,7 +174,10 @@ app.use(express.json({ limit: '5mb' }));
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 // espera o banco estar pronto (na Vercel cada instância nova passa por aqui uma vez)
-app.use('/api', h(async (_req, _res, next) => { await ready; next(); }));
+app.use('/api', h(async (_req, _res, next) => {
+  await ready.catch((e) => { throw Object.assign(new Error(e.message), { publicMessage: `não consegui acessar o banco: ${e.message}` }); });
+  next();
+}));
 
 // ── senha de acesso (opcional): defina APP_PASSWORD para exigir login
 const PASSWORD = process.env.APP_PASSWORD || '';
@@ -422,5 +426,5 @@ app.use('/api', (_req, res) => res.status(404).json({ error: 'rota não encontra
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
   console.error(err);
-  res.status(500).json({ error: 'erro no servidor' });
+  res.status(500).json({ error: err.publicMessage || 'erro no servidor' });
 });
