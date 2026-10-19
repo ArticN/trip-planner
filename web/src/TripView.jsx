@@ -5,7 +5,8 @@ import { setTripAccent } from './theme.js';
 import AppearanceModal from './Look.jsx';
 import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
-import TripPanel, { TripStrip } from './TripPanel.jsx';
+import TripPanel from './TripPanel.jsx';
+import Metro from './Metro.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
@@ -115,6 +116,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     };
   }), [days, byDay]);
 
+  const railCity = (day) => (data?.stays || []).find((s) => s.check_in <= day && day < s.check_out)?.city;
   const conflictsTotal = daysInfo.reduce((s, d) => s + d.conflicts, 0);
   const dayIndex = sel === 'trip' ? -1 : days.indexOf(sel);
   const dayItems = useMemo(() => (sel === 'trip' ? [] : (byDay[sel] || []).map((a, i) => ({ ...a, n: i + 1 }))), [sel, byDay]);
@@ -511,14 +513,21 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           <SheetHandle detent={sheet.detent} handleProps={sheet.handleProps} onKey={() => sheet.setDetent((d) => (d === 'full' ? 'half' : d === 'half' ? 'full' : 'half'))} />
           <nav className="strip" aria-label="Dias da viagem">
             <button className={`dchip trip${sel === 'trip' ? ' on' : ''}`} onClick={() => go('trip')}><b>Geral</b></button>
-            {daysInfo.map((d) => (
-              <button key={d.day} className={`dchip${sel === d.day ? ' on' : ''}${d.day === today ? ' today' : ''}`} onClick={() => go(d.day)} style={{ '--c': cityMap[d.cities[0]]?.color || '#94a3b8' }} title={fmtDayLong(d.day)}>
-                <small>{d.week}</small>
-                <b>{d.num}</b>
-                <i className="cdot" />
-                {d.conflicts > 0 && <i className="alert" />}
-              </button>
-            ))}
+            {daysInfo.map((d, i) => {
+              // trilho de metrô sob os dias: cor da cidade onde você dorme; estação quando muda de cidade
+              const base = railCity(d.day) || d.cities[0];
+              const prev = i > 0 ? railCity(daysInfo[i - 1].day) || daysInfo[i - 1].cities[0] : null;
+              const trip = d.cities.find((k) => k !== base && k !== 'transito');
+              const dot = base !== prev ? 'station' : trip ? 'branch' : '';
+              return (
+                <button key={d.day} className={`dchip${sel === d.day ? ' on' : ''}${d.day === today ? ' today' : ''}`} onClick={() => go(d.day)} style={{ '--c': cityMap[base]?.color || 'var(--ctl)', '--t': cityMap[trip]?.color }} title={[fmtDayLong(d.day), cityMap[trip || base]?.name].filter(Boolean).join(' · ')}>
+                  <small>{d.week}</small>
+                  <b>{d.num}</b>
+                  <span className={`rail${dot ? ` ${dot}` : ''}`}><i /></span>
+                  {d.conflicts > 0 && <i className="alert" />}
+                </button>
+              );
+            })}
           </nav>
           <div className="side-body">
             {sel === 'trip' ? (
@@ -592,7 +601,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           </div>
           {sel === 'trip' && (
             <div className="map-route">
-              <TripStrip stays={data.stays} cityMap={cityMap} onCity={focusCity} />
+              <Metro stays={data.stays} cityMap={cityMap} cities={data.cities} daysInfo={daysInfo} onCity={focusCity} />
               <div className="map-legend">
                 <span><i className="ln solid" />Rota entre hospedagens</span>
                 <span><i className="ln dashed" />Bate-volta</span>

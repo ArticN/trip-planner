@@ -1,6 +1,16 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.16',
+    date: '2026-10-19',
+    title: 'A viagem como linha de metrô',
+    items: [
+      'A rota virou um diagrama de linha de metrô, inspirado na sinalização de Tóquio. Cada cidade é uma estação com a sua cor, um código curto (TQO, KYT, OSK) e o número de noites, e os bate-voltas saem da linha como ramais tracejados. Aparece no pé do mapa, na visão geral do celular e no link compartilhado. Tocar numa estação leva o mapa até a cidade.',
+      'A barra de dias também segue a linha: cada dia é uma estação na cor da cidade onde você dorme, e dia de bate-volta ganha um ramal na cor do destino.',
+      'Durante a viagem, o dia de hoje mostra um painel “Agora”, como a placa da estação: a atividade atual (ou a próxima) em destaque, com a anterior e a seguinte ao lado.',
+    ],
+  },
+  {
     version: '1.15',
     date: '2026-10-19',
     title: 'Celular: roteiro e mapa juntos',

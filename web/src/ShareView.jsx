@@ -5,6 +5,7 @@ import Mark from './Mark.jsx';
 import { setTripAccent } from './theme.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import PinPanel from './PinPanel.jsx';
+import Metro from './Metro.jsx';
 import { KINDS, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
 
 const noop = () => {};
@@ -84,6 +85,14 @@ export default function ShareView({ token }) {
               <>
                 {trip.cover && <div className="share-cover" style={{ backgroundImage: `url("${trip.cover.replace(/"/g, '%22')}")` }} />}
                 {trip.subtitle && <p className="muted">{trip.subtitle}</p>}
+                <div className="metro-side">
+                  <Metro
+                    stays={data.stays}
+                    cityMap={cityMap}
+                    cities={data.cities}
+                    daysInfo={days.map((d) => ({ day: d, cities: [...new Set((byDay[d] || []).map((a) => a.city).filter(Boolean))] }))}
+                  />
+                </div>
                 <div className="agenda">
                   {days.map((d) => {
                     const c = mainCity(d);

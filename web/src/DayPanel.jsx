@@ -173,6 +173,31 @@ export default function DayPanel({
         </div>
       )}
 
+      {nowId != null && (() => {
+        // painel de estação: anterior pequena, a atual grande, a seguinte pequena
+        const i = visible.findIndex((a) => a.id === nowId);
+        const cur = visible[i];
+        const before = visible[i - 1];
+        const after = visible[i + 1];
+        const side = (a, label) => (a ? (
+          <button className="nb-side" onClick={() => onSelect(a.id)}>
+            <small>{label}{a.start ? ` · ${a.start}` : ''}</small>
+            <span>{a.title}</span>
+          </button>
+        ) : <span className="nb-side empty" />);
+        return (
+          <div className="now-board" aria-label="Agora">
+            {side(before, 'Antes')}
+            <button className="nb-cur" style={{ '--c': (KINDS[cur.kind] || KINDS.sight).color }} onClick={() => onSelect(cur.id)}>
+              <small>{nowLabel(cur)}{cur.start ? ` · ${cur.start}${cur.end ? `–${cur.end}` : ''}` : ''}</small>
+              <b>{cur.title}</b>
+              {cur.location && <span>{cur.location}</span>}
+            </button>
+            {side(after, 'Depois')}
+          </div>
+        );
+      })()}
+
       <ol className="timeline">
         {visible.map((a) => {
           const k = KINDS[a.kind] || KINDS.sight;

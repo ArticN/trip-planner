@@ -1,26 +1,8 @@
 import { useState } from 'react';
 import { DoneFilter } from './DayPanel.jsx';
 import { Icon } from './icons.jsx';
+import Metro from './Metro.jsx';
 import { KINDS, KIND_KEYS, fmtDay, daysBetween, hasCoords, nowIn } from './util.js';
-
-// faixa da viagem: uma fatia por hospedagem, larga na proporção das noites, na cor da cidade
-export function TripStrip({ stays, cityMap, onCity }) {
-  const parts = stays.map((s) => ({ s, c: cityMap[s.city], n: Math.max(0, daysBetween(s.check_in, s.check_out)) })).filter((p) => p.n > 0);
-  if (!parts.length) return null;
-  const total = parts.reduce((t, p) => t + p.n, 0);
-  return (
-    <div className="tripstrip" role="list" aria-label="Noites por cidade">
-      {parts.map(({ s, c, n }) => (
-        <button key={s.id} role="listitem" className="seg" style={{ flex: n, '--c': c?.color || '#888' }} onClick={() => c && onCity(c)} title={`${c?.name || s.name} · ${n} ${n === 1 ? 'noite' : 'noites'}`}>
-          <i />
-          <span>{c?.name || s.name}</span>
-          <small>{n}</small>
-        </button>
-      ))}
-      <span className="visually-hidden">{total} noites no total</span>
-    </div>
-  );
-}
 
 export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, doneFilter = 'all', onDoneFilter, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo, checklist = [], onOpen, ideas = [], days = [], onIdea, onSchedule }) {
   const total = activities.reduce((s, a) => s + (a.cost || 0), 0);
@@ -53,7 +35,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
         )}
       </div>
 
-      <div className="only-sm-block"><TripStrip stays={stays} cityMap={cityMap} onCity={onCity} /></div>
+      <div className="only-sm-block metro-side"><Metro stays={stays} cityMap={cityMap} cities={cities} daysInfo={daysInfo} onCity={onCity} /></div>
 
       <div className="section-title">Rota</div>
       {stays.length === 0 && (
