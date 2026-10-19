@@ -1,6 +1,17 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.8',
+    date: '2026-10-19',
+    title: 'Avaliações, busca e calendário por semana',
+    items: [
+      'Depois de visitar, dá para dar de 1 a 5 estrelas e escrever como foi. A nota aparece no roteiro e no painel do pin.',
+      'Busca geral na viagem: atividades, ideias, hospedagens, cidades e dias. Abre pela lupa no topo ou com a tecla “/”.',
+      'Cada viagem pode ter uma foto de capa, escolhida do aparelho ou por link. Ela aparece no cartão da tela inicial.',
+      'O calendário ganhou as visões Semana (grade por horário) e Agenda (lista dia a dia). Clicar numa atividade abre ela no roteiro.',
+    ],
+  },
+  {
     version: '1.7',
     date: '2026-10-19',
     title: 'Funciona sem internet',

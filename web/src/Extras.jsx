@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Modal } from './Modals.jsx';
-import { KINDS, KIND_KEYS, hasCoords, haversine, fmtKm, fmtDay, dayNum, dayWeek, daysBetween, actTz, endDayOf, zonedMs } from './util.js';
+import { KINDS, KIND_KEYS, hasCoords, haversine, fmtKm, fmtDay, fmtDayLong, dayNum, dayWeek, daysBetween, actTz, endDayOf, zonedMs, toMin } from './util.js';
 
 // ── links de uma atividade: guardados como JSON [{ label, url }]
 export function parseLinks(v) {
@@ -168,7 +168,29 @@ export function StatsModal({ activities, stays, cityMap, days, fx, onClose }) {
 }
 
 // ── calendário (grade semanal com os dias da viagem)
-export function CalendarModal({ days, byDay, cityMap, daysInfo, fx, onPick, onClose }) {
+// coloca atividades com horário em colunas lado a lado quando se sobrepõem
+function layoutDay(list) {
+  const timed = list.filter((a) => a.start).map((a) => {
+    const s = toMin(a.start);
+    const e = a.end && endDayOf(a) === a.day ? Math.max(toMin(a.end), s + 20) : a.end ? 24 * 60 : s + 60;
+    return { a, s, e };
+  }).sort((x, y) => x.s - y.s || y.e - x.e);
+  const lanesEnd = [];
+  timed.forEach((t) => {
+    let lane = lanesEnd.findIndex((end) => end <= t.s);
+    if (lane < 0) { lane = lanesEnd.length; lanesEnd.push(0); }
+    lanesEnd[lane] = t.e;
+    t.lane = lane;
+  });
+  // número de colunas de cada grupo que se sobrepõe
+  timed.forEach((t) => { t.cols = Math.max(...timed.filter((o) => o.s < t.e && t.s < o.e).map((o) => o.lane)) + 1; });
+  return timed;
+}
+
+const WD = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+
+export function CalendarModal({ days, byDay, cityMap, daysInfo, fx, onPick, onClose, initialDay }) {
+  const [view, setView] = useState(() => (window.innerWidth < 700 ? 'agenda' : 'month'));
   const weeks = useMemo(() => {
     if (!days.length) return [];
     const first = new Date(`${days[0]}T12:00:00`);
@@ -179,16 +201,27 @@ export function CalendarModal({ days, byDay, cityMap, daysInfo, fx, onPick, onCl
     for (let i = 0; i < cells.length; i += 7) w.push(cells.slice(i, i + 7));
     return w;
   }, [days]);
+  const [week, setWeek] = useState(() => Math.max(0, weeks.findIndex((w) => w.includes(initialDay))));
   const info = Object.fromEntries(daysInfo.map((d) => [d.day, d]));
+  const cityOf = (d) => cityMap[info[d]?.cities[0]];
 
-  return (
-    <Modal title="Calendário" onClose={onClose} wide footer={<><span className="muted">Clique num dia para abrir o roteiro dele.</span><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
+  const tabs = (
+    <div className="seg-tabs" role="tablist">
+      {[['month', 'Mês'], ['week', 'Semana'], ['agenda', 'Agenda']].map(([k, l]) => (
+        <button key={k} role="tab" aria-selected={view === k} className={view === k ? 'on' : ''} onClick={() => setView(k)}>{l}</button>
+      ))}
+    </div>
+  );
+
+  let body = null;
+  if (view === 'month') {
+    body = (
       <div className="cal">
-        {['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((d) => <div key={d} className="cal-wd">{d}</div>)}
+        {WD.map((d) => <div key={d} className="cal-wd">{d}</div>)}
         {weeks.flat().map((d, i) => {
           if (!d) return <div key={`x${i}`} className="cal-cell empty-cell" />;
           const inf = info[d];
-          const c = cityMap[inf?.cities[0]];
+          const c = cityOf(d);
           const list = byDay[d] || [];
           return (
             <button key={d} className="cal-cell" style={{ '--c': c?.color || 'var(--ctl)' }} onClick={() => onPick(d)}>
@@ -203,6 +236,88 @@ export function CalendarModal({ days, byDay, cityMap, daysInfo, fx, onPick, onCl
           );
         })}
       </div>
+    );
+  } else if (view === 'week') {
+    const wdays = weeks[week] || [];
+    const laid = Object.fromEntries(wdays.filter(Boolean).map((d) => [d, layoutDay(byDay[d] || [])]));
+    const all = Object.values(laid).flat();
+    const from = Math.min(8 * 60, ...all.map((t) => Math.floor(t.s / 60) * 60));
+    const to = Math.max(22 * 60, ...all.map((t) => Math.ceil(t.e / 60) * 60));
+    const PX = 0.8; // pixels por minuto
+    const hours = [];
+    for (let m = from; m < to; m += 60) hours.push(m);
+    body = (
+      <>
+        <div className="wk-nav">
+          <button className="icon-btn" onClick={() => setWeek((w) => w - 1)} disabled={week === 0} aria-label="Semana anterior">‹</button>
+          <b>{fmtDay(wdays.find(Boolean))} a {fmtDay([...wdays].reverse().find(Boolean))}</b>
+          <button className="icon-btn" onClick={() => setWeek((w) => w + 1)} disabled={week >= weeks.length - 1} aria-label="Próxima semana">›</button>
+        </div>
+        <div className="wk">
+          <div className="wk-head wk-gutter" />
+          {wdays.map((d, i) => (
+            <button key={i} className="wk-head" disabled={!d} onClick={() => d && onPick(d)} style={{ '--c': cityOf(d)?.color || 'var(--ctl)' }}>
+              <span>{WD[i]}</span> <b>{d ? dayNum(d) : ''}</b>
+              {d && <small>{cityOf(d)?.name || ''}</small>}
+            </button>
+          ))}
+          <div className="wk-gutter wk-untimed-label">sem horário</div>
+          {wdays.map((d, i) => (
+            <div key={i} className="wk-untimed">
+              {d && (byDay[d] || []).filter((a) => !a.start).map((a) => (
+                <button key={a.id} className="wk-chip" style={{ '--k': (KINDS[a.kind] || KINDS.sight).color }} onClick={() => onPick(d, a.id)}>{a.title}</button>
+              ))}
+            </div>
+          ))}
+          <div className="wk-gutter wk-hours" style={{ height: (to - from) * PX }}>
+            {hours.map((m) => <span key={m} style={{ top: (m - from) * PX }}>{String(m / 60).padStart(2, '0')}h</span>)}
+          </div>
+          {wdays.map((d, i) => (
+            <div key={i} className={`wk-col${d ? '' : ' off'}`} style={{ height: (to - from) * PX, backgroundSize: `100% ${60 * PX}px` }}>
+              {d && laid[d].map((t) => (
+                <button
+                  key={t.a.id} className={`wk-ev${t.a.done ? ' done' : ''}`}
+                  style={{ '--k': (KINDS[t.a.kind] || KINDS.sight).color, top: (t.s - from) * PX, height: Math.max(18, (t.e - t.s) * PX - 2), left: `${(t.lane / t.cols) * 100}%`, width: `${100 / t.cols}%` }}
+                  onClick={() => onPick(d, t.a.id)} title={`${t.a.start}${t.a.end ? `–${t.a.end}` : ''} · ${t.a.title}`}
+                >
+                  <em>{t.a.start}</em> {t.a.title}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  } else {
+    body = (
+      <div className="agenda">
+        {days.map((d) => {
+          const list = byDay[d] || [];
+          const c = cityOf(d);
+          return (
+            <section key={d} className="ag-day">
+              <button className="ag-head" onClick={() => onPick(d)} style={{ '--c': c?.color || 'var(--ctl)' }}>
+                <b>{fmtDayLong(d)}</b>{c && <span>{c.name}</span>}
+              </button>
+              {list.length === 0 && <div className="muted small ag-empty">Nada planejado.</div>}
+              {list.map((a) => (
+                <button key={a.id} className={`ag-item${a.done ? ' done' : ''}`} onClick={() => onPick(d, a.id)}>
+                  <span className="ag-time">{a.start || '—'}{a.end ? <small>{a.end}</small> : null}</span>
+                  <span className="ag-dot" style={{ '--k': (KINDS[a.kind] || KINDS.sight).color }} />
+                  <span className="ag-title">{a.title}{a.location ? <small>{a.location}</small> : null}</span>
+                </button>
+              ))}
+            </section>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <Modal title="Calendário" onClose={onClose} wide footer={<><span className="muted hide-sm">Clique num dia ou atividade para abrir no roteiro.</span><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
+      {tabs}
+      {body}
     </Modal>
   );
 }
@@ -248,4 +363,57 @@ export function downloadIcs(trip, activities, cityMap) {
   el.download = `${trip.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'viagem'}.ics`;
   el.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ── busca geral na viagem: atividades, ideias, hospedagens, cidades e temas dos dias
+const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+export function SearchModal({ data, cityMap, onPick, onClose }) {
+  const [q, setQ] = useState('');
+  const [cur, setCur] = useState(0);
+  const terms = norm(q).split(/\s+/).filter(Boolean);
+  const hit = (...fields) => { const t = norm(fields.join(' ')); return terms.every((w) => t.includes(w)); };
+
+  const results = [];
+  if (terms.length) {
+    data.activities.filter((a) => hit(a.title, a.location, a.details, a.notes, a.review, a.ref, a.from_code, a.to_code, cityMap[a.city]?.name))
+      .sort((x, y) => x.day.localeCompare(y.day) || (x.start || '').localeCompare(y.start || ''))
+      .forEach((a) => results.push({ key: `a${a.id}`, type: 'activity', item: a, title: a.title, sub: [fmtDay(a.day), a.start, cityMap[a.city]?.name, a.location].filter(Boolean).join(' · ') }));
+    (data.ideas || []).filter((x) => hit(x.title, x.location, x.details, x.notes, cityMap[x.city]?.name))
+      .forEach((x) => results.push({ key: `i${x.id}`, type: 'idea', item: x, title: x.title, sub: ['Ideia', cityMap[x.city]?.name, x.location].filter(Boolean).join(' · ') }));
+    (data.stays || []).filter((s) => hit(s.name, s.address, s.notes, s.booking, cityMap[s.city]?.name))
+      .forEach((s) => results.push({ key: `s${s.id}`, type: 'stay', item: s, title: s.name || 'Hospedagem', sub: ['Hospedagem', `${fmtDay(s.check_in)} → ${fmtDay(s.check_out)}`].join(' · ') }));
+    (data.cities || []).filter((c) => c.key !== 'transito' && hit(c.name))
+      .forEach((c) => results.push({ key: `c${c.id}`, type: 'city', item: c, title: c.name, sub: 'Cidade' }));
+    (data.days || []).filter((d) => hit(d.title, d.notes))
+      .forEach((d) => results.push({ key: `d${d.day}`, type: 'day', item: d, title: d.title || 'Anotações do dia', sub: `Dia · ${fmtDay(d.day)}` }));
+  }
+  const shown = results.slice(0, 60);
+  const pick = (r) => { onPick(r.type, r.item); onClose(); };
+  const onKey = (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setCur((c) => Math.min(c + 1, shown.length - 1)); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setCur((c) => Math.max(c - 1, 0)); }
+    if (e.key === 'Enter' && shown[cur]) pick(shown[cur]);
+  };
+
+  return (
+    <Modal title="Buscar na viagem" onClose={onClose}>
+      <input className="search-input" autoFocus value={q} onChange={(e) => { setQ(e.target.value); setCur(0); }} onKeyDown={onKey}
+        placeholder="Atividade, lugar, hotel, cidade, código do voo…" aria-label="Buscar" />
+      {terms.length > 0 && shown.length === 0 && <div className="empty">Nada encontrado.</div>}
+      {shown.length > 0 && (
+        <ul className="search-results">
+          {shown.map((r, i) => (
+            <li key={r.key}>
+              <button className={i === cur ? 'cur' : ''} onMouseEnter={() => setCur(i)} onClick={() => pick(r)}>
+                <b>{r.title}</b><span>{r.sub}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {results.length > shown.length && <div className="muted small">Mostrando {shown.length} de {results.length}. Refine a busca.</div>}
+      {!terms.length && <div className="muted small search-hint">Dica: aperte “/” em qualquer tela da viagem para abrir a busca.</div>}
+    </Modal>
+  );
 }

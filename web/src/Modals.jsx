@@ -1,3 +1,4 @@
+import { Star } from './Stars.jsx';
 import { useEffect, useState } from 'react';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { KINDS, KIND_KEYS, TRANSPORTS, CURRENCIES, TIMEZONES, localTz, hasCoords, fmtDay } from './util.js';
@@ -198,6 +199,19 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
           <textarea rows={2} value={draft.notes || ''} onChange={(e) => set({ notes: e.target.value })} placeholder="Código de reserva, horário de check-in, o que levar…" />
         </label>
         <LinksField value={draft.links} onChange={(links) => set({ links })} />
+        {!isIdea && (
+          <fieldset className="full after-visit">
+            <legend>Depois de visitar</legend>
+            <div className="stars-input" role="radiogroup" aria-label="Avaliação">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} type="button" role="radio" aria-checked={draft.rating === n} aria-label={`${n} de 5`}
+                  className={n <= (draft.rating || 0) ? 'on' : ''} onClick={() => set({ rating: draft.rating === n ? null : n })}><Star size={24} /></button>
+              ))}
+              <span className="muted small">{draft.rating ? `${draft.rating} de 5` : 'sem nota'}</span>
+            </div>
+            <textarea rows={2} value={draft.review || ''} onChange={(e) => set({ review: e.target.value })} placeholder="Como foi? Valeu a pena, dicas para a próxima vez…" />
+          </fieldset>
+        )}
 
         <div className="full fieldset">
           <div className="legend">Posição no mapa {hasCoords(draft) ? <span className="ok">● definida</span> : <span className="muted">○ sem posição</span>}</div>
@@ -355,6 +369,42 @@ export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate,
 
 const EMOJIS = ['🧳', '✈️', '🏖️', '🏔️', '🌆', '🗺️', '🚗', '🚆', '🏝️', '🌍', '🗼', '🏕️']; // taste-skill-ignore: user-chosen trip emoji
 
+// foto de capa: a imagem escolhida é reduzida no próprio aparelho (cerca de 100 KB) e guardada com a viagem
+async function shrinkImage(file, maxW = 1200, maxH = 800) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = url; });
+    const k = Math.min(1, maxW / img.width, maxH / img.height);
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.78);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+function CoverField({ value, onChange }) {
+  const [err, setErr] = useState('');
+  const isLink = value && !value.startsWith('data:');
+  const onFile = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    try { setErr(''); onChange(await shrinkImage(f)); } catch { setErr('Não consegui abrir essa imagem.'); }
+  };
+  return (
+    <div className="full cover-field">
+      <span className="cover-label">Foto de capa (opcional)</span>
+      {value && <div className="cover-preview" style={{ backgroundImage: `url("${value.replace(/"/g, '%22')}")` }} />}
+      <div className="cover-actions">
+        <label className="btn-like">Escolher foto<input type="file" accept="image/*" hidden onChange={onFile} /></label>
+        {value && <button type="button" onClick={() => onChange(null)}>Remover</button>}
+      </div>
+      <input value={isLink ? value : ''} onChange={(e) => onChange(e.target.value.trim() || null)} placeholder="…ou cole o link de uma imagem (https://…)" />
+      {err && <div className="warn">{err}</div>}
+    </div>
+  );
+}
+
 export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
   const isNew = !trip.id;
   const [d, setD] = useState(trip);
@@ -402,6 +452,7 @@ export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
             <input inputMode="decimal" value={d.rate ?? ''} onChange={(e) => set({ rate: e.target.value })} />
           </label>
         )}
+        <CoverField value={d.cover} onChange={(cover) => set({ cover })} />
         <label className="full">Fuso horário do destino
           <TzInput value={d.tz} onChange={(v) => set({ tz: v })} placeholder={`Ex: Asia/Tokyo (seu fuso: ${localTz() || '—'})`} />
         </label>

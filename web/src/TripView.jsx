@@ -5,7 +5,7 @@ import { getTheme, toggleTheme } from './theme.js';
 import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
-import { ChecklistModal, StatsModal, CalendarModal, downloadIcs, parseLinks } from './Extras.jsx';
+import { ChecklistModal, StatsModal, CalendarModal, SearchModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal } from './Modals.jsx';
@@ -131,6 +131,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       if (e.key === 'Escape' && picking) { setPicking(false); return; }
       const tag = document.activeElement?.tagName;
       if (modal || editing || ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      if (e.key === '/' || (e.key === 'k' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); setModal('search'); return; }
       if (e.key === 'ArrowLeft') step(-1);
       if (e.key === 'ArrowRight') step(1);
     };
@@ -300,6 +301,23 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     if (hasCoords(a)) setFlyTarget({ lat: a.lat, lng: a.lng, nonce: ++nonce.current });
   };
 
+  const onSearchPick = (type, item) => {
+    if (type === 'activity') {
+      go(item.day);
+      setSelectedId(item.id);
+      if (hasCoords(item)) setFlyTarget({ lat: item.lat, lng: item.lng, nonce: ++nonce.current });
+      setMobileView('list');
+    } else if (type === 'idea') {
+      setTimeout(() => openIdea(item), 0);
+    } else if (type === 'stay') {
+      setTimeout(() => setModal('stays'), 0);
+    } else if (type === 'city') {
+      go('trip');
+      if (hasCoords(item)) focusCity(item);
+    } else if (type === 'day') {
+      go(item.day);
+    }
+  };
   const focusCity = (c) => setCityFocus({ lat: c.lat, lng: c.lng, nonce: ++nonce.current });
 
   const saveStay = async (id, s) => {
@@ -393,6 +411,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         </div>
         <div className="countdown">{countdown}</div>
         <span className="spacer" />
+        <button className="icon-btn" onClick={() => setModal('search')} title="Buscar na viagem (/)" aria-label="Buscar na viagem">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+        </button>
         <button className="hide-sm" onClick={() => setModal('stays')}>Hospedagens</button>
         <button className="hide-sm" onClick={() => setModal('budget')}>Orçamento</button>
         <button className="hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
@@ -537,7 +558,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'trip' && <TripModal trip={trip} onSave={saveTrip} onDelete={deleteTrip} onDuplicate={duplicateTrip} onClose={() => setModal(null)} />}
       {modal === 'checklist' && <ChecklistModal items={data.checklist} onCreate={createCheck} onUpdate={updateCheck} onDelete={deleteCheck} onClose={() => setModal(null)} />}
       {modal === 'stats' && <StatsModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onClose={() => setModal(null)} />}
-      {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} onPick={(d) => { setModal(null); go(d); }} onClose={() => setModal(null)} />}
+      {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} initialDay={sel === 'trip' ? days[0] : sel} onPick={(d, aid) => { setModal(null); go(d); if (aid) setSelectedId(aid); }} onClose={() => setModal(null)} />}
+      {modal === 'search' && <SearchModal data={data} cityMap={cityMap} onPick={onSearchPick} onClose={() => setModal(null)} />}
       {modal === 'budget' && <BudgetModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} onClose={() => setModal(null)} />}
       {toast && !undo && <div className="toast">{toast}</div>}
       {undo && (

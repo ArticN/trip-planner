@@ -6,13 +6,13 @@ import * as japan from './examples/japan.js';
 // viagens de exemplo que o usuário pode carregar na tela inicial
 const EXAMPLES = { japao: japan };
 
-const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code', 'spent'];
+const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code', 'spent', 'rating', 'review'];
 const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
 const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover'];
 
 const clean = (v) => (v === '' || v === undefined ? null : v);
 const pick = (body, fields) => fields.map((f) => (f in body ? clean(body[f]) : null));
@@ -89,9 +89,9 @@ async function migrate() {
     const have = await cols(table);
     for (const [c, type] of list) if (!have.includes(c)) await db.exec(`ALTER TABLE ${table} ADD COLUMN ${c} ${type}`);
   };
-  await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL']]);
+  await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT']]);
 
   if (legacy) {
     const kv = Object.fromEntries((await db.all('SELECT key, value FROM trip')).map((r) => [r.key, r.value]));
@@ -293,7 +293,7 @@ app.delete('/api/trips/:id', needTrip, h(async (req, res) => {
 
 app.post('/api/trips/:id/duplicate', needTrip, h(async (req, res) => {
   const d = await getTrip(req.tripId);
-  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })) });
+  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null, rating: null, review: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })) });
   res.status(201).json(await getTrip(id));
 }));
 

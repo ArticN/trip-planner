@@ -1,3 +1,4 @@
+import { Stars } from './Stars.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { KINDS, hasCoords, duration, fmtDuration, fmtDayLong, endDayOf, directionsUrl } from './util.js';
 
@@ -25,6 +26,12 @@ export default function PinPanel({ a, n, cityMap, fx, tripTz, onEdit, onToggleDo
       {a.location && <div className="pp-loc">{a.location}</div>}
       {a.details && <p className="pp-text">{a.details}</p>}
       {a.notes && <p className="pp-text pp-notes">{a.notes}</p>}
+      {(a.rating || a.review) && (
+        <p className="pp-text review">
+          {a.rating ? <Stars value={a.rating} /> : null}
+          {a.review && <span>{a.review}</span>}
+        </p>
+      )}
       {(a.cost != null || a.spent != null) && (
         <div className="pp-money">
           {a.cost != null && <span>Previsto <b>{fx.fmt(a.cost)}</b></span>}

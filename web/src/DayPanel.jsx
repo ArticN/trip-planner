@@ -1,5 +1,6 @@
+import { Stars } from './Stars.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes,
 } from './util.js';
@@ -49,6 +50,10 @@ export default function DayPanel({
   day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
   onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo,
 }) {
+  // atividade escolhida (no mapa ou na busca) fica visível na lista
+  useEffect(() => {
+    if (selectedId != null) document.querySelector('.daypanel .item.sel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [selectedId, day]);
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
 
@@ -189,6 +194,12 @@ export default function DayPanel({
                   {a.location && <div className="loc">{a.location}</div>}
                   {a.details && <div className="det">{a.details}</div>}
                   {a.notes && <div className="note">{a.notes}</div>}
+                  {(a.rating || a.review) && (
+                    <div className="review">
+                      {a.rating ? <Stars value={a.rating} /> : null}
+                      {a.review && <span>{a.review}</span>}
+                    </div>
+                  )}
                   {(parseLinks(a.links).length > 0 || hasCoords(a)) && (
                     <div className="links">
                       {hasCoords(a) && <a href={directionsUrl(a)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Como chegar</a>}

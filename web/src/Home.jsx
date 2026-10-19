@@ -6,6 +6,8 @@ import { getTheme, toggleTheme } from './theme.js';
 import Mark from './Mark.jsx';
 import WhatsNew from './WhatsNew.jsx';
 
+const coverUrl = (c) => `url("${String(c).replace(/"/g, '%22')}")`;
+
 function status(t, today = nowIn(t.tz).day) {
   if (today < t.start) return { label: `Faltam ${daysBetween(today, t.start)} dias`, cls: 'soon' };
   if (today <= t.end) return { label: `Dia ${daysBetween(t.start, today) + 1} da viagem`, cls: 'now' };
@@ -75,7 +77,8 @@ export default function Home({ version, onOpen, onChanged }) {
   const card = (t) => {
     const st = status(t);
     return (
-      <button key={t.id} className="trip-card" onClick={() => onOpen(t.id)}>
+      <button key={t.id} className={`trip-card${t.cover ? ' has-cover' : ''}`} onClick={() => onOpen(t.id)}>
+        {t.cover && <span className="tc-cover" style={{ backgroundImage: coverUrl(t.cover) }} />}
         <span className="tc-name">{t.emoji ? <span className="tc-emoji">{t.emoji}</span> : null}{t.name}</span>
         {t.subtitle && <span className="tc-sub">{t.subtitle}</span>}
         <span className="tc-dates">{fmtDay(t.start)} → {fmtDay(t.end)} · {daysBetween(t.start, t.end) + 1} dias</span>
@@ -144,7 +147,7 @@ function Featured({ trip, detail, onOpen }) {
   const checkDone = check.filter((c) => c.done).length;
   const firstDay = acts.filter((a) => a.day === trip.start);
   return (
-    <section className="featured">
+    <section className={`featured${trip.cover ? ' has-cover' : ''}`} style={trip.cover ? { '--cover': coverUrl(trip.cover) } : undefined}>
       <div className="ft-kicker">{going ? 'Em andamento' : 'Próxima viagem'}</div>
       <h1 className="ft-name">{trip.name}</h1>
       <div className="ft-big">
