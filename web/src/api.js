@@ -25,8 +25,6 @@ export const api = {
   deleteTrip: (id) => req('DELETE', `/api/trips/${id}`),
   duplicateTrip: (id) => req('POST', `/api/trips/${id}/duplicate`),
   importTrip: (data) => req('POST', '/api/trips/import', data),
-  examples: () => req('GET', '/api/examples'),
-  loadExample: (key) => req('POST', `/api/examples/${key}`),
   // atividades
   createActivity: (tripId, a) => req('POST', `/api/trips/${tripId}/activities`, a),
   updateActivity: (id, patch) => req('PUT', `/api/activities/${id}`, patch),

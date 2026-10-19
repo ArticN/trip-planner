@@ -13,7 +13,6 @@ function status(t, today = nowIn(t.tz).day) {
 
 export default function Home({ version, onOpen, onChanged }) {
   const [trips, setTrips] = useState(null);
-  const [examples, setExamples] = useState([]);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(null);
   const [toast, setToast] = useState('');
@@ -22,8 +21,8 @@ export default function Home({ version, onOpen, onChanged }) {
 
   const load = useCallback(async () => {
     try {
-      const [t, e] = await Promise.all([api.trips(), api.examples()]);
-      setTrips(t); setExamples(e); setError('');
+      const t = await api.trips();
+      setTrips(t); setError('');
     } catch (err) { setError(String(err.message || err)); }
   }, []);
   useEffect(() => { load(); }, [load, version]);
@@ -54,9 +53,6 @@ export default function Home({ version, onOpen, onChanged }) {
     } catch (e) { say('Não consegui criar a viagem'); }
   };
 
-  const loadExample = async (key) => {
-    try { const d = await api.loadExample(key); onChanged(); onOpen(d.trip.id); } catch { say('Erro ao carregar o exemplo'); }
-  };
 
   const onImport = async (e) => {
     const f = e.target.files?.[0];
@@ -125,17 +121,6 @@ export default function Home({ version, onOpen, onChanged }) {
           </>
         )}
 
-        {examples.length > 0 && (
-          <section className="home-examples">
-            <h3>Quer ver como funciona?</h3>
-            {examples.map((x) => (
-              <div className="example" key={x.key}>
-                <div><b>{x.title}</b><div className="muted small">{x.description}</div></div>
-                <button onClick={() => loadExample(x.key)}>Carregar exemplo</button>
-              </div>
-            ))}
-          </section>
-        )}
       </main>
 
       {creating && <TripModal trip={creating} onSave={create} onClose={() => setCreating(null)} />}
