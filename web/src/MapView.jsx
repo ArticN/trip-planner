@@ -48,14 +48,14 @@ function jitterMap(items) {
 
 export default function MapView({
   mode, items, stays, cities, stayByDay, selectedId, onSelect, onEdit, editPositions, onMove,
-  picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef,
+  picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const markersRef = useRef(new Map());
   const cb = useRef({});
-  cb.current = { onSelect, onEdit, onMove, onPick, picking, onIdea };
+  cb.current = { onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground };
   const lastFit = useRef(null);
   const declutterRef = useRef(null);
 
@@ -72,7 +72,7 @@ export default function MapView({
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
-    map.on('click', (e) => { if (cb.current.picking) cb.current.onPick?.(e.latlng.lat, e.latlng.lng); });
+    map.on('click', (e) => { if (cb.current.picking) cb.current.onPick?.(e.latlng.lat, e.latlng.lng); else cb.current.onBackground?.(); });
     mapRef.current = map;
     if (centerRef) centerRef.current = () => { const c = map.getCenter(); return { lat: c.lat, lng: c.lng, zoom: map.getZoom() }; };
     setTimeout(() => map.invalidateSize(), 50);
@@ -96,25 +96,6 @@ export default function MapView({
     const bounds = [];
     const cityMap = Object.fromEntries(cities.map((c) => [c.key, c]));
 
-    const popupFor = (a, n) => {
-      const k = KINDS[a.kind] || KINDS.sight;
-      const el = document.createElement('div');
-      el.className = 'popup';
-      const time = a.start ? `${esc(a.start)}${a.end ? '–' + esc(a.end) : ''}` : '';
-      el.innerHTML = `
-        <div class="popup-kind" style="color:${k.color}">${k.icon} ${esc(k.label)}${n ? ` · #${n}` : ''}</div>
-        <div class="popup-title">${esc(a.title)}</div>
-        ${time ? `<div class="popup-time">${time}</div>` : ''}
-        ${a.location ? `<div class="popup-loc">${esc(a.location)}</div>` : ''}
-        ${a.details ? `<div class="popup-det">${esc(a.details.length > 160 ? a.details.slice(0, 160) + '…' : a.details)}</div>` : ''}
-        <div class="popup-actions">
-          <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}">Abrir no Google Maps ↗</a>
-          <button type="button">Editar</button>
-        </div>`;
-      el.querySelector('button').addEventListener('click', () => cb.current.onEdit?.(a.id));
-      return el;
-    };
-
     if (mode === 'day') {
       const pts = items.filter(hasCoords);
       const jit = editPositions ? new Map() : jitterMap(pts);
@@ -126,7 +107,6 @@ export default function MapView({
           draggable: !!editPositions,
           zIndexOffset: a.id === selectedId ? 1000 : 0,
         });
-        m.bindPopup(() => popupFor(a, a.n), { minWidth: 220 });
         m.on('click', () => cb.current.onSelect?.(a.id));
         m.on('dragend', () => { const p = m.getLatLng(); cb.current.onMove?.(a.id, p.lat, p.lng); });
         m.addTo(group);
@@ -204,9 +184,8 @@ export default function MapView({
       items.filter(hasCoords).forEach((a) => {
         const k = KINDS[a.kind] || KINDS.sight;
         const dot = L.circleMarker([a.lat, a.lng], {
-          radius: a.kind === 'sight' ? 6 : 4, color: '#fff', weight: 1.5, fillColor: k.color, fillOpacity: 0.95,
+          radius: a.kind === 'sight' ? 6 : 4, color: '#fff', weight: 1.5, fillColor: k.color, fillOpacity: 0.95, bubblingMouseEvents: false,
         });
-        dot.bindPopup(() => popupFor(a), { minWidth: 220 });
         dot.on('click', () => cb.current.onSelect?.(a.id));
         dot.addTo(detail);
       });
@@ -236,7 +215,7 @@ export default function MapView({
       // ideias (sem dia): anel vazado, clique abre a ideia
       ideas.filter(hasCoords).forEach((x) => {
         const k = KINDS[x.kind] || KINDS.sight;
-        L.circleMarker([x.lat, x.lng], { radius: 7, color: k.color, weight: 2.5, fillColor: '#000', fillOpacity: 0.35, dashArray: '3 3' })
+        L.circleMarker([x.lat, x.lng], { radius: 7, color: k.color, weight: 2.5, fillColor: '#000', fillOpacity: 0.35, dashArray: '3 3', bubblingMouseEvents: false })
           .bindTooltip(`Ideia · ${x.title}`)
           .on('click', () => cb.current.onIdea?.(x))
           .addTo(group);
@@ -253,8 +232,6 @@ export default function MapView({
       lastFit.current = key;
     }
 
-    const sel = markersRef.current.get(selectedId);
-    if (sel && !editPositions) sel.openPopup();
   }, [mode, items, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas]);
 
   useEffect(() => {

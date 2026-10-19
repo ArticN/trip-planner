@@ -7,6 +7,7 @@ import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
+import PinPanel from './PinPanel.jsx';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal } from './Modals.jsx';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn,
@@ -265,6 +266,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
   const onMarkerMove = (id, lat, lng) => updateActivity(id, { lat: +lat.toFixed(5), lng: +lng.toFixed(5) });
 
+  const pinned = selectedId == null ? null : (data?.activities || []).find((x) => x.id === selectedId && hasCoords(x)) || null;
   const selectFromList = (id) => {
     setSelectedId(id);
     const a = data.activities.find((x) => x.id === id);
@@ -444,7 +446,14 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             fitKey={sel}
             showStays={sel === 'trip' ? showStaysTrip : showStaysDay}
             labelNumbers={labelNumbers}
+            onBackground={() => setSelectedId(null)}
           />
+          {pinned && !editPositions && !picking && !quickAdd && (
+            <PinPanel
+              a={pinned} n={mapItems.find((x) => x.id === pinned.id)?.n} cityMap={cityMap} fx={fx} tripTz={trip.tz}
+              onEdit={openEdit} onToggleDone={toggleDone} onClose={() => setSelectedId(null)}
+            />
+          )}
           {sel === 'trip' && routeStops.length > 0 && (
             <div className="route-bar">
               <b>Rota da viagem</b>

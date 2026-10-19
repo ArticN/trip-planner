@@ -579,3 +579,22 @@ div.ms-pop { padding: 10px 12px; }
 .wn-entry li + li { margin-top: 3px; }
 .wn-more { margin-top: 14px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
 .wn-more:hover { color: var(--ink); }
+
+/* painel de detalhes do pin */
+.pin-panel { position: absolute; left: 16px; bottom: 36px; z-index: 1000; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 120px); overflow-y: auto; padding: 14px 16px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.pp-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.pp-kind { font-size: 13px; font-weight: 500; padding-top: 4px; }
+.pp-title { margin: 4px 0 2px; font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.15; }
+.pp-when { color: var(--ink-2); font-size: 14px; }
+.pp-when::first-letter { text-transform: uppercase; }
+.pp-loc { margin-top: 2px; color: var(--muted); font-size: 14px; }
+.pp-text { margin: 10px 0 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+.pp-notes { padding-left: 10px; border-left: 2px solid var(--line); color: var(--ink-2); }
+.pp-money { display: flex; gap: 16px; margin-top: 10px; font-size: 14px; color: var(--muted); }
+.pp-money b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.pp-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 14px; }
+.pp-links a { color: var(--accent); }
+.pp-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+@media (max-width: 900px) {
+  .pin-panel { left: 8px; right: 8px; bottom: 76px; width: auto; max-height: 55%; }
+}
