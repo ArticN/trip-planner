@@ -22,13 +22,40 @@ export function toMin(t) {
   return h * 60 + m;
 }
 
-// duração em minutos (fim no mesmo dia; se fim < início, assume virada de dia)
-export function duration(a) {
-  const s = toMin(a.start);
-  const e = toMin(a.end);
-  if (s == null || e == null) return null;
-  if (a.end_day && a.end_day !== a.day) return null;
-  return e >= s ? e - s : e + 1440 - s;
+// ── fusos horários (IANA, ex: Asia/Tokyo)
+export const TIMEZONES = (() => { try { return Intl.supportedValuesOf('timeZone'); } catch { return []; } })();
+export const localTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } };
+const tzFmt = {};
+// minutos que o fuso está à frente do UTC no instante `ms`
+function tzOffset(tz, ms) {
+  tzFmt[tz] ||= new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const p = Object.fromEntries(tzFmt[tz].formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+  return (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - Math.floor(ms / 60000) * 60000) / 60000;
+}
+// dia + hora "de parede" num fuso → instante UTC (ms). Sem fuso, trata como UTC.
+export function zonedMs(day, time, tz) {
+  const [y, m, d] = day.split('-').map(Number);
+  const [h, mi] = time.split(':').map(Number);
+  const guess = Date.UTC(y, m - 1, d, h, mi);
+  if (!tz) return guess;
+  try {
+    let ms = guess - tzOffset(tz, guess) * 60000;
+    ms = guess - tzOffset(tz, ms) * 60000; // ajuste perto da troca de horário de verão
+    return ms;
+  } catch { return guess; }
+}
+const nextDay = (d) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); };
+// fusos de início e fim de uma atividade (o do transporte, se houver; senão o da viagem)
+export const actTz = (a, tripTz) => ({ start: a.start_tz || tripTz || null, end: a.end_tz || a.start_tz || tripTz || null });
+// dia em que a atividade termina
+export const endDayOf = (a) => a.end_day || (a.end && a.start && a.end < a.start ? nextDay(a.day) : a.day);
+
+// duração em minutos. Considera dia de chegada e fusos diferentes (voos); se fim < início no mesmo dia, assume virada de dia.
+export function duration(a, tripTz) {
+  if (!a.start || !a.end) return null;
+  const tz = actTz(a, tripTz);
+  const min = (zonedMs(endDayOf(a), a.end, tz.end) - zonedMs(a.day, a.start, tz.start)) / 60000;
+  return min >= 0 ? Math.round(min) : null;
 }
 
 export function fmtDuration(min) {

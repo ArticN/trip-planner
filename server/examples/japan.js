@@ -11,6 +11,7 @@ export const TRIP = {
   currency: 'JPY',
   home_currency: 'BRL',
   rate: 0.035, // 1 JPY em BRL — edite no app
+  tz: 'Asia/Tokyo',
 };
 
 export const EXAMPLE = { key: 'japao', title: 'Japão 2026 (roteiro de exemplo)', description: '24 dias entre Tóquio, Kyoto, Osaka e arredores, com horários, hotéis e custos.' };
@@ -46,7 +47,7 @@ const a = (day, start, end, city, title, kind, location = '', details = '', tran
 
 export const ACTIVITIES = [
   // ── 06/11 ida
-  a('2026-11-06', '19:25', '10:20', 'transito', 'Voo GRU → Zurique → Tóquio (NRT)', 'flight', 'Guarulhos (GRU) → Zurique → Narita (NRT)', 'GRU 06/nov 19:25 → Zurique 07/nov 10:40 → Narita 08/nov 10:20 (Swiss/Lufthansa). Horários de cada ponta no fuso local.', '✈️ Avião', null, -23.4356, -46.4731, { end_day: '2026-11-08' }),
+  a('2026-11-06', '19:25', '10:20', 'transito', 'Voo GRU → Zurique → Tóquio (NRT)', 'flight', 'Guarulhos (GRU) → Zurique → Narita (NRT)', 'GRU 06/nov 19:25 → Zurique 07/nov 10:40 → Narita 08/nov 10:20 (Swiss/Lufthansa). Horários de cada ponta no fuso local.', '✈️ Avião', null, -23.4356, -46.4731, { end_day: '2026-11-08', start_tz: 'America/Sao_Paulo', end_tz: 'Asia/Tokyo', from_code: 'GRU', to_code: 'NRT' }),
 
   // ── 08/11
   a('2026-11-08', '10:20', null, 'toquio', 'Chegada em Narita + deslocamento ao hotel', 'move', 'Aeroporto de Narita → hotel', 'Pouso 10:20. Deslocamento até o hotel em Ginza.', '🚃 Trem', null, 35.7720, 140.3929),
@@ -260,5 +261,5 @@ export const ACTIVITIES = [
   a('2026-11-28', '08:15', '09:30', 'toquio', 'Deslocamento ao Aeroporto de Narita', 'move', 'Tóquio → Narita', 'Trem expresso até Narita (~1h15), voo sai às 12:10.', '🚃 Trem', null, 35.7720, 140.3929),
   a('2026-11-28', '09:30', '12:10', 'toquio', 'Check-in + embarque', 'flight', 'Narita (NRT)', 'Voo com 2 escalas (ICN, ADD), decolagem 12:10.', '', null, 35.7720, 140.3929),
   a('2026-11-28', '10:00', '11:00', 'toquio', '🍽️ Almoço', 'food', 'Aeroporto de Narita', 'No aeroporto, antes do embarque (voo 12:10).', '', null, 35.7740, 140.3880),
-  a('2026-11-28', '12:10', '06:40', 'transito', 'Voo NRT → Seul (ICN) → Addis Abeba (ADD) → GRU', 'flight', 'Narita → Seul → Addis Abeba → Guarulhos', 'Sai de Narita 12:10 do dia 28, chegada em GRU 06:40 do dia 29 (horário local).', '✈️ Avião', null, -23.4356, -46.4731, { end_day: '2026-11-29' }),
+  a('2026-11-28', '12:10', '06:40', 'transito', 'Voo NRT → Seul (ICN) → Addis Abeba (ADD) → GRU', 'flight', 'Narita → Seul → Addis Abeba → Guarulhos', 'Sai de Narita 12:10 do dia 28, chegada em GRU 06:40 do dia 29 (horário local).', '✈️ Avião', null, -23.4356, -46.4731, { end_day: '2026-11-29', start_tz: 'Asia/Tokyo', end_tz: 'America/Sao_Paulo', from_code: 'NRT', to_code: 'GRU' }),
 ];

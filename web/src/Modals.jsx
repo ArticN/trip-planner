@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { parseLinks, linkLabel } from './Extras.jsx';
-import { KINDS, KIND_KEYS, TRANSPORTS, CURRENCIES, hasCoords, fmtDay } from './util.js';
+import { KINDS, KIND_KEYS, TRANSPORTS, CURRENCIES, TIMEZONES, localTz, hasCoords, fmtDay } from './util.js';
 
 export function Modal({ title, onClose, children, wide, footer }) {
   useEffect(() => {
@@ -101,7 +101,17 @@ function LinksField({ value, onChange }) {
   );
 }
 
-export function EditModal({ draft, isNew, cities, days, fxCur, onChange, onSave, onDelete, onClose, onPickMap }) {
+// campo de fuso com sugestões (vazio = fuso da viagem)
+function TzInput({ value, onChange, placeholder }) {
+  return (
+    <>
+      <input list="tz-list" value={value || ''} onChange={(e) => onChange(e.target.value.trim() || null)} placeholder={placeholder} />
+      <datalist id="tz-list">{TIMEZONES.map((t) => <option key={t} value={t} />)}</datalist>
+    </>
+  );
+}
+
+export function EditModal({ draft, isNew, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap }) {
   const set = (patch) => onChange({ ...draft, ...patch });
   const num = (v) => (v === '' || v == null ? null : Number(v));
   const valid = draft.title?.trim() && draft.day;
@@ -159,6 +169,25 @@ export function EditModal({ draft, isNew, cities, days, fxCur, onChange, onSave,
         <label className="full">Detalhes
           <textarea rows={3} value={draft.details || ''} onChange={(e) => set({ details: e.target.value })} />
         </label>
+        {(draft.kind === 'flight' || draft.kind === 'move' || draft.from_code || draft.ref) && (
+          <div className="full fieldset">
+            <div className="legend">Trecho (voo, trem, ônibus)</div>
+            <div className="form">
+              <label>Nº do voo / trem<input value={draft.ref || ''} onChange={(e) => set({ ref: e.target.value })} placeholder="Ex: LX 93" /></label>
+              <label>Chega no dia
+                <select value={draft.end_day || ''} onChange={(e) => set({ end_day: e.target.value || null })}>
+                  <option value="">mesmo dia</option>
+                  {days.filter((d) => d > draft.day).map((d) => <option key={d} value={d}>{fmtDay(d)}</option>)}
+                </select>
+              </label>
+              <label>Saída (código)<input value={draft.from_code || ''} onChange={(e) => set({ from_code: e.target.value.toUpperCase() })} placeholder="GRU, Tóquio…" /></label>
+              <label>Chegada (código)<input value={draft.to_code || ''} onChange={(e) => set({ to_code: e.target.value.toUpperCase() })} placeholder="NRT, Kyoto…" /></label>
+              <label>Fuso da saída<TzInput value={draft.start_tz} onChange={(v) => set({ start_tz: v })} placeholder={tripTz || 'fuso da viagem'} /></label>
+              <label>Fuso da chegada<TzInput value={draft.end_tz} onChange={(v) => set({ end_tz: v })} placeholder={tripTz || 'fuso da viagem'} /></label>
+            </div>
+            <div className="muted small">Digite os horários no fuso local de cada ponta, como estão no bilhete. A duração é calculada com os fusos.</div>
+          </div>
+        )}
         <label className="full">Notas e reservas
           <textarea rows={2} value={draft.notes || ''} onChange={(e) => set({ notes: e.target.value })} placeholder="Código de reserva, horário de check-in, o que levar…" />
         </label>
@@ -355,6 +384,9 @@ export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
             <input inputMode="decimal" value={d.rate ?? ''} onChange={(e) => set({ rate: e.target.value })} />
           </label>
         )}
+        <label className="full">Fuso horário do destino
+          <TzInput value={d.tz} onChange={(v) => set({ tz: v })} placeholder={`Ex: Asia/Tokyo (seu fuso: ${localTz() || '—'})`} />
+        </label>
         {d.end && d.start && d.end < d.start && <div className="full warn">A data final é anterior à inicial.</div>}
       </div>
     </Modal>

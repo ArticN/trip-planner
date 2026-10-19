@@ -330,7 +330,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 day={sel} dayIndex={dayIndex} items={dayItems} cityMap={cityMap} stay={stayFor(sel)} checkout={sel === 'trip' ? null : (data.stays || []).find((s) => s.check_out === sel && s !== stayFor(sel)) || null}
                 conflicts={dayConflicts} selectedId={selectedId} onSelect={selectFromList} onEdit={openEdit}
                 onToggleDone={toggleDone} onAdd={openNew} onReorder={reorder} onSortTime={sortTime}
-                kinds={kinds} onToggleKind={toggleKind} fx={fx}
+                kinds={kinds} onToggleKind={toggleKind} fx={fx} tripTz={trip.tz}
                 onPrev={() => step(-1)} onNext={() => step(1)} hasPrev={dayIndex > 0} hasNext={dayIndex < days.length - 1}
               />
             )}
@@ -395,7 +395,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       </div>
 
       {editing && !draftHidden && (
-        <EditModal
+        <EditModal tripTz={trip.tz}
           draft={editing.draft} isNew={editing.isNew} cities={data.cities} days={days} fxCur={fx.cur}
           onChange={(d) => setEditing((e) => ({ ...e, draft: d }))}
           onSave={saveEdit} onDelete={deleteEdit} onClose={() => setEditing(null)}

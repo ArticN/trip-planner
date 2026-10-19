@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Modal } from './Modals.jsx';
-import { KINDS, KIND_KEYS, hasCoords, haversine, fmtKm, fmtDay, dayNum, dayWeek, daysBetween } from './util.js';
+import { KINDS, KIND_KEYS, hasCoords, haversine, fmtKm, fmtDay, dayNum, dayWeek, daysBetween, actTz, endDayOf, zonedMs } from './util.js';
 
 // ── links de uma atividade: guardados como JSON [{ label, url }]
 export function parseLinks(v) {
@@ -219,10 +219,16 @@ export function downloadIcs(trip, activities, cityMap) {
     const desc = [a.details, a.notes, ...parseLinks(a.links).map((l) => l.url)].filter(Boolean).join('\n');
     const loc = [a.location, cityMap[a.city]?.name].filter(Boolean).join(', ');
     lines.push('BEGIN:VEVENT', `UID:tp-${trip.id}-${a.id}@trip-planner`, `DTSTAMP:${stamp}`);
-    if (a.start) {
-      // horário "flutuante" (sem fuso): aparece no horário local de onde o calendário estiver
+    const tz = actTz(a, trip.tz);
+    const utc = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    if (a.start && tz.start) {
+      // com fuso: grava em UTC, e cada agenda mostra no fuso de quem estiver vendo
+      lines.push(`DTSTART:${utc(zonedMs(a.day, a.start, tz.start))}`);
+      if (a.end) lines.push(`DTEND:${utc(zonedMs(endDayOf(a), a.end, tz.end))}`);
+    } else if (a.start) {
+      // sem fuso: horário "flutuante", aparece igual em qualquer fuso
       lines.push(`DTSTART:${d8(a.day)}T${t6(a.start)}`);
-      if (a.end) lines.push(`DTEND:${d8(a.end_day || (a.end < a.start ? next(a.day) : a.day))}T${t6(a.end)}`);
+      if (a.end) lines.push(`DTEND:${d8(endDayOf(a))}T${t6(a.end)}`);
     } else {
       lines.push(`DTSTART;VALUE=DATE:${d8(a.day)}`, `DTEND;VALUE=DATE:${d8(next(a.day))}`);
     }

@@ -457,3 +457,5 @@ button.big { padding: 12px 22px; font-size: 16px; }
 .pair { display: flex; gap: 6px; }
 .pair input[type=time] { width: 110px; flex: none; }
 .stay-line a { color: var(--accent); text-decoration: none; }
+.leg { margin-top: 2px; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.leg b { font-weight: 600; color: var(--ink); letter-spacing: 0.02em; }

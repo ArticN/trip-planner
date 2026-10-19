@@ -66,12 +66,15 @@ for (const c of ['notes', 'links']) if (!cols('activities').includes(c)) db.exec
 for (const [c, t] of [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]) {
   if (!cols('stays').includes(c)) db.exec(`ALTER TABLE stays ADD COLUMN ${c} ${t}`);
 }
+// fusos: o da viagem (destino) e, em transportes, o de cada ponta
+for (const c of ['start_tz', 'end_tz', 'ref', 'from_code', 'to_code']) if (!cols('activities').includes(c)) db.exec(`ALTER TABLE activities ADD COLUMN ${c} TEXT`);
+if (!cols('trips').includes('tz')) db.exec('ALTER TABLE trips ADD COLUMN tz TEXT');
 
-const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links'];
+const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code'];
 const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
 const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz'];
 
 const clean = (v) => (v === '' || v === undefined ? null : v);
 const pick = (body, fields) => fields.map((f) => (f in body ? clean(body[f]) : null));

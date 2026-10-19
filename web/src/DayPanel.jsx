@@ -1,7 +1,7 @@
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { useState } from 'react';
 import {
-  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween,
+  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf,
 } from './util.js';
 
 function Gap({ a, b }) {
@@ -14,7 +14,7 @@ function Gap({ a, b }) {
 
 export default function DayPanel({
   day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
-  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext,
+  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz,
 }) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
@@ -98,8 +98,10 @@ export default function DayPanel({
           const k = KINDS[a.kind] || KINDS.sight;
           const idx = items.indexOf(a);
           const prev = idx > 0 ? items[idx - 1] : null;
-          const dur = duration(a);
-          const endPlus = a.end_day && a.end_day !== a.day ? ` (+${daysBetween(a.day, a.end_day)}d)` : '';
+          const dur = duration(a, tripTz);
+          const endDay = endDayOf(a);
+          const endPlus = a.end && endDay !== a.day ? ` (+${daysBetween(a.day, endDay)}d)` : '';
+          const leg = a.from_code || a.to_code || a.ref;
           const cls = ['item', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
           return (
             <li key={a.id}>
@@ -129,6 +131,14 @@ export default function DayPanel({
                   <div className="title-row">
                     <span className="title">{a.title}</span>
                   </div>
+                  {leg && (
+                    <div className="leg">
+                      {a.from_code && <b>{a.from_code}</b>} {a.start}
+                      {(a.to_code || a.end) && <> → {a.to_code && <b>{a.to_code}</b>} {a.end}{endPlus}</>}
+                      {a.ref && <span className="muted"> · {a.ref}</span>}
+                      {a.start_tz && a.end_tz && a.start_tz !== a.end_tz && <span className="muted"> · horários locais</span>}
+                    </div>
+                  )}
                   {a.location && <div className="loc">{a.location}</div>}
                   {a.details && <div className="det">{a.details}</div>}
                   {a.notes && <div className="note">{a.notes}</div>}
