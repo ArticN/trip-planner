@@ -19,8 +19,10 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
+    "@maplibre/maplibre-gl-leaflet": "0.1.4",
     "@vitejs/plugin-react": "^4.3.4",
     "leaflet": "^1.9.4",
+    "maplibre-gl": "6.11.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "vite": "^5.4.11"

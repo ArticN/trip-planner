@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { KINDS, esc, hasCoords, haversine, fmtKm } from './util.js';
+import { translatedBasemap, osmLayer } from './basemap.js';
 
 const WORLD_CENTER = [20, 0];
 
@@ -61,11 +62,13 @@ export default function MapView({
   // ── cria o mapa uma vez
   useEffect(() => {
     const map = L.map(elRef.current, { zoomControl: false, preferCanvas: false }).setView(WORLD_CENTER, 2);
-    const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap', className: 'osm-tiles' });
+    const base = translatedBasemap(); // rótulos em português/inglês em vez de kanji etc.
+    const osm = osmLayer();
     const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
     const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' });
-    osm.addTo(map); // no tema escuro o CSS inverte os tiles (.osm-tiles)
-    L.control.layers({ 'Mapa': osm, 'Relevo': topo, 'Satélite': sat }, null, { position: 'topright' }).addTo(map);
+    base.addTo(map);
+    // no tema escuro o CSS inverte os tiles do OpenStreetMap (.osm-tiles)
+    L.control.layers({ 'Mapa': base, 'Mapa (nomes locais)': osm, 'Relevo': topo, 'Satélite': sat }, null, { position: 'topright' }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
