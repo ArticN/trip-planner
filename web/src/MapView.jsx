@@ -56,6 +56,7 @@ export default function MapView({
   const cb = useRef({});
   cb.current = { onSelect, onEdit, onMove, onPick, picking, onIdea };
   const lastFit = useRef(null);
+  const declutterRef = useRef(null);
 
   // ── cria o mapa uma vez
   useEffect(() => {
@@ -153,6 +154,7 @@ export default function MapView({
         L.marker([st.lat, st.lng], { icon: labelIcon('H', 'stay-lbl') }).bindTooltip(st.name).addTo(group);
         bounds.push([st.lat, st.lng]);
       }
+      if (declutterRef.current) { map.off('zoomend', declutterRef.current); declutterRef.current = null; }
     } else {
       // ── visão geral da viagem
       const stayCities = [];
@@ -181,6 +183,7 @@ export default function MapView({
         const to = cityMap[a.city];
         if (hasCoords(from) && hasCoords(to)) L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: '#b4b1ab', weight: 2.5, opacity: 0.8, dashArray: '6 8' }).addTo(group);
       });
+      const cityMarkers = [];
       cities.filter((c) => c.key !== 'transito' && hasCoords(c)).forEach((c) => {
         const n = items.filter((a) => a.city === c.key && a.kind === 'sight').length;
         const m = L.marker([c.lat, c.lng], {
@@ -189,8 +192,11 @@ export default function MapView({
         });
         m.on('click', () => map.flyTo([c.lat, c.lng], 12, { duration: 0.8 }));
         m.addTo(group);
+        cityMarkers.push({ m, n });
         bounds.push([c.lat, c.lng]);
       });
+      // pontos das atividades só aparecem de perto; de longe ficam só as cidades
+      const detail = L.layerGroup().addTo(group);
       items.filter(hasCoords).forEach((a) => {
         const k = KINDS[a.kind] || KINDS.sight;
         const dot = L.circleMarker([a.lat, a.lng], {
@@ -198,8 +204,26 @@ export default function MapView({
         });
         dot.bindPopup(() => popupFor(a), { minWidth: 220 });
         dot.on('click', () => cb.current.onSelect?.(a.id));
-        dot.addTo(group);
+        dot.addTo(detail);
       });
+      // nomes de cidade que se sobrepõem: fica o da cidade com mais pontos turísticos
+      const declutter = () => {
+        const z = map.getZoom();
+        detail.eachLayer((l) => { const el = l.getElement?.(); if (el) el.style.display = z >= 9 ? '' : 'none'; });
+        const kept = [];
+        [...cityMarkers].sort((x, y) => y.n - x.n).forEach(({ m }) => {
+          const el = m.getElement()?.querySelector('.city-name');
+          if (!el) return;
+          el.style.visibility = '';
+          const r = el.getBoundingClientRect();
+          const hit = kept.some((k) => r.left < k.right + 4 && r.right > k.left - 4 && r.top < k.bottom + 2 && r.bottom > k.top - 2);
+          if (hit) el.style.visibility = 'hidden'; else kept.push(r);
+        });
+      };
+      if (declutterRef.current) map.off('zoomend', declutterRef.current);
+      declutterRef.current = declutter;
+      map.on('zoomend', declutter);
+      setTimeout(declutter, 0);
       if (showStays) {
         stays.filter(hasCoords).forEach((s) => {
           L.marker([s.lat, s.lng], { icon: labelIcon('H', 'stay-lbl') }).bindTooltip(`${s.name} · ${s.check_in.slice(8)}/${s.check_in.slice(5, 7)}–${s.check_out.slice(8)}/${s.check_out.slice(5, 7)}`).addTo(group);

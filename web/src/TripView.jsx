@@ -21,6 +21,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
+  const [mobileView, setMobileView] = useState('list'); // celular: roteiro ou mapa em tela cheia
   const [editPositions, setEditPositions] = useState(false);
   const [showStaysDay, setShowStaysDay] = useState(true);
   const [showStaysTrip, setShowStaysTrip] = useState(false);
@@ -358,12 +359,15 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         </div>
         <div className="countdown">{countdown}</div>
         <span className="spacer" />
-        <button onClick={() => setModal('stays')}>Hospedagens</button>
-        <button onClick={() => setModal('budget')}>Orçamento</button>
+        <button className="hide-sm" onClick={() => setModal('stays')}>Hospedagens</button>
+        <button className="hide-sm" onClick={() => setModal('budget')}>Orçamento</button>
         <button className="hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
         <details className="menu">
           <summary>⋯</summary>
           <div className="menu-pop" onClick={(e) => e.currentTarget.parentElement.removeAttribute('open')}>
+            <button className="only-sm" onClick={() => setModal('stays')}>Hospedagens</button>
+            <button className="only-sm" onClick={() => setModal('budget')}>Orçamento</button>
+            <button className="only-sm" onClick={() => setModal('checklist')}>Checklist</button>
             <button onClick={() => setTheme(toggleTheme())}>{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</button>
             <button onClick={() => setModal('trip')}>Editar viagem</button>
             <button onClick={() => setModal('cities')}>Cidades e locais</button>
@@ -376,7 +380,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         </details>
       </header>
 
-      <div className="main">
+      <div className="main" data-view={mobileView}>
         <aside className="side">
           <nav className="strip" aria-label="Dias da viagem">
             <button className={`dchip trip${sel === 'trip' ? ' on' : ''}`} onClick={() => go('trip')}><b>Geral</b></button>
@@ -489,6 +493,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} onPick={(d) => { setModal(null); go(d); }} onClose={() => setModal(null)} />}
       {modal === 'budget' && <BudgetModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}
+      <button className="view-toggle primary" onClick={() => setMobileView((v) => (v === 'map' ? 'list' : 'map'))}>
+        {mobileView === 'map' ? 'Roteiro' : 'Mapa'}
+      </button>
 
       <PrintView days={days} byDay={byDay} cityMap={cityMap} stays={data.stays} trip={trip} fx={fx} checklist={data.checklist} />
     </div>

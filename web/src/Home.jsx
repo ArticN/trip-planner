@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { TripModal } from './Modals.jsx';
-import { daysBetween, fmtDay } from './util.js';
+import { daysBetween, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
 import { getTheme, toggleTheme } from './theme.js';
 import Mark from './Mark.jsx';
 
-const todayStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
-function status(t, today) {
+function status(t, today = nowIn(t.tz).day) {
   if (today < t.start) return { label: `Faltam ${daysBetween(today, t.start)} dias`, cls: 'soon' };
   if (today <= t.end) return { label: `Dia ${daysBetween(t.start, today) + 1} da viagem`, cls: 'now' };
   return { label: 'Concluída', cls: 'past' };
@@ -32,6 +27,14 @@ export default function Home({ version, onOpen, onChanged }) {
     } catch (err) { setError(String(err.message || err)); }
   }, []);
   useEffect(() => { load(); }, [load, version]);
+
+  // destaque: a viagem em andamento ou a próxima
+  const featured = (trips || []).filter((t) => nowIn(t.tz).day <= t.end).sort((a, b) => a.start.localeCompare(b.start))[0] || null;
+  const [detail, setDetail] = useState(null);
+  useEffect(() => {
+    setDetail(null);
+    if (featured) api.trip(featured.id).then(setDetail).catch(() => {});
+  }, [featured?.id, version]);
 
   const say = (m) => { setToast(m); setTimeout(() => setToast(''), 3200); };
 
@@ -69,7 +72,23 @@ export default function Home({ version, onOpen, onChanged }) {
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>Não consegui falar com o servidor.</p><code>{error}</code><button onClick={load}>Tentar de novo</button></div>;
   if (!trips) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando…</p></div>;
 
-  const today = todayStr();
+  const others = trips.filter((t) => t !== featured);
+  const upcoming = others.filter((t) => nowIn(t.tz).day <= t.end);
+  const past = others.filter((t) => nowIn(t.tz).day > t.end);
+  const card = (t) => {
+    const st = status(t);
+    return (
+      <button key={t.id} className="trip-card" onClick={() => onOpen(t.id)}>
+        <span className="tc-name">{t.emoji ? <span className="tc-emoji">{t.emoji}</span> : null}{t.name}</span>
+        {t.subtitle && <span className="tc-sub">{t.subtitle}</span>}
+        <span className="tc-dates">{fmtDay(t.start)} → {fmtDay(t.end)} · {daysBetween(t.start, t.end) + 1} dias</span>
+        <span className="tc-foot">
+          <span className={`tc-status ${st.cls}`}>{st.label}</span>
+          <span className="muted small">{t.activity_count} {t.activity_count === 1 ? 'atividade' : 'atividades'}</span>
+        </span>
+      </button>
+    );
+  };
   return (
     <div className="home">
       <header className="home-top">
@@ -90,23 +109,19 @@ export default function Home({ version, onOpen, onChanged }) {
           </div>
         ) : (
           <>
-            <h2 className="home-h">Minhas viagens</h2>
-            <div className="trip-grid">
-              {trips.map((t) => {
-                const st = status(t, today);
-                return (
-                  <button key={t.id} className="trip-card" onClick={() => onOpen(t.id)}>
-                    <span className="tc-name">{t.emoji ? <span className="tc-emoji">{t.emoji}</span> : null}{t.name}</span>
-                    {t.subtitle && <span className="tc-sub">{t.subtitle}</span>}
-                    <span className="tc-dates">{fmtDay(t.start)} → {fmtDay(t.end)} · {daysBetween(t.start, t.end) + 1} dias</span>
-                    <span className="tc-foot">
-                      <span className={`tc-status ${st.cls}`}>{st.label}</span>
-                      <span className="muted small">{t.activity_count} {t.activity_count === 1 ? 'atividade' : 'atividades'}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            {featured && <Featured trip={featured} detail={detail} onOpen={onOpen} />}
+            {upcoming.length > 0 && (
+              <>
+                <h2 className="home-h">{featured ? 'Próximas viagens' : 'Minhas viagens'}</h2>
+                <div className="trip-grid">{upcoming.map(card)}</div>
+              </>
+            )}
+            {past.length > 0 && (
+              <>
+                <h2 className="home-h">Concluídas</h2>
+                <div className="trip-grid">{past.map(card)}</div>
+              </>
+            )}
           </>
         )}
 
@@ -126,5 +141,43 @@ export default function Home({ version, onOpen, onChanged }) {
       {creating && <TripModal trip={creating} onSave={create} onClose={() => setCreating(null)} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
+  );
+}
+
+// cartão grande da viagem em andamento (com a próxima atividade) ou da próxima viagem
+function Featured({ trip, detail, onOpen }) {
+  const now = nowIn(trip.tz);
+  const total = daysBetween(trip.start, trip.end) + 1;
+  const going = now.day >= trip.start;
+  const dayN = daysBetween(trip.start, now.day) + 1;
+  const acts = detail?.activities || [];
+  const todays = acts.filter((a) => a.day === now.day).sort((a, b) => a.sort - b.sort);
+  const next = todays.find((a) => !a.done && a.start && toMin(a.start) >= now.min) || todays.find((a) => !a.done);
+  const check = detail?.checklist || [];
+  const checkDone = check.filter((c) => c.done).length;
+  const firstDay = acts.filter((a) => a.day === trip.start);
+  return (
+    <section className="featured">
+      <div className="ft-kicker">{going ? 'Em andamento' : 'Próxima viagem'}</div>
+      <h1 className="ft-name">{trip.name}</h1>
+      <div className="ft-big">
+        {going ? <><b>Dia {dayN}</b><span>de {total}</span></> : <><b>{daysBetween(now.day, trip.start)}</b><span>{daysBetween(now.day, trip.start) === 1 ? 'dia para ir' : 'dias para ir'}</span></>}
+      </div>
+      <div className="ft-meta">{fmtDay(trip.start)} → {fmtDay(trip.end)} · {total} dias · {trip.activity_count} atividades</div>
+      {going && (
+        <div className="ft-next">
+          {next ? <>A seguir: <b>{next.start ? `${next.start} · ` : ''}{next.title}</b></> : todays.length ? 'Tudo feito por hoje.' : 'Nada planejado para hoje.'}
+        </div>
+      )}
+      {!going && (
+        <div className="ft-next">
+          {check.length > 0 ? <>Checklist: <b>{checkDone} de {check.length}</b> itens prontos</> : 'Monte o checklist de documentos, reservas e mala.'}
+          {firstDay.length > 0 && <> · primeiro dia, {fmtDayLong(trip.start)}: {firstDay.length} {firstDay.length === 1 ? 'atividade' : 'atividades'}</>}
+        </div>
+      )}
+      <div className="ft-actions">
+        <button className="primary" onClick={() => onOpen(trip.id)}>{going ? 'Abrir o dia de hoje' : 'Abrir roteiro'}</button>
+      </div>
+    </section>
   );
 }

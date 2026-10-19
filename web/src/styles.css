@@ -297,15 +297,28 @@ input, select, textarea {
 
 /* ── responsivo */
 @media (max-width: 900px) {
-  body { overflow: auto; }
-  .app { height: auto; min-height: 100%; }
-  .main { display: flex; flex-direction: column-reverse; }
-  .mapwrap { height: 46vh; min-height: 300px; }
+  .main { display: block; position: relative; }
+  .main > .side, .main > .mapwrap { position: absolute; inset: 0; }
+  .main[data-view='list'] > .mapwrap { visibility: hidden; pointer-events: none; }
+  .main[data-view='map'] > .side { display: none; }
   .side { border-right: 0; }
-  .side-body { overflow: visible; }
-  .hide-sm { display: none; }
+  .side-body { padding-bottom: 84px; }
+  .hide-sm { display: none !important; }
   .countdown { display: none; }
   .two-col { grid-template-columns: 1fr; }
+  .top { padding: 0 10px; gap: 6px; }
+  .brand { min-width: 0; flex: 1; }
+  .brand > div { min-width: 0; }
+  .brand-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand-sub { display: none; }
+  .stats { grid-template-columns: repeat(2, 1fr); row-gap: 14px; }
+  .legend-box { display: none; }
+  .map-tools { right: 12px; }
+  .map-search { flex: 1 1 100%; }
+  .map-search input { width: 100%; }
+  .view-toggle { display: block; }
+  .modal { max-height: calc(100dvh - 16px); border-radius: 16px; }
+  .overlay { padding: 8px; align-items: end; }
 }
 
 @media print {
@@ -496,3 +509,26 @@ div.ms-pop { padding: 10px 12px; }
 .login h1 { margin: 0 0 6px; font-family: var(--serif); font-weight: 400; font-size: 36px; }
 .login label { display: grid; gap: 6px; }
 .login button { height: 44px; }
+
+/* ── celular: alternar roteiro / mapa */
+.view-toggle { display: none; position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1500; height: 46px; padding: 0 26px; font-size: 15px; }
+.only-sm { display: none; }
+@media (max-width: 900px) { .menu-pop .only-sm { display: block; } .view-toggle { display: block; } }
+
+/* ── tela inicial: destaque */
+.featured { padding: 28px 28px 24px; margin-bottom: 28px; background: var(--card); border-radius: 24px; display: grid; gap: 6px; }
+.ft-kicker { font-size: 14px; color: var(--accent); font-weight: 500; }
+.ft-name { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: 1.05; }
+.ft-big { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; }
+.ft-big b { font-family: var(--serif); font-weight: 400; font-size: 72px; line-height: 0.9; font-variant-numeric: tabular-nums; }
+.ft-big span { font-size: 16px; color: var(--muted); }
+.ft-meta { color: var(--muted); font-size: 14px; }
+.ft-next { margin-top: 10px; font-size: 15px; color: var(--ink-2); }
+.ft-next b { color: var(--ink); font-weight: 500; }
+.ft-actions { margin-top: 14px; }
+.home-h + .trip-grid { margin-bottom: 28px; }
+@media (max-width: 760px) {
+  .featured { padding: 22px 18px; }
+  .ft-name { font-size: 34px; }
+  .ft-big b { font-size: 56px; }
+}
