@@ -14,6 +14,15 @@ export default function App() {
   const [route, setRoute] = useState(parseHash);
   const [version, setVersion] = useState(0); // muda quando a lista de viagens precisa recarregar
   const [auth, setAuth] = useState('checking'); // checking | ok | login
+  const [online, setOnline] = useState(() => navigator.onLine);
+
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
 
   useEffect(() => {
     api.session().then((s) => setAuth(s.ok ? 'ok' : 'login')).catch(() => setAuth('ok'));
@@ -38,6 +47,7 @@ export default function App() {
 
   if (auth === 'checking') return null;
   if (auth === 'login') return <Login onDone={() => { setAuth('ok'); refresh(); }} />;
-  if (route.tripId == null) return <Home version={version} onOpen={openTrip} onChanged={refresh} />;
-  return <TripView key={route.tripId} tripId={route.tripId} sel={route.sel} onNavigate={navigate} onHome={goHome} onTripsChanged={refresh} />;
+  const banner = !online && <div className="offline-bar" role="status" title="Sem internet: vendo a última versão salva; edições não são salvas">Sem internet<span className="hide-sm">: vendo a última versão salva; edições não são salvas</span></div>;
+  if (route.tripId == null) return <>{banner}<Home version={version} onOpen={openTrip} onChanged={refresh} /></>;
+  return <>{banner}<TripView key={route.tripId} tripId={route.tripId} sel={route.sel} onNavigate={navigate} onHome={goHome} onTripsChanged={refresh} /></>;
 }

@@ -1,6 +1,17 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.7',
+    date: '2026-10-19',
+    title: 'Funciona sem internet',
+    items: [
+      'Sem internet, o app abre com a última versão que você viu: viagens, roteiro e os trechos do mapa já carregados. Um aviso no topo indica quando está offline.',
+      'Tocar num pin abre um painel com horário, detalhes, notas, links, custos e os botões “Marcar como feita” e “Editar”.',
+      'Excluir uma atividade, ideia ou item do checklist mostra “Desfazer” por alguns segundos.',
+      'Cada dia mostra o horário do nascer e do pôr do sol.',
+    ],
+  },
+  {
     version: '1.6',
     date: '2026-10-19',
     title: 'Mapa em português',
