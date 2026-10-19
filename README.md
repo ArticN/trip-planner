@@ -42,6 +42,11 @@ scripts/           setup.sh e sync-to-shared.sh
 - **Edição**: criar/editar/excluir atividades, marcar como feito, arrastar para reordenar, "Ordenar por horário", arrastar marcadores no mapa (✋ Mover pontos), buscar local (OpenStreetMap) ou clicar no mapa.
 - **Cidades e locais** e **Hospedagens**: cadastro por viagem (a cidade nova já busca a posição no mapa).
 - **Alertas**: horários sobrepostos e atividades sem local no mapa.
+- **Checklist** por viagem (documentos, reservas, mala, outros), com progresso.
+- **Estatísticas**: gasto total e por dia, distância por dia (sem voos), noites, atividades e gasto por cidade e por tipo.
+- **Calendário** do roteiro em grade semanal; clicar num dia abre o roteiro dele.
+- **Notas e links** em cada atividade (código de reserva, ingresso, comprovante no Drive). Arquivos não são enviados ao app: guarde o link.
+- **Exportar**: imprimir ou salvar PDF (inclui checklist, notas e links) e arquivo `.ics` para Google Agenda / Apple Calendário (horários sem fuso, no horário local).
 - **Orçamento** por item, cidade e dia. Imprimir roteiro. Atalhos: ← → trocam de dia. Links: `#/t/<viagem>/<aaaa-mm-dd>`.
 
 ## Viagem de exemplo

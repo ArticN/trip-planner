@@ -1,3 +1,4 @@
+import { parseLinks, linkLabel } from './Extras.jsx';
 import { useState } from 'react';
 import {
   KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween,
@@ -121,6 +122,12 @@ export default function DayPanel({
                   </div>
                   {a.location && <div className="loc">{a.location}</div>}
                   {a.details && <div className="det">{a.details}</div>}
+                  {a.notes && <div className="note">{a.notes}</div>}
+                  {parseLinks(a.links).length > 0 && (
+                    <div className="links">
+                      {parseLinks(a.links).map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{linkLabel(l)}</a>)}
+                    </div>
+                  )}
                   <div className="tags">
                     <span className="tag" style={{ '--c': k.color }}>{k.icon} {k.label}</span>
                     {dur != null && <span className="tag">⏱ {fmtDuration(dur)}</span>}

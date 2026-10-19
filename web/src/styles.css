@@ -198,7 +198,8 @@ input, select, textarea {
 .check { width: 28px; height: 28px; padding: 0; border-radius: 50%; color: transparent; display: grid; place-items: center; font-size: 14px; }
 .check:hover { color: var(--ink-2); }
 .check.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.day-foot { display: flex; gap: 8px; padding: 14px 16px 0; }
+.day-foot { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px 0; }
+.day-foot button { white-space: nowrap; }
 .item + .gap, li + li { margin-top: 0; }
 .timeline li { margin-bottom: 6px; }
 
@@ -398,3 +399,58 @@ button.big { padding: 12px 22px; font-size: 16px; }
 .tripstrip .seg small { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: -4px; }
 .tripstrip .seg:hover:not(:disabled) { background: none; }
 .tripstrip .seg:hover i { filter: brightness(1.2); }
+
+/* ── checklist */
+.check-add { margin-bottom: 14px; }
+.check-add .grp-sel { flex: 0 0 140px; }
+.check-group { margin-top: 14px; }
+.check-h { display: flex; justify-content: space-between; font-size: 14px; font-weight: 500; color: var(--muted); padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.check-list { list-style: none; margin: 0; padding: 0; }
+.check-list li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.check-list label { flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; }
+.check-list input { width: 16px; height: 16px; accent-color: var(--accent); flex: none; }
+.check-list li.done span { color: var(--muted); text-decoration: line-through; }
+
+/* ── notas e links na atividade */
+.note { margin-top: 6px; font-size: 13px; color: var(--ink-2); padding-left: 10px; border-left: 2px solid var(--ctl); white-space: pre-wrap; }
+.links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.links a, .link-list a { font-size: 13px; color: var(--accent); text-decoration: none; }
+.links a:hover, .link-list a:hover { text-decoration: underline; }
+.link-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.link-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.link-list a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── estatísticas */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-bottom: 18px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+.kpis b { display: block; font-family: var(--serif); font-weight: 400; font-size: 28px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kpis span { font-size: 13px; color: var(--muted); }
+.sub-h { font-size: 14px; font-weight: 500; color: var(--muted); margin: 18px 0 8px; }
+.bars { display: grid; gap: 4px; }
+.bar-row { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 10px; font-size: 13px; }
+.bar-l { color: var(--muted); white-space: nowrap; }
+.bar-t { height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; }
+.bar-t i { display: block; height: 100%; border-radius: 4px; }
+.bar-v { font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 72px; text-align: right; }
+.tbl thead td { color: var(--muted); font-size: 13px; }
+.tbl .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 6px; }
+
+/* ── calendário */
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-wd { font-size: 13px; color: var(--muted); padding: 0 6px 4px; }
+.cal-cell { display: flex; flex-direction: column; align-items: stretch; gap: 3px; min-height: 112px; padding: 8px; border: 0; border-top: 3px solid var(--c); border-radius: 8px; background: var(--raised); text-align: left; font-weight: 400; overflow: hidden; }
+.cal-cell:hover:not(:disabled) { background: var(--hover); }
+.cal-cell.empty-cell { background: none; border-top-color: transparent; }
+.cal-top { display: flex; align-items: baseline; gap: 6px; }
+.cal-top b { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.cal-top small { font-size: 12px; color: var(--muted); }
+.cal-city { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+.cal-cell ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.cal-cell li { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-cell li em { font-style: normal; color: var(--ink-2); margin-right: 4px; font-variant-numeric: tabular-nums; }
+.cal-more, .cal-cost { font-size: 12px; color: var(--muted); }
+.cal-cost { margin-top: auto; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .cal-cell { min-height: 72px; }
+  .cal-cell ul, .cal-cost { display: none; }
+}

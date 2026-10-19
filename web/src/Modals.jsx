@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { parseLinks, linkLabel } from './Extras.jsx';
 import { KINDS, KIND_KEYS, TRANSPORTS, CURRENCIES, hasCoords, fmtDay } from './util.js';
 
 export function Modal({ title, onClose, children, wide, footer }) {
@@ -63,6 +64,43 @@ function GeocodeBox({ initial, onPick, placeholder }) {
   );
 }
 
+// links (comprovantes, ingressos, sites), guardados como JSON
+function LinksField({ value, onChange }) {
+  const links = parseLinks(value);
+  const [url, setUrl] = useState('');
+  const [label, setLabel] = useState('');
+  const save = (l) => onChange(l.length ? JSON.stringify(l) : null);
+  const add = () => {
+    let u = url.trim();
+    if (!u) return;
+    if (!/^[a-z]+:/i.test(u)) u = `https://${u}`;
+    save([...links, { url: u, label: label.trim() || null }]);
+    setUrl(''); setLabel('');
+  };
+  return (
+    <div className="full fieldset">
+      <div className="legend">Links e comprovantes</div>
+      {links.length > 0 && (
+        <ul className="link-list">
+          {links.map((l, i) => (
+            <li key={i}>
+              <a href={l.url} target="_blank" rel="noreferrer">{linkLabel(l)}</a>
+              <button type="button" className="icon-btn sm" aria-label="Remover link" onClick={() => save(links.filter((_, j) => j !== i))}>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" /></svg>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="row">
+        <label>Endereço<input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… (reserva, ingresso, Google Drive)" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} /></label>
+        <label>Nome (opcional)<input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex: ingresso" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} /></label>
+        <button type="button" onClick={add} disabled={!url.trim()}>Adicionar</button>
+      </div>
+    </div>
+  );
+}
+
 export function EditModal({ draft, isNew, cities, days, fxCur, onChange, onSave, onDelete, onClose, onPickMap }) {
   const set = (patch) => onChange({ ...draft, ...patch });
   const num = (v) => (v === '' || v == null ? null : Number(v));
@@ -121,6 +159,10 @@ export function EditModal({ draft, isNew, cities, days, fxCur, onChange, onSave,
         <label className="full">Detalhes
           <textarea rows={3} value={draft.details || ''} onChange={(e) => set({ details: e.target.value })} />
         </label>
+        <label className="full">Notas e reservas
+          <textarea rows={2} value={draft.notes || ''} onChange={(e) => set({ notes: e.target.value })} placeholder="Código de reserva, horário de check-in, o que levar…" />
+        </label>
+        <LinksField value={draft.links} onChange={(links) => set({ links })} />
 
         <div className="full fieldset">
           <div className="legend">Posição no mapa {hasCoords(draft) ? <span className="ok">● definida</span> : <span className="muted">○ sem posição</span>}</div>

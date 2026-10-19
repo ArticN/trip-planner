@@ -51,13 +51,23 @@ db.exec(`
     location TEXT, details TEXT, transport TEXT, cost REAL,
     lat REAL, lng REAL, sort INTEGER DEFAULT 0, done INTEGER DEFAULT 0
   );
+  CREATE TABLE IF NOT EXISTS checklist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    grp TEXT, text TEXT NOT NULL, done INTEGER DEFAULT 0, sort INTEGER DEFAULT 0
+  );
   CREATE INDEX IF NOT EXISTS idx_act_trip_day ON activities(trip_id, day, sort);
   CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
 `);
 
-const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done'];
+// colunas novas em bancos antigos
+const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
+for (const c of ['notes', 'links']) if (!cols('activities').includes(c)) db.exec(`ALTER TABLE activities ADD COLUMN ${c} TEXT`);
+
+const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links'];
 const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes'];
 const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
+const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate'];
 
 const clean = (v) => (v === '' || v === undefined ? null : v);
@@ -69,6 +79,9 @@ function insertActivity(tripId, row) {
 }
 function insertStay(tripId, row) {
   return db.prepare(`INSERT INTO stays (trip_id,${STAY_FIELDS.join(',')}) VALUES (?,${marks(STAY_FIELDS)})`).run(tripId, ...pick(row, STAY_FIELDS));
+}
+function insertCheck(tripId, row) {
+  return db.prepare(`INSERT INTO checklist (trip_id,${CHECK_FIELDS.join(',')}) VALUES (?,${marks(CHECK_FIELDS)})`).run(tripId, ...pick({ ...row, done: row.done ? 1 : 0 }, CHECK_FIELDS));
 }
 function insertCity(tripId, row) {
   return db.prepare(`INSERT OR REPLACE INTO cities (trip_id,${CITY_FIELDS.join(',')}) VALUES (?,${marks(CITY_FIELDS)})`).run(tripId, ...pick(row, CITY_FIELDS));
@@ -112,6 +125,7 @@ function createTripFull(b) {
     if (!cities.some((c) => c.key === 'transito')) cities.push(TRANSIT_CITY);
     cities.forEach((c) => insertCity(id, c));
     (b.stays || []).forEach((s) => insertStay(id, s));
+    (b.checklist || []).forEach((c, i) => insertCheck(id, { sort: i, ...c }));
     const byDay = new Map();
     (b.activities || []).forEach((x) => {
       const row = { ...x, cost: x.cost ?? x.cost_jpy ?? null };
@@ -139,6 +153,7 @@ function getTrip(id) {
     cities: db.prepare('SELECT * FROM cities WHERE trip_id = ? ORDER BY id').all(id),
     stays: db.prepare('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id').all(id),
     activities: db.prepare('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id').all(id),
+    checklist: db.prepare('SELECT * FROM checklist WHERE trip_id = ? ORDER BY sort, id').all(id),
   };
 }
 
@@ -207,7 +222,7 @@ app.delete('/api/trips/:id', needTrip, (req, res) => {
 
 app.post('/api/trips/:id/duplicate', needTrip, (req, res) => {
   const d = getTrip(req.tripId);
-  const id = createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0 })) });
+  const id = createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0 })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })) });
   res.status(201).json(getTrip(id));
 });
 
@@ -216,6 +231,26 @@ app.get('/api/trips/:id/export', needTrip, (req, res) => {
   const file = `${d.trip.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'viagem'}.json`;
   res.setHeader('Content-Disposition', `attachment; filename="${file}"`);
   res.json(d);
+});
+
+// ── checklist
+app.post('/api/trips/:id/checklist', needTrip, (req, res) => {
+  const b = req.body || {};
+  if (!b.text?.trim()) return res.status(400).json({ error: 'text é obrigatório' });
+  const max = db.prepare('SELECT COALESCE(MAX(sort), -1) AS m FROM checklist WHERE trip_id = ?').get(req.tripId).m;
+  const r = insertCheck(req.tripId, { ...b, sort: max + 1 });
+  res.status(201).json(db.prepare('SELECT * FROM checklist WHERE id = ?').get(r.lastInsertRowid));
+});
+app.put('/api/checklist/:cid', (req, res) => {
+  const cur = db.prepare('SELECT * FROM checklist WHERE id = ?').get(Number(req.params.cid));
+  if (!cur) return res.status(404).json({ error: 'não encontrado' });
+  const row = { ...cur, ...req.body, done: (req.body.done ?? cur.done) ? 1 : 0 };
+  db.prepare(`UPDATE checklist SET ${CHECK_FIELDS.map((f) => `${f} = ?`).join(', ')} WHERE id = ?`).run(...pick(row, CHECK_FIELDS), cur.id);
+  res.json(db.prepare('SELECT * FROM checklist WHERE id = ?').get(cur.id));
+});
+app.delete('/api/checklist/:cid', (req, res) => {
+  db.prepare('DELETE FROM checklist WHERE id = ?').run(Number(req.params.cid));
+  res.status(204).end();
 });
 
 // ── atividades

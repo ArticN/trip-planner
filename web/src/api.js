@@ -31,6 +31,10 @@ export const api = {
   createStay: (tripId, s) => req('POST', `/api/trips/${tripId}/stays`, s),
   updateStay: (id, patch) => req('PUT', `/api/stays/${id}`, patch),
   deleteStay: (id) => req('DELETE', `/api/stays/${id}`),
+  // checklist
+  createCheck: (tripId, c) => req('POST', `/api/trips/${tripId}/checklist`, c),
+  updateCheck: (id, patch) => req('PUT', `/api/checklist/${id}`, patch),
+  deleteCheck: (id) => req('DELETE', `/api/checklist/${id}`),
   // cidades
   createCity: (tripId, c) => req('POST', `/api/trips/${tripId}/cities`, c),
   updateCity: (id, patch) => req('PUT', `/api/cities/${id}`, patch),

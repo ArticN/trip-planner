@@ -19,7 +19,7 @@ function TripStrip({ stays, cityMap, onCity }) {
   );
 }
 
-export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo }) {
+export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo, checklist = [], onOpen }) {
   const total = activities.reduce((s, a) => s + (a.cost || 0), 0);
   const sights = activities.filter((a) => a.kind === 'sight').length;
   const noCoords = activities.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
@@ -99,6 +99,9 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
         <button onClick={onOpenCities}>Cidades</button>
         <button onClick={onOpenStays}>Hospedagens</button>
         <button onClick={onOpenBudget}>Orçamento</button>
+        <button onClick={() => onOpen('checklist')}>Checklist{checklist.length ? ` ${checklist.filter((c) => c.done).length}/${checklist.length}` : ''}</button>
+        <button onClick={() => onOpen('stats')}>Estatísticas</button>
+        <button onClick={() => onOpen('calendar')}>Calendário</button>
       </div>
     </div>
   );

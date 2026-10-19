@@ -5,6 +5,7 @@ import { getTheme, toggleTheme } from './theme.js';
 import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
+import { ChecklistModal, StatsModal, CalendarModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal } from './Modals.jsx';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx,
@@ -213,6 +214,19 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     setData((d) => ({ ...d, stays: d.stays.filter((x) => x.id !== id) }));
   };
 
+  const createCheck = async (c) => {
+    const created = await api.createCheck(tripId, c);
+    setData((d) => ({ ...d, checklist: [...d.checklist, created] }));
+  };
+  const updateCheck = async (id, patch) => {
+    setData((d) => ({ ...d, checklist: d.checklist.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+    await api.updateCheck(id, patch);
+  };
+  const deleteCheck = async (id) => {
+    await api.deleteCheck(id);
+    setData((d) => ({ ...d, checklist: d.checklist.filter((x) => x.id !== id) }));
+  };
+
   const createCity = async (c) => {
     const created = await api.createCity(tripId, c);
     setData((d) => ({ ...d, cities: [...d.cities, created] }));
@@ -272,13 +286,17 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <span className="spacer" />
         <button onClick={() => setModal('stays')}>Hospedagens</button>
         <button onClick={() => setModal('budget')}>Orçamento</button>
+        <button className="hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
         <details className="menu">
           <summary>⋯</summary>
           <div className="menu-pop" onClick={(e) => e.currentTarget.parentElement.removeAttribute('open')}>
             <button onClick={() => setTheme(toggleTheme())}>{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</button>
             <button onClick={() => setModal('trip')}>Editar viagem</button>
             <button onClick={() => setModal('cities')}>Cidades e locais</button>
-            <button onClick={() => window.print()}>Imprimir roteiro</button>
+            <button onClick={() => setModal('stats')}>Estatísticas</button>
+            <button onClick={() => setModal('calendar')}>Calendário</button>
+            <button onClick={() => window.print()}>Imprimir ou salvar PDF</button>
+            <button onClick={() => downloadIcs(trip, data.activities, cityMap)}>Exportar para agenda (.ics)</button>
             <a href={`/api/trips/${tripId}/export`}>Exportar backup (JSON)</a>
           </div>
         </details>
@@ -304,6 +322,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 conflictsTotal={conflictsTotal} kinds={kinds} onToggleKind={toggleKind} fx={fx}
                 onCity={focusCity} onOpenStays={() => setModal('stays')} onOpenBudget={() => setModal('budget')}
                 onOpenCities={() => setModal('cities')} onEditTrip={() => setModal('trip')}
+                checklist={data.checklist} onOpen={setModal}
                 onPickDay={go} daysInfo={daysInfo}
               />
             ) : (
@@ -386,15 +405,18 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'stays' && <StaysModal stays={data.stays} cities={data.cities} trip={trip} onSave={saveStay} onCreate={createStay} onDelete={deleteStay} onClose={() => setModal(null)} />}
       {modal === 'cities' && <CitiesModal cities={data.cities} onCreate={createCity} onSave={saveCity} onDelete={deleteCity} onClose={() => setModal(null)} />}
       {modal === 'trip' && <TripModal trip={trip} onSave={saveTrip} onDelete={deleteTrip} onDuplicate={duplicateTrip} onClose={() => setModal(null)} />}
+      {modal === 'checklist' && <ChecklistModal items={data.checklist} onCreate={createCheck} onUpdate={updateCheck} onDelete={deleteCheck} onClose={() => setModal(null)} />}
+      {modal === 'stats' && <StatsModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onClose={() => setModal(null)} />}
+      {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} onPick={(d) => { setModal(null); go(d); }} onClose={() => setModal(null)} />}
       {modal === 'budget' && <BudgetModal activities={data.activities} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}
 
-      <PrintView days={days} byDay={byDay} cityMap={cityMap} stays={data.stays} trip={trip} fx={fx} />
+      <PrintView days={days} byDay={byDay} cityMap={cityMap} stays={data.stays} trip={trip} fx={fx} checklist={data.checklist} />
     </div>
   );
 }
 
-function PrintView({ days, byDay, cityMap, stays, trip, fx }) {
+function PrintView({ days, byDay, cityMap, stays, trip, fx, checklist }) {
   return (
     <div className="print-only">
       <h1>{trip.name} — roteiro</h1>
@@ -402,6 +424,14 @@ function PrintView({ days, byDay, cityMap, stays, trip, fx }) {
       <ul>
         {stays.map((s) => <li key={s.id}><b>{s.name}</b> ({cityMap[s.city]?.name || '—'}) · {fmtDay(s.check_in)} → {fmtDay(s.check_out)}{s.address ? ` · ${s.address}` : ''}</li>)}
       </ul>
+      {checklist.length > 0 && (
+        <>
+          <h2>Checklist</h2>
+          <ul className="print-check">
+            {checklist.map((c) => <li key={c.id}>{c.done ? '[x]' : '[ ]'} {c.text}{c.grp ? <span className="pt"> · {c.grp}</span> : null}</li>)}
+          </ul>
+        </>
+      )}
       {days.map((d) => {
         const list = byDay[d] || [];
         if (!list.length) return null;
@@ -416,6 +446,8 @@ function PrintView({ days, byDay, cityMap, stays, trip, fx }) {
                   {KINDS[a.kind]?.icon} <b>{a.title}</b>
                   {a.location ? ` — ${a.location}` : ''}
                   {a.cost ? ` (${fx.fmt(a.cost)})` : ''}
+                  {a.notes ? <div className="pt">{a.notes}</div> : null}
+                  {parseLinks(a.links).map((l, i) => <div key={i} className="pt">{l.url}</div>)}
                 </li>
               ))}
             </ul>
