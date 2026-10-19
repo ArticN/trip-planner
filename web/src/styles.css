@@ -563,3 +563,19 @@ div.ms-pop { padding: 10px 12px; }
 .map-tools .nearby-head .mini.on, .map-tools .nearby-head .mini.on:hover { background: var(--ink); color: var(--paper); }
 .nearby-origin { padding: 0 4px 4px; }
 .nearby-pop > .warn, .nearby-pop > .muted { padding: 6px 4px; }
+
+/* novidades (patch notes) na tela inicial */
+.whatsnew { margin-top: 40px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+.whatsnew.fresh { border-color: var(--accent); }
+.wn-head { display: flex; align-items: center; gap: 10px; }
+.wn-head .home-h { margin: 0; }
+.wn-badge, .wn-head .mini { white-space: nowrap; }
+.wn-badge { padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 500; }
+.wn-entry { margin-top: 14px; }
+.wn-entry + .wn-entry { padding-top: 14px; border-top: 1px solid var(--line); }
+.wn-meta { font-size: 15px; }
+.wn-meta b { font-weight: 600; }
+.wn-entry ul { margin: 8px 0 0; padding-left: 20px; color: var(--ink-2); line-height: 1.55; }
+.wn-entry li + li { margin-top: 3px; }
+.wn-more { margin-top: 14px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+.wn-more:hover { color: var(--ink); }

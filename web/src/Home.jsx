@@ -4,6 +4,7 @@ import { TripModal } from './Modals.jsx';
 import { daysBetween, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
 import { getTheme, toggleTheme } from './theme.js';
 import Mark from './Mark.jsx';
+import WhatsNew from './WhatsNew.jsx';
 
 function status(t, today = nowIn(t.tz).day) {
   if (today < t.start) return { label: `Faltam ${daysBetween(today, t.start)} dias`, cls: 'soon' };
@@ -121,6 +122,7 @@ export default function Home({ version, onOpen, onChanged }) {
           </>
         )}
 
+        <WhatsNew />
       </main>
 
       {creating && <TripModal trip={creating} onSave={create} onClose={() => setCreating(null)} />}
