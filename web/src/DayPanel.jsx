@@ -1,7 +1,7 @@
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { useState } from 'react';
 import {
-  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl,
+  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes,
 } from './util.js';
 
 function Gap({ a, b }) {
@@ -62,6 +62,9 @@ export default function DayPanel({
   const doneCount = items.filter((a) => a.done).length;
   const missing = items.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
   const visible = items.filter((a) => kinds.has(a.kind));
+  // sol: no primeiro ponto do dia que não seja voo; senão, na hospedagem
+  const here = items.find((a) => hasCoords(a) && a.kind !== 'flight') || (hasCoords(stay) ? stay : null);
+  const sun = here && tripTz ? sunTimes(day, here.lat, here.lng, tripTz) : null; // sem fuso da viagem o horário sairia errado
   // hoje: o que está acontecendo agora, ou a próxima atividade ainda não feita
   const nowId = now == null ? null : (visible.find((a) => !a.done && a.start && a.end && toMin(a.start) <= now && now < toMin(a.end) && endDayOf(a) === a.day)
     || visible.find((a) => !a.done && a.start && toMin(a.start) >= now))?.id ?? null;
@@ -92,6 +95,7 @@ export default function DayPanel({
             <span key={k} className="chip" style={{ '--c': cityMap[k]?.color }}>{cityMap[k]?.emoji} {cityMap[k]?.name || k}</span>
           ))}
         </div>
+        {sun && <div className="stay-line sun-line">Sol nasce às {sun.rise} e se põe às {sun.set}</div>}
         {checkout && <div className="stay-line">Check-out · {checkout.name}{checkout.check_out_time ? ` às ${checkout.check_out_time}` : ''}</div>}
         {stay && (
           <div className="stay-line">

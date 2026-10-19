@@ -165,3 +165,24 @@ export function sortByTime(items) {
   slots.forEach((slot, k) => { out[slot] = timed[k]; });
   return out;
 }
+
+// nascer e pôr do sol (algoritmo da NOAA, precisão de ~1 min) para um dia "AAAA-MM-DD" num ponto.
+// Devolve horários "HH:MM" no fuso informado, ou null em dias de sol da meia-noite / noite polar.
+export function sunTimes(day, lat, lng, tz) {
+  const rad = Math.PI / 180;
+  const [y, m, d] = day.split('-').map(Number);
+  const noonUtc = Date.UTC(y, m - 1, d, 12);
+  const jd = noonUtc / 86400000 + 2440587.5;
+  const n = jd - 2451545.0 + 0.0008;
+  const jStar = n - lng / 360;
+  const M = (357.5291 + 0.98560028 * jStar) % 360;
+  const C = 1.9148 * Math.sin(M * rad) + 0.02 * Math.sin(2 * M * rad) + 0.0003 * Math.sin(3 * M * rad);
+  const lambda = (M + C + 180 + 102.9372) % 360;
+  const jTransit = 2451545.0 + jStar + 0.0053 * Math.sin(M * rad) - 0.0069 * Math.sin(2 * lambda * rad);
+  const decl = Math.asin(Math.sin(lambda * rad) * Math.sin(23.4397 * rad));
+  const cosH = (Math.sin(-0.833 * rad) - Math.sin(lat * rad) * Math.sin(decl)) / (Math.cos(lat * rad) * Math.cos(decl));
+  if (cosH < -1 || cosH > 1) return null;
+  const h = Math.acos(cosH) / rad / 360;
+  const fmt = (j) => new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: tz || undefined }).format(new Date((j - 2440587.5) * 86400000));
+  return { rise: fmt(jTransit - h), set: fmt(jTransit + h) };
+}
