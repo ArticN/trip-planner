@@ -1,6 +1,7 @@
 async function req(method, url, body) {
   const res = await fetch(url, {
     method,
+    keepalive: method === 'DELETE', // exclusão adiada ainda chega ao servidor se a página fechar
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });

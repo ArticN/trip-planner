@@ -598,3 +598,9 @@ div.ms-pop { padding: 10px 12px; }
 @media (max-width: 900px) {
   .pin-panel { left: 8px; right: 8px; bottom: 76px; width: auto; max-height: 55%; }
 }
+
+/* aviso com desfazer */
+.undo-toast { display: flex; align-items: center; gap: 14px; max-width: calc(100vw - 32px); padding: 8px 8px 8px 16px; }
+.undo-toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.undo-toast button { flex: none; padding: 5px 12px; border: 0; border-radius: 999px; background: var(--paper); color: var(--ink); font-weight: 600; }
+@media (max-width: 900px) { .undo-toast { bottom: 84px; } }

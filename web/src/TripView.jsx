@@ -32,6 +32,20 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [flyTarget, setFlyTarget] = useState(null);
   const [cityFocus, setCityFocus] = useState(null);
   const [toast, setToast] = useState('');
+  // exclusão com "desfazer": some na hora e só é apagada no servidor depois de alguns segundos
+  const [undo, setUndo] = useState(null);
+  const pendingDel = useRef(null);
+  const flushDelete = useCallback(() => {
+    const p = pendingDel.current;
+    if (!p) return;
+    pendingDel.current = null;
+    clearTimeout(p.timer);
+    p.commit().catch(() => p.onFail());
+  }, []);
+  useEffect(() => {
+    window.addEventListener('pagehide', flushDelete);
+    return () => { window.removeEventListener('pagehide', flushDelete); flushDelete(); };
+  }, [flushDelete]);
   const [theme, setTheme] = useState(getTheme);
   const nonce = useRef(0);
 
@@ -203,22 +217,35 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     } catch (e) { say('Erro ao salvar'); }
   };
 
-  const deleteEdit = async () => {
+  const softDelete = (label, key, item, commit) => {
+    flushDelete();
+    setData((d) => ({ ...d, [key]: d[key].filter((x) => x.id !== item.id) }));
+    if (key === 'activities') setSelectedId((id) => (id === item.id ? null : id));
+    const entry = {
+      commit,
+      onFail: () => { say('Erro ao excluir'); reload(); },
+      timer: setTimeout(() => { if (pendingDel.current === entry) { flushDelete(); setUndo(null); } }, 6000),
+    };
+    pendingDel.current = entry;
+    setUndo({
+      label,
+      run: () => {
+        if (pendingDel.current !== entry) return;
+        clearTimeout(entry.timer);
+        pendingDel.current = null;
+        setData((d) => ({ ...d, [key]: [...d[key], item] }));
+        setUndo(null);
+      },
+    });
+  };
+
+  const deleteEdit = () => {
     const { draft } = editing;
-    if (!window.confirm(`Excluir "${draft.title}"?`)) return;
-    if (editing.idea) {
-      try {
-        await api.deleteIdea(draft.id);
-        setData((d) => ({ ...d, ideas: d.ideas.filter((x) => x.id !== draft.id) }));
-        setEditing(null);
-      } catch { say('Erro ao excluir'); }
-      return;
-    }
-    try {
-      await api.deleteActivity(draft.id);
-      setData((d) => ({ ...d, activities: d.activities.filter((a) => a.id !== draft.id) }));
-      setEditing(null);
-    } catch (e) { say('Erro ao excluir'); }
+    const isIdea = !!editing.idea;
+    const original = (isIdea ? data.ideas : data.activities).find((x) => x.id === draft.id) || draft;
+    setEditing(null);
+    if (isIdea) softDelete(`Ideia excluída: ${draft.title}`, 'ideas', original, () => api.deleteIdea(draft.id));
+    else softDelete(`Excluída: ${draft.title}`, 'activities', original, () => api.deleteActivity(draft.id));
   };
 
   const reorder = async (ids) => {
@@ -303,9 +330,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     setData((d) => ({ ...d, checklist: d.checklist.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
     await api.updateCheck(id, patch);
   };
-  const deleteCheck = async (id) => {
-    await api.deleteCheck(id);
-    setData((d) => ({ ...d, checklist: d.checklist.filter((x) => x.id !== id) }));
+  const deleteCheck = (id) => {
+    const item = data.checklist.find((x) => x.id === id);
+    if (item) softDelete(`Item removido: ${item.text}`, 'checklist', item, () => api.deleteCheck(id));
   };
 
   const createCity = async (c) => {
@@ -512,7 +539,13 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'stats' && <StatsModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onClose={() => setModal(null)} />}
       {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} onPick={(d) => { setModal(null); go(d); }} onClose={() => setModal(null)} />}
       {modal === 'budget' && <BudgetModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} onClose={() => setModal(null)} />}
-      {toast && <div className="toast">{toast}</div>}
+      {toast && !undo && <div className="toast">{toast}</div>}
+      {undo && (
+        <div className="toast undo-toast" role="status">
+          <span>{undo.label}</span>
+          <button onClick={undo.run}>Desfazer</button>
+        </div>
+      )}
       <button className="view-toggle primary" onClick={() => setMobileView((v) => (v === 'map' ? 'list' : 'map'))}>
         {mobileView === 'map' ? 'Roteiro' : 'Mapa'}
       </button>
