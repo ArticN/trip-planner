@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import MapView from './MapView.jsx';
-import { getTheme, toggleTheme } from './theme.js';
+import { setTripAccent } from './theme.js';
+import AppearanceModal from './Look.jsx';
 import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
@@ -49,7 +50,6 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     window.addEventListener('pagehide', flushDelete);
     return () => { window.removeEventListener('pagehide', flushDelete); flushDelete(); };
   }, [flushDelete]);
-  const [theme, setTheme] = useState(getTheme);
   const [notify, setNotifyState] = useState(notifyOn);
   const nonce = useRef(0);
 
@@ -88,6 +88,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   // ── derivados
   const trip = data?.trip;
   const fx = useMemo(() => (trip ? makeFx(trip) : null), [trip]);
+  // a viagem pode ter uma cor própria (Aparência), que vale enquanto ela está aberta
+  useEffect(() => { setTripAccent(trip?.accent); return () => setTripAccent(null); }, [trip?.accent]);
   const cityMap = useMemo(() => Object.fromEntries((data?.cities || []).map((c) => [c.key, c])), [data]);
   const days = useMemo(() => (trip ? rangeDays(trip.start, trip.end) : []), [trip]);
   const byDay = useMemo(() => {
@@ -495,7 +497,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button className="only-sm" onClick={() => setModal('stays')}>Hospedagens</button>
             <button className="only-sm" onClick={() => setModal('budget')}>Orçamento</button>
             <button className="only-sm" onClick={() => setModal('checklist')}>Checklist</button>
-            <button onClick={() => setTheme(toggleTheme())}>{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</button>
+            <button onClick={() => setModal('look')}>Aparência</button>
             <button onClick={() => setModal('trip')}>Editar viagem</button>
             <button onClick={() => setModal('cities')}>Cidades e locais</button>
             <button onClick={() => setModal('stats')}>Estatísticas</button>
@@ -638,6 +640,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} initialDay={sel === 'trip' ? days[0] : sel} onPick={(d, aid) => { setModal(null); go(d); if (aid) setSelectedId(aid); }} onClose={() => setModal(null)} />}
       {modal === 'search' && <SearchModal data={data} cityMap={cityMap} onPick={onSearchPick} onClose={() => setModal(null)} />}
       {modal === 'budget' && <BudgetModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} rateAuto={trip.rate_auto !== 0} rateAt={trip.rate_at} onRateAuto={setRateAuto} files={data.files || []} onClose={() => setModal(null)} />}
+      {modal === 'look' && <AppearanceModal trip={trip} onTripAccent={(accent) => patchTrip({ accent })} onClose={() => setModal(null)} />}
       {modal === 'reminders' && <RemindersModal trip={trip} onSave={patchTrip} onCalendar={setCalendar} notify={notify} onNotify={async (on) => setNotifyState(await setNotify(on))} onClose={() => setModal(null)} />}
       {modal === 'offline' && <OfflineMapModal cities={data.cities} onClose={() => setModal(null)} />}
       {modal === 'share' && <ShareModal trip={trip} onCreate={() => setShare(true)} onRemove={() => setShare(false)} onClose={() => setModal(null)} />}

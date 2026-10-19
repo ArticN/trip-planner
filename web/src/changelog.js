@@ -1,6 +1,18 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.12',
+    date: '2026-10-19',
+    title: 'Aparência: o app com a sua cara',
+    items: [
+      'Novo painel Aparência (ícone de paleta na tela inicial e menu ⋯ na viagem). As mudanças aparecem na hora e ficam salvas no aparelho.',
+      'Tema automático, que segue o claro ou escuro do celular, além de claro e escuro.',
+      'Sete cores de destaque (Âmbar, Laca, Matcha, Mar, Jade, Glicínia, Sakura) ou qualquer outra. A cor pinta a rota no mapa, o dia de hoje e as contagens, e é ajustada para continuar legível no tema claro.',
+      'Cada viagem pode ter a sua própria cor, que também aparece no link compartilhado.',
+      'Três papéis de fundo (quente, grafite e noite), cinco pares de letras, cantos redondos, suaves ou retos, e texto menor, normal ou maior.',
+    ],
+  },
+  {
     version: '1.11',
     date: '2026-10-19',
     title: 'Tempo, câmbio, deslocamento, mapa offline e lembretes',

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { TripModal } from './Modals.jsx';
 import { daysBetween, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
-import { getTheme, toggleTheme } from './theme.js';
+import AppearanceModal from './Look.jsx';
 import Mark from './Mark.jsx';
 import WhatsNew from './WhatsNew.jsx';
 import WorldMap from './WorldMap.jsx';
@@ -20,7 +20,7 @@ export default function Home({ version, onOpen, onChanged }) {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(null);
   const [toast, setToast] = useState('');
-  const [theme, setTheme] = useState(getTheme);
+  const [look, setLook] = useState(false);
   const fileRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -95,7 +95,9 @@ export default function Home({ version, onOpen, onChanged }) {
       <header className="home-top">
         <div className="brand"><span className="logo"><Mark /></span><div><div className="brand-name">Trip Planner</div><div className="brand-sub">mapa, roteiro dia a dia e orçamento</div></div></div>
         <span className="spacer" />
-        <button onClick={() => setTheme(toggleTheme())} title="Alternar tema" aria-label="Alternar tema">{theme === 'dark' ? 'Claro' : 'Escuro'}</button>
+        <button className="icon-btn" onClick={() => setLook(true)} title="Aparência" aria-label="Aparência">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.8-.3-.9-.1-2.2 1.2-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z" /><circle cx="7.5" cy="11" r="1.2" fill="currentColor" /><circle cx="10.5" cy="7" r="1.2" fill="currentColor" /><circle cx="15" cy="7.5" r="1.2" fill="currentColor" /></svg>
+        </button>
         <button onClick={() => fileRef.current.click()}>Importar<span className="hide-sm"> backup</span></button>
         <button className="primary" onClick={newTrip}>+ Nova viagem</button>
         <input ref={fileRef} type="file" accept="application/json" hidden onChange={onImport} />
@@ -130,6 +132,7 @@ export default function Home({ version, onOpen, onChanged }) {
         <WhatsNew />
       </main>
 
+      {look && <AppearanceModal onClose={() => setLook(false)} />}
       {creating && <TripModal trip={creating} onSave={create} onClose={() => setCreating(null)} />}
       {toast && <div className="toast">{toast}</div>}
     </div>

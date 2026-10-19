@@ -138,7 +138,7 @@ export default function DayPanel({
         <div className="stats">
           <div><b>{items.length}</b><span>atividades</span></div>
           {hasSpent
-            ? <div><b>{fx.fmt(spent)}</b><span>gasto{cost ? ` de ${fx.fmt(cost)} previstos` : ''}</span></div>
+            ? <div><b>{fx.fmt(spent)}</b><span title={cost ? `gasto de ${fx.fmt(cost)} previstos` : undefined}>gasto{cost ? ` de ${fx.fmt(cost)} previstos` : ''}</span></div>
             : <div><b>{cost ? fx.fmt(cost) : '—'}</b><span>{cost ? (fx.fmtHome(cost) || 'custo previsto') : 'sem custos'}</span></div>}
           <div><b>{dist ? fmtKm(dist) : '—'}</b><span>em linha reta</span></div>
           <div><b>{doneCount}/{items.length}</b><span>feitas</span></div>

@@ -13,7 +13,7 @@ const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent'];
 
 const clean = (v) => (v === '' || v === undefined ? null : v);
 const pick = (body, fields) => fields.map((f) => (f in body ? clean(body[f]) : null));
@@ -100,7 +100,7 @@ async function migrate() {
   };
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT']]);
   await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
 
   if (legacy) {
@@ -266,7 +266,7 @@ app.get('/api/share/:token', h(async (req, res) => {
   const d = await getTrip(row.id);
   res.setHeader('Cache-Control', 'no-store');
   res.json({
-    trip: only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate']),
+    trip: only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent']),
     cities: d.cities.map((c) => only(c, ['key', 'name', 'emoji', 'color', 'lat', 'lng'])),
     stays: d.stays.map((x) => only(x, ['id', 'city', 'name', 'check_in', 'check_out', 'lat', 'lng'])),
     activities: d.activities.map((a) => only(a, SHARE_ACT)),
@@ -323,6 +323,7 @@ app.get('/api/trips/:id', needTrip, h(async (req, res) => res.json(await getTrip
 app.put('/api/trips/:id', needTrip, h(async (req, res) => {
   const cur = await db.get('SELECT * FROM trips WHERE id = ?', [req.tripId]);
   const row = { ...cur, ...req.body };
+  if (row.accent && !/^#[0-9a-f]{6}$/i.test(row.accent)) row.accent = null;
   if (!row.name || !row.start || !row.end || row.end < row.start) return res.status(400).json({ error: 'nome e datas válidas são obrigatórios' });
   await db.run(`UPDATE trips SET ${setList(TRIP_FIELDS)} WHERE id = ?`, [...pick(row, TRIP_FIELDS), req.tripId]);
   res.json(await db.get('SELECT * FROM trips WHERE id = ?', [req.tripId]));

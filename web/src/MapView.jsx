@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { KINDS, esc, hasCoords, haversine, fmtKm } from './util.js';
 import { translatedBasemap, osmLayer } from './basemap.js';
+import { accentColor } from './theme.js';
 
 const WORLD_CENTER = [20, 0];
 
@@ -72,6 +73,13 @@ export default function MapView({
   cb.current = { onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground };
   const lastFit = useRef(null);
   const declutterRef = useRef(null);
+  // a rota usa a cor de destaque escolhida em Aparência: redesenha quando ela muda
+  const [look, setLook] = useState(0);
+  useEffect(() => {
+    const on = () => setLook((n) => n + 1);
+    window.addEventListener('themechange', on);
+    return () => window.removeEventListener('themechange', on);
+  }, []);
 
   // ── cria o mapa uma vez
   useEffect(() => {
@@ -126,6 +134,7 @@ export default function MapView({
     markersRef.current = new Map();
     const bounds = [];
     const cityMap = Object.fromEntries(cities.map((c) => [c.key, c]));
+    const route = accentColor();
 
     if (mode === 'day') {
       const pts = items.filter(hasCoords);
@@ -152,7 +161,7 @@ export default function MapView({
         const km = haversine(p, q);
         if (km < 0.03) continue;
         L.polyline([[p.lat, p.lng], [q.lat, q.lng]], {
-          color: isTransit ? '#b4b1ab' : '#f2b33d', weight: isTransit ? 2.5 : 3.5, opacity: 0.85,
+          color: isTransit ? '#b4b1ab' : route, weight: isTransit ? 2.5 : 3.5, opacity: 0.85,
           dashArray: isTransit ? '2 8' : null, lineCap: 'round',
         }).bindTooltip(`${fmtKm(km)} em linha reta`, { sticky: true }).addTo(group);
         if (km > 0.15) {
@@ -176,7 +185,7 @@ export default function MapView({
       stays.forEach((s) => { if (!stayCities.length || stayCities[stayCities.length - 1] !== s.city) stayCities.push(s.city); });
       const routePts = stayCities.map((k) => cityMap[k]).filter(hasCoords).map((c) => [c.lat, c.lng]);
       if (routePts.length > 1) {
-        L.polyline(routePts, { color: '#f2b33d', weight: 3.5, opacity: 0.9 }).addTo(group);
+        L.polyline(routePts, { color: route, weight: 3.5, opacity: 0.9 }).addTo(group);
         for (let i = 0; i < routePts.length - 1; i++) {
           const p = { lat: routePts[i][0], lng: routePts[i][1] };
           const q = { lat: routePts[i + 1][0], lng: routePts[i + 1][1] };
@@ -264,7 +273,7 @@ export default function MapView({
       lastFit.current = key;
     }
 
-  }, [mode, items, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas]);
+  }, [mode, items, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look]);
 
   useEffect(() => {
     if (flyTarget && mapRef.current) {

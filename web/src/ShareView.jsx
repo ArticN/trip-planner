@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from './api.js';
 import MapView from './MapView.jsx';
 import Mark from './Mark.jsx';
+import { setTripAccent } from './theme.js';
 import PinPanel from './PinPanel.jsx';
 import { KINDS, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
 
@@ -21,6 +22,8 @@ export default function ShareView({ token }) {
 
   const trip = data?.trip;
   const fx = useMemo(() => (trip ? makeFx(trip) : null), [trip]);
+  // a viagem pode ter uma cor própria (Aparência), que vale enquanto ela está aberta
+  useEffect(() => { setTripAccent(trip?.accent); return () => setTripAccent(null); }, [trip?.accent]);
   const cityMap = useMemo(() => Object.fromEntries((data?.cities || []).map((c) => [c.key, c])), [data]);
   const days = useMemo(() => (trip ? rangeDays(trip.start, trip.end) : []), [trip]);
   const byDay = useMemo(() => {
