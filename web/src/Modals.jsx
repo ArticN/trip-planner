@@ -1,6 +1,7 @@
 import { Star } from './Stars.jsx';
 import { useEffect, useState } from 'react';
 import { parseLinks, linkLabel } from './Extras.jsx';
+import { AttachmentsField } from './Attachments.jsx';
 import { KINDS, KIND_KEYS, TRANSPORTS, CURRENCIES, TIMEZONES, localTz, hasCoords, fmtDay } from './util.js';
 
 export function Modal({ title, onClose, children, wide, footer }) {
@@ -112,7 +113,7 @@ function TzInput({ value, onChange, placeholder }) {
   );
 }
 
-export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap }) {
+export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap, files = [], onAddFile, onRemoveFile }) {
   const set = (patch) => onChange({ ...draft, ...patch });
   const num = (v) => (v === '' || v == null ? null : Number(v));
   const valid = draft.title?.trim() && (isIdea || draft.day);
@@ -199,6 +200,10 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
           <textarea rows={2} value={draft.notes || ''} onChange={(e) => set({ notes: e.target.value })} placeholder="Código de reserva, horário de check-in, o que levar…" />
         </label>
         <LinksField value={draft.links} onChange={(links) => set({ links })} />
+        <AttachmentsField
+          files={files} onAdd={onAddFile} onRemove={onRemoveFile}
+          pending={draft._pending || []} onPending={isNew ? (p) => set({ _pending: p }) : undefined}
+        />
         {!isIdea && (
           <fieldset className="full after-visit">
             <legend>Depois de visitar</legend>

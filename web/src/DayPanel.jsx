@@ -1,6 +1,7 @@
 import { Stars } from './Stars.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { useEffect, useState } from 'react';
+import { api } from './api.js';
 import {
   KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone,
 } from './util.js';
@@ -48,7 +49,7 @@ function DayInfo({ info, onSave }) {
 
 export default function DayPanel({
   day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
-  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo, doneFilter = 'all', onDoneFilter,
+  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo, doneFilter = 'all', onDoneFilter, files = [],
 }) {
   // atividade escolhida (no mapa ou na busca) fica visível na lista
   useEffect(() => {
@@ -204,10 +205,15 @@ export default function DayPanel({
                       {a.review && <span>{a.review}</span>}
                     </div>
                   )}
-                  {(parseLinks(a.links).length > 0 || hasCoords(a)) && (
+                  {(parseLinks(a.links).length > 0 || hasCoords(a) || files.some((f) => f.activity_id === a.id)) && (
                     <div className="links">
                       {hasCoords(a) && <a href={directionsUrl(a)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Como chegar</a>}
                       {parseLinks(a.links).map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{linkLabel(l)}</a>)}
+                      {files.filter((f) => f.activity_id === a.id).map((f) => (
+                        <a key={`f${f.id}`} className="file-link" href={api.fileUrl(f.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={f.name}>
+                          <Clip />{f.name}
+                        </a>
+                      ))}
                     </div>
                   )}
                   <div className="tags">
@@ -244,4 +250,8 @@ export function DoneFilter({ value, onChange }) {
       ))}
     </div>
   );
+}
+
+export function Clip() {
+  return <svg className="clip" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13.5 7.5l-5.6 5.6a3.4 3.4 0 01-4.8-4.8l5.9-5.9a2.3 2.3 0 013.2 3.2L6.4 11.4a1.1 1.1 0 01-1.6-1.6l5.3-5.3" /></svg>;
 }

@@ -725,3 +725,21 @@ div.ms-pop { padding: 10px 12px; }
 .world-list .plan i, .world-legend .plan i { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .world-legend { display: flex; gap: 16px; margin-top: 12px; }
 .world-legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── anexos */
+.attach .btn-like { justify-self: start; }
+.btn-like.disabled { opacity: 0.6; pointer-events: none; }
+.file-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.file-list li { display: flex; align-items: center; gap: 8px; }
+.file-list a, .file-list .file-a { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; background: var(--raised); color: var(--ink); text-decoration: none; }
+.file-list a:hover { background: var(--hover); }
+.file-list img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; flex: none; }
+.file-list span { display: grid; min-width: 0; }
+.file-list b { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-list small { color: var(--muted); font-size: 12px; }
+.file-list .pending { opacity: 0.75; }
+.attach .file-list { margin-bottom: 10px; }
+.file-ic { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 6px; background: var(--card); color: var(--ink-2); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; box-shadow: inset 0 0 0 1px var(--ctl); }
+.file-ic.pdf { color: #e5534b; }
+.file-link { display: inline-flex; align-items: center; gap: 4px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-link .clip { flex: none; }

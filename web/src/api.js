@@ -36,6 +36,19 @@ export const api = {
   deleteActivity: (id) => req('DELETE', `/api/activities/${id}`),
   saveDayNotes: (tripId, day, d) => req('PUT', `/api/trips/${tripId}/daynotes/${day}`, d),
   reorderDay: (tripId, day, ids) => req('PUT', `/api/trips/${tripId}/days/reorder`, { day, ids }),
+  // anexos: o corpo vai cru (sem base64), com nome e tipo nos cabeçalhos
+  uploadFile: async (owner, id, file) => {
+    const res = await fetch(`/api/${owner === 'idea' ? 'ideas' : 'activities'}/${id}/files`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name || 'arquivo'), 'X-File-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (res.status === 401) window.dispatchEvent(new Event('auth-required'));
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `erro ${res.status}`);
+    return res.json();
+  },
+  deleteFile: (id) => req('DELETE', `/api/files/${id}`),
+  fileUrl: (id) => `/api/files/${id}`,
   // hospedagens
   createStay: (tripId, s) => req('POST', `/api/trips/${tripId}/stays`, s),
   updateStay: (id, patch) => req('PUT', `/api/stays/${id}`, patch),

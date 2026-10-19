@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Stars } from './Stars.jsx';
 import { wikiSummary, wikiCached } from './wiki.js';
+import { FileList } from './Attachments.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { KINDS, hasCoords, duration, fmtDuration, fmtDayLong, endDayOf, directionsUrl } from './util.js';
 
 // painel de detalhes da atividade escolhida no mapa (substitui o balão pequeno do pin)
-export default function PinPanel({ a, n, cityMap, fx, tripTz, onEdit, onToggleDone, onClose }) {
+export default function PinPanel({ a, n, cityMap, fx, tripTz, onEdit, onToggleDone, onClose, files = [] }) {
   const k = KINDS[a.kind] || KINDS.sight;
   const city = cityMap[a.city];
   const dur = duration(a, tripTz);
@@ -47,6 +48,7 @@ export default function PinPanel({ a, n, cityMap, fx, tripTz, onEdit, onToggleDo
           {links.map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer">{linkLabel(l)}</a>)}
         </div>
       )}
+      <FileList files={files} />
       {WIKI_KINDS.has(a.kind) && <Wiki key={a.id} a={a} />}
       {onEdit && (
         <div className="pp-actions">

@@ -79,6 +79,14 @@ async function migrate() {
       day TEXT NOT NULL, title TEXT, notes TEXT,
       UNIQUE (trip_id, day)
     );
+    CREATE TABLE IF NOT EXISTS files (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      activity_id INTEGER, idea_id INTEGER,
+      name TEXT, type TEXT, size INTEGER, data BLOB,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_files_trip ON files(trip_id);
     CREATE INDEX IF NOT EXISTS idx_act_trip_day ON activities(trip_id, day, sort);
     CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
   `);
@@ -172,20 +180,21 @@ async function createTripFull(b) {
 }
 
 // apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
-const deleteTrip = (id) => db.batch(['activities', 'stays', 'cities', 'checklist', 'ideas', 'days'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
+const deleteTrip = (id) => db.batch(['files', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
 
 async function getTrip(id) {
   const trip = await db.get('SELECT * FROM trips WHERE id = ?', [id]);
   if (!trip) return null;
-  const [cities, stays, activities, checklist, ideas, days] = await Promise.all([
+  const [cities, stays, activities, checklist, ideas, days, files] = await Promise.all([
     db.all('SELECT * FROM cities WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id', [id]),
     db.all('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id', [id]),
     db.all('SELECT * FROM checklist WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT * FROM ideas WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT * FROM days WHERE trip_id = ? ORDER BY day', [id]),
+    db.all('SELECT id, activity_id, idea_id, name, type, size, created_at FROM files WHERE trip_id = ? ORDER BY id', [id]),
   ]);
-  return { trip, cities, stays, activities, checklist, ideas, days };
+  return { trip, cities, stays, activities, checklist, ideas, days, files };
 }
 
 const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MAX(sort), -1) AS m FROM ${table} WHERE ${where}`, args)).m + 1;
@@ -374,7 +383,8 @@ app.put('/api/ideas/:iid', h(async (req, res) => {
   res.json(await db.get('SELECT * FROM ideas WHERE id = ?', [cur.id]));
 }));
 app.delete('/api/ideas/:iid', h(async (req, res) => {
-  await db.run('DELETE FROM ideas WHERE id = ?', [Number(req.params.iid)]);
+  const iid = Number(req.params.iid);
+  await db.batch([['DELETE FROM files WHERE idea_id = ?', [iid]], ['DELETE FROM ideas WHERE id = ?', [iid]]]);
   res.status(204).end();
 }));
 // ideia → atividade no fim do dia escolhido
@@ -384,7 +394,8 @@ app.post('/api/ideas/:iid/schedule', h(async (req, res) => {
   if (!idea) return res.status(404).json({ error: 'não encontrada' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) return res.status(400).json({ error: 'day inválido' });
   const sort = await nextSort('activities', 'trip_id = ? AND day = ?', [idea.trip_id, day]);
-  const [ins] = await db.batch([insAct(idea.trip_id, { ...idea, day, sort, done: 0 }), ['DELETE FROM ideas WHERE id = ?', [idea.id]]]);
+  // os anexos acompanham o item (last_insert_rowid é o da atividade recém-criada, no mesmo lote)
+  const [ins] = await db.batch([insAct(idea.trip_id, { ...idea, day, sort, done: 0 }), ['UPDATE files SET activity_id = last_insert_rowid(), idea_id = NULL WHERE idea_id = ?', [idea.id]], ['DELETE FROM ideas WHERE id = ?', [idea.id]]]);
   res.status(201).json(await db.get('SELECT * FROM activities WHERE id = ?', [ins.lastInsertRowid]));
 }));
 // atividade → volta para as ideias
@@ -392,7 +403,7 @@ app.post('/api/activities/:aid/unschedule', h(async (req, res) => {
   const a = await db.get('SELECT * FROM activities WHERE id = ?', [Number(req.params.aid)]);
   if (!a) return res.status(404).json({ error: 'não encontrada' });
   const sort = await nextSort('ideas', 'trip_id = ?', [a.trip_id]);
-  const [ins] = await db.batch([insIdea(a.trip_id, { ...a, sort }), ['DELETE FROM activities WHERE id = ?', [a.id]]]);
+  const [ins] = await db.batch([insIdea(a.trip_id, { ...a, sort }), ['UPDATE files SET idea_id = last_insert_rowid(), activity_id = NULL WHERE activity_id = ?', [a.id]], ['DELETE FROM activities WHERE id = ?', [a.id]]]);
   res.status(201).json(await db.get('SELECT * FROM ideas WHERE id = ?', [ins.lastInsertRowid]));
 }));
 
@@ -416,7 +427,45 @@ app.put('/api/activities/:id', h(async (req, res) => {
 }));
 
 app.delete('/api/activities/:id', h(async (req, res) => {
-  await db.run('DELETE FROM activities WHERE id = ?', [Number(req.params.id)]);
+  const id = Number(req.params.id);
+  await db.batch([['DELETE FROM files WHERE activity_id = ?', [id]], ['DELETE FROM activities WHERE id = ?', [id]]]);
+  res.status(204).end();
+}));
+
+// ── anexos (ingressos, passagens, confirmações): guardados no próprio banco.
+// Limite de 4 MB por arquivo por causa do teto de 4,5 MB por requisição da Vercel.
+const MAX_FILE = 4 * 1024 * 1024;
+const INLINE = /^(image\/(png|jpeg|gif|webp|avif)|application\/pdf|text\/plain)$/;
+app.post('/api/:kind(activities|ideas)/:oid/files', express.raw({ type: () => true, limit: MAX_FILE }), h(async (req, res) => {
+  const isAct = req.params.kind === 'activities';
+  const owner = await db.get(`SELECT id, trip_id FROM ${isAct ? 'activities' : 'ideas'} WHERE id = ?`, [Number(req.params.oid)]);
+  if (!owner) return res.status(404).json({ error: 'não encontrada' });
+  const data = Buffer.isBuffer(req.body) ? req.body : null;
+  if (!data?.length) return res.status(400).json({ error: 'arquivo vazio' });
+  let name = 'arquivo';
+  try { name = decodeURIComponent(String(req.get('x-file-name') || 'arquivo')); } catch { /* nome inválido */ }
+  name = name.replace(/[\\/\r\n"]/g, '_').slice(0, 160) || 'arquivo';
+  // o corpo vai como octet-stream (para o express.json global não interpretar .json); o tipo real vem em X-File-Type
+  const type = String(req.get('x-file-type') || 'application/octet-stream').split(';')[0].trim().toLowerCase().slice(0, 100);
+  const r = await db.run('INSERT INTO files (trip_id, activity_id, idea_id, name, type, size, data) VALUES (?,?,?,?,?,?,?)',
+    [owner.trip_id, isAct ? owner.id : null, isAct ? null : owner.id, name, type, data.length, data]);
+  res.status(201).json(await db.get('SELECT id, activity_id, idea_id, name, type, size, created_at FROM files WHERE id = ?', [r.lastInsertRowid]));
+}));
+app.get('/api/files/:fid', h(async (req, res) => {
+  const f = await db.get('SELECT name, type, data FROM files WHERE id = ?', [Number(req.params.fid)]);
+  if (!f) return res.status(404).json({ error: 'arquivo não encontrado' });
+  const inline = INLINE.test(f.type || '');
+  res.setHeader('Content-Type', inline ? f.type : 'application/octet-stream');
+  res.setHeader('Content-Disposition', `${inline && !('download' in req.query) ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(f.name || 'arquivo')}`);
+  // o arquivo nunca muda (id novo a cada envio) e não pode rodar nada na origem do app
+  res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // PDF não abre no Chrome com "sandbox"; os demais tipos em linha (imagem, texto) ficam isolados
+  res.setHeader('Content-Security-Policy', `${f.type === 'application/pdf' ? '' : 'sandbox; '}default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'`);
+  res.end(Buffer.from(f.data));
+}));
+app.delete('/api/files/:fid', h(async (req, res) => {
+  await db.run('DELETE FROM files WHERE id = ?', [Number(req.params.fid)]);
   res.status(204).end();
 }));
 
@@ -498,6 +547,7 @@ app.delete('/api/cities/:id', h(async (req, res) => {
 app.use('/api', (_req, res) => res.status(404).json({ error: 'rota não encontrada' }));
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'arquivo maior que 4 MB' });
   console.error(err);
   res.status(500).json({ error: err.publicMessage || 'erro no servidor' });
 });

@@ -1,6 +1,16 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.10',
+    date: '2026-10-19',
+    title: 'Anexos nas atividades',
+    items: [
+      'Ingressos, passagens, vouchers e confirmações podem ser anexados a qualquer atividade ou ideia, em “Anexos” no editor. Aceita PDF, fotos e outros arquivos de até 4 MB (fotos maiores são reduzidas sozinhas).',
+      'Os anexos aparecem no roteiro do dia e no painel do pin, e abrem com um toque.',
+      'Ao abrir a viagem, o app guarda os anexos no aparelho: dá para mostrar o ingresso mesmo sem internet.',
+    ],
+  },
+  {
     version: '1.9',
     date: '2026-10-19',
     title: 'Compartilhar, meu mapa e Wikipédia',

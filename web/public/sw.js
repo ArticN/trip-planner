@@ -1,11 +1,13 @@
 // Service worker: deixa o app abrir sem internet com a última versão vista dos dados e do mapa.
 // - páginas e API (GET): tenta a rede; sem rede, usa a cópia salva
 // - arquivos do app (JS/CSS com hash) e fontes: cópia salva primeiro
+// - anexos (ingressos, passagens): cópia salva primeiro; o app baixa todos ao abrir a viagem
 // - tiles do mapa: cópia salva primeiro, atualizando em segundo plano; guarda só os que você já viu
 const V = 'v1';
 const APP = `app-${V}`;
 const API = `api-${V}`;
 const TILES = `tiles-${V}`;
+const FILES = 'files-v1';
 const MAX_TILES = 3000;
 
 self.addEventListener('install', (e) => {
@@ -14,7 +16,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys()
-    .then((keys) => Promise.all(keys.filter((k) => ![APP, API, TILES].includes(k)).map((k) => caches.delete(k))))
+    .then((keys) => Promise.all(keys.filter((k) => ![APP, API, TILES, FILES].includes(k)).map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -71,6 +73,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin === location.origin) {
     if (url.pathname === '/api/session') return; // login nunca vem do cache
+    if (url.pathname.startsWith('/api/files/')) { e.respondWith(cacheFirst(req, FILES)); return; }
     if (url.pathname.startsWith('/api/')) { e.respondWith(networkFirst(req, API)); return; }
     if (req.mode === 'navigate') { e.respondWith(networkFirst(req, APP).catch(() => caches.match('/'))); return; }
     if (url.pathname.startsWith('/assets/')) { e.respondWith(cacheFirst(req, APP)); return; }
@@ -83,5 +86,5 @@ self.addEventListener('fetch', (e) => {
 
 // ao sair da conta, apaga os dados guardados
 self.addEventListener('message', (e) => {
-  if (e.data === 'clear-data') caches.delete(API);
+  if (e.data === 'clear-data') { caches.delete(API); caches.delete(FILES); }
 });

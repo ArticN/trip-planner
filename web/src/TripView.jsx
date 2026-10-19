@@ -57,6 +57,20 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   }, []);
   useEffect(() => { setData(null); reload(); }, [reload]);
 
+  // anexos ficam guardados no aparelho (o service worker guarda cada um na primeira vez que é pedido)
+  useEffect(() => {
+    if (!data?.files?.length || !navigator.onLine || !navigator.serviceWorker?.controller) return;
+    let stop = false;
+    (async () => {
+      const cache = await caches.open('files-v1');
+      for (const f of data.files) {
+        if (stop) return;
+        if (!(await cache.match(api.fileUrl(f.id)))) await fetch(api.fileUrl(f.id)).catch(() => {});
+      }
+    })().catch(() => {});
+    return () => { stop = true; };
+  }, [data?.files]);
+
   // durante a viagem, abrir a viagem sem dia na URL vai direto para hoje
   const openedToday = useRef(false);
   useEffect(() => {
@@ -177,7 +191,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const scheduleIdea = async (id, day) => {
     try {
       const created = await api.scheduleIdea(id, day);
-      setData((d) => ({ ...d, ideas: d.ideas.filter((x) => x.id !== id), activities: [...d.activities, created] }));
+      setData((d) => ({ ...d, ideas: d.ideas.filter((x) => x.id !== id), activities: [...d.activities, created], files: (d.files || []).map((f) => (f.idea_id === id ? { ...f, idea_id: null, activity_id: created.id } : f)) }));
       say(`Agendado em ${fmtDay(day)}`);
     } catch { say('Erro ao agendar'); }
   };
@@ -185,19 +199,25 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     const { draft } = editing;
     try {
       const idea = await api.unscheduleActivity(draft.id);
-      setData((d) => ({ ...d, activities: d.activities.filter((a) => a.id !== draft.id), ideas: [...d.ideas, idea] }));
+      setData((d) => ({ ...d, activities: d.activities.filter((a) => a.id !== draft.id), ideas: [...d.ideas, idea], files: (d.files || []).map((f) => (f.activity_id === draft.id ? { ...f, activity_id: null, idea_id: idea.id } : f)) }));
       setEditing(null);
       say('Movido para as ideias');
     } catch { say('Erro ao mover'); }
   };
 
   const saveEdit = async () => {
-    const { draft, isNew } = editing;
+    const { draft: { _pending: pending = [], ...draft }, isNew } = editing;
+    const sendPending = async (owner, id) => {
+      for (const f of pending) {
+        try { const up = await api.uploadFile(owner, id, f); setData((d) => ({ ...d, files: [...(d.files || []), up] })); } catch (e) { say(`Não consegui anexar ${f.name}: ${e.message}`); }
+      }
+    };
     if (editing.idea) {
       try {
         if (isNew) {
           const created = await api.createIdea(tripId, draft);
           setData((d) => ({ ...d, ideas: [...d.ideas, created] }));
+          await sendPending('idea', created.id);
         } else {
           const saved = await api.updateIdea(draft.id, draft);
           setData((d) => ({ ...d, ideas: d.ideas.map((x) => (x.id === saved.id ? saved : x)) }));
@@ -211,6 +231,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         const created = await api.createActivity(tripId, draft);
         setData((d) => ({ ...d, activities: [...d.activities, created] }));
         setSelectedId(created.id);
+        await sendPending('activity', created.id);
       } else {
         const saved = await api.updateActivity(draft.id, draft);
         setData((d) => ({ ...d, activities: d.activities.map((a) => (a.id === saved.id ? saved : a)) }));
@@ -219,6 +240,17 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       setEditing(null);
     } catch (e) { say('Erro ao salvar'); }
   };
+
+  // ── anexos
+  const filesOf = (owner, id) => (data?.files || []).filter((f) => (owner === 'idea' ? f.idea_id === id : f.activity_id === id));
+  const addFile = async (owner, id, file) => {
+    const up = await api.uploadFile(owner, id, file);
+    setData((d) => ({ ...d, files: [...(d.files || []), up] }));
+  };
+  const removeFile = (f) => softDelete(`${f.name} removido`, 'files', f, async () => {
+    await api.deleteFile(f.id);
+    if ('caches' in window) caches.open('files-v1').then((c) => c.delete(api.fileUrl(f.id))).catch(() => {});
+  });
 
   const softDelete = (label, key, item, commit) => {
     flushDelete();
@@ -475,7 +507,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 onToggleDone={toggleDone} onAdd={openNew} onReorder={reorder} onSortTime={sortTime}
                 kinds={kinds} onToggleKind={toggleKind} doneFilter={doneFilter} onDoneFilter={setDoneFilter} fx={fx} tripTz={trip.tz} now={sel === today ? now.min : null}
                 onPrev={() => step(-1)} onNext={() => step(1)} hasPrev={dayIndex > 0} hasNext={dayIndex < days.length - 1}
-                dayInfo={(data.days || []).find((d) => d.day === sel) || null} onSaveDayInfo={saveDayInfo}
+                dayInfo={(data.days || []).find((d) => d.day === sel) || null} onSaveDayInfo={saveDayInfo} files={data.files || []}
               />
             )}
           </div>
@@ -507,7 +539,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           />
           {pinned && !editPositions && !picking && !quickAdd && (
             <PinPanel
-              a={pinned} n={mapItems.find((x) => x.id === pinned.id)?.n} cityMap={cityMap} fx={fx} tripTz={trip.tz}
+              a={pinned} n={mapItems.find((x) => x.id === pinned.id)?.n} cityMap={cityMap} fx={fx} tripTz={trip.tz} files={filesOf('activity', pinned.id)}
               onEdit={openEdit} onToggleDone={toggleDone} onClose={() => setSelectedId(null)}
             />
           )}
@@ -556,6 +588,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
       {editing && !draftHidden && (
         <EditModal tripTz={trip.tz}
+          files={editing.isNew ? [] : filesOf(editing.idea ? 'idea' : 'activity', editing.draft.id)}
+          onAddFile={(f) => addFile(editing.idea ? 'idea' : 'activity', editing.draft.id, f)} onRemoveFile={removeFile}
           draft={editing.draft} isNew={editing.isNew} isIdea={!!editing.idea} onToIdeas={toIdeas} cities={data.cities} days={days} fxCur={fx.cur}
           onChange={(d) => setEditing((e) => ({ ...e, draft: d }))}
           onSave={saveEdit} onDelete={deleteEdit} onClose={() => setEditing(null)}
