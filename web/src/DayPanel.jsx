@@ -13,7 +13,7 @@ function Gap({ a, b }) {
 }
 
 export default function DayPanel({
-  day, dayIndex, items, cityMap, stay, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
+  day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
   onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext,
 }) {
   const [dragId, setDragId] = useState(null);
@@ -52,7 +52,16 @@ export default function DayPanel({
             <span key={k} className="chip" style={{ '--c': cityMap[k]?.color }}>{cityMap[k]?.emoji} {cityMap[k]?.name || k}</span>
           ))}
         </div>
-        {stay && <div className="stay-line">Hospedagem · {stay.name}</div>}
+        {checkout && <div className="stay-line">Check-out · {checkout.name}{checkout.check_out_time ? ` às ${checkout.check_out_time}` : ''}</div>}
+        {stay && (
+          <div className="stay-line">
+            {stay.check_in === day ? 'Check-in' : 'Hospedagem'} · {stay.name}
+            {stay.check_in === day && stay.check_in_time ? ` a partir das ${stay.check_in_time}` : ''}
+            {stay.check_out === day && stay.check_out_time ? ` · saída às ${stay.check_out_time}` : ''}
+            {stay.booking ? ` · reserva ${stay.booking}` : ''}
+            {stay.link ? <> · <a href={stay.link} target="_blank" rel="noreferrer">ver reserva</a></> : null}
+          </div>
+        )}
         <div className="stats">
           <div><b>{items.length}</b><span>atividades</span></div>
           <div><b>{cost ? fx.fmt(cost) : '—'}</b><span>{cost ? (fx.fmtHome(cost) || 'custo do dia') : 'sem custos'}</span></div>

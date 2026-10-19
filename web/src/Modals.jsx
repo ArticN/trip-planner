@@ -222,8 +222,15 @@ export function StaysModal({ stays, cities, trip, onSave, onCreate, onDelete, on
                 </select>
               </label>
               <label>Endereço<input value={s.address || ''} onChange={(e) => upd(s.id, { address: e.target.value })} /></label>
-              <label>Check-in<input type="date" value={s.check_in || ''} onChange={(e) => upd(s.id, { check_in: e.target.value })} /></label>
-              <label>Check-out<input type="date" value={s.check_out || ''} onChange={(e) => upd(s.id, { check_out: e.target.value })} /></label>
+              <label>Check-in
+                <span className="pair"><input type="date" value={s.check_in || ''} onChange={(e) => upd(s.id, { check_in: e.target.value })} /><input type="time" aria-label="Horário do check-in" value={s.check_in_time || ''} onChange={(e) => upd(s.id, { check_in_time: e.target.value || null })} /></span>
+              </label>
+              <label>Check-out
+                <span className="pair"><input type="date" value={s.check_out || ''} onChange={(e) => upd(s.id, { check_out: e.target.value })} /><input type="time" aria-label="Horário do check-out" value={s.check_out_time || ''} onChange={(e) => upd(s.id, { check_out_time: e.target.value || null })} /></span>
+              </label>
+              <label>Nº da reserva<input value={s.booking || ''} onChange={(e) => upd(s.id, { booking: e.target.value })} /></label>
+              <label>Preço total ({trip.currency || 'BRL'})<input type="number" min="0" step="any" value={s.cost ?? ''} onChange={(e) => upd(s.id, { cost: num(e.target.value) })} /></label>
+              <label className="full">Link da reserva<input value={s.link || ''} onChange={(e) => upd(s.id, { link: e.target.value })} placeholder="https://…" /></label>
               <label>Lat<input type="number" step="0.0001" value={s.lat ?? ''} onChange={(e) => upd(s.id, { lat: num(e.target.value) })} /></label>
               <label>Lng<input type="number" step="0.0001" value={s.lng ?? ''} onChange={(e) => upd(s.id, { lng: num(e.target.value) })} /></label>
               <div className="full"><GeocodeBox initial={s.address || s.name} onPick={(lat, lng) => upd(s.id, { lat, lng })} /></div>
@@ -236,15 +243,18 @@ export function StaysModal({ stays, cities, trip, onSave, onCreate, onDelete, on
   );
 }
 
-export function BudgetModal({ activities, cityMap, days, fx, onRate, onClose }) {
+export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate, onClose }) {
   const [rate, setRate] = useState(String(fx.rate));
   const r = Number(rate.replace(',', '.')) || 0;
   const home = (n) => (fx.convert && r > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: fx.home }).format(n * r) : '');
   const withCost = activities.filter((a) => a.cost > 0);
-  const total = withCost.reduce((s, a) => s + a.cost, 0);
+  const staysCost = stays.filter((s) => s.cost > 0);
+  const staysTotal = staysCost.reduce((t, s) => t + s.cost, 0);
+  const total = withCost.reduce((s, a) => s + a.cost, 0) + staysTotal;
   const byDay = days.map((d) => ({ d, v: withCost.filter((a) => a.day === d).reduce((s, a) => s + a.cost, 0) })).filter((x) => x.v);
   const byCityObj = {};
   withCost.forEach((a) => { byCityObj[a.city || '—'] = (byCityObj[a.city || '—'] || 0) + a.cost; });
+  staysCost.forEach((s) => { byCityObj[s.city || '—'] = (byCityObj[s.city || '—'] || 0) + s.cost; });
   const byCity = Object.entries(byCityObj).sort((x, y) => y[1] - x[1]);
 
   return (
@@ -266,6 +276,9 @@ export function BudgetModal({ activities, cityMap, days, fx, onRate, onClose }) 
             <tbody>
               {withCost.sort((a, b) => a.day.localeCompare(b.day)).map((a) => (
                 <tr key={a.id}><td>{fmtDay(a.day)}</td><td>{a.title}</td><td className="r">{fx.fmt(a.cost)}</td><td className="r muted">{home(a.cost)}</td></tr>
+              ))}
+              {staysCost.map((s) => (
+                <tr key={`s${s.id}`}><td>{fmtDay(s.check_in)}</td><td>Hospedagem · {s.name}</td><td className="r">{fx.fmt(s.cost)}</td><td className="r muted">{home(s.cost)}</td></tr>
               ))}
             </tbody>
           </table>

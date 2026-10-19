@@ -63,9 +63,12 @@ db.exec(`
 // colunas novas em bancos antigos
 const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
 for (const c of ['notes', 'links']) if (!cols('activities').includes(c)) db.exec(`ALTER TABLE activities ADD COLUMN ${c} TEXT`);
+for (const [c, t] of [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]) {
+  if (!cols('stays').includes(c)) db.exec(`ALTER TABLE stays ADD COLUMN ${c} ${t}`);
+}
 
 const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links'];
-const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes'];
+const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
 const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate'];
@@ -93,8 +96,11 @@ if (legacy) {
   const { lastInsertRowid: tid } = db.prepare('INSERT INTO trips (name, subtitle, emoji, start, end, currency, home_currency, rate) VALUES (?,?,?,?,?,?,?,?)')
     .run(kv.name || 'Minha viagem', kv.subtitle || null, '🗾', kv.start, kv.end, 'JPY', 'BRL', Number(kv.brl_rate) || 0.035);
   db.prepare(`INSERT INTO cities (trip_id,${CITY_FIELDS.join(',')}) SELECT ?,${CITY_FIELDS.join(',')} FROM cities_old`).run(tid);
-  db.prepare(`INSERT INTO stays (trip_id,${STAY_FIELDS.join(',')}) SELECT ?,${STAY_FIELDS.join(',')} FROM stays_old`).run(tid);
-  db.prepare(`INSERT INTO activities (trip_id,${ACT_FIELDS.join(',')}) SELECT ?,${ACT_FIELDS.map((f) => (f === 'cost' ? 'cost_jpy' : f)).join(',')} FROM activities_old`).run(tid);
+  const sf = STAY_FIELDS.filter((f) => cols('stays_old').includes(f));
+  db.prepare(`INSERT INTO stays (trip_id,${sf.join(',')}) SELECT ?,${sf.join(',')} FROM stays_old`).run(tid);
+  const oldAct = cols('activities_old');
+  const af = ACT_FIELDS.filter((f) => oldAct.includes(f === 'cost' ? 'cost_jpy' : f));
+  db.prepare(`INSERT INTO activities (trip_id,${af.join(',')}) SELECT ?,${af.map((f) => (f === 'cost' ? 'cost_jpy' : f)).join(',')} FROM activities_old`).run(tid);
   db.exec('DROP TABLE cities_old; DROP TABLE stays_old; DROP TABLE activities_old; DROP TABLE trip; COMMIT');
 }
 

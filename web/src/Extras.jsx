@@ -107,8 +107,11 @@ export function StatsModal({ activities, stays, cityMap, days, fx, onClose }) {
       const l = activities.filter((a) => a.kind === k);
       return { k, label: KINDS[k].label, c: KINDS[k].color, n: l.length, v: l.reduce((t, a) => t + (a.cost || 0), 0) };
     }).filter((x) => x.n);
-    const total = activities.reduce((t, a) => t + (a.cost || 0), 0);
+    stays.forEach((st) => { if (st.cost) { const c = st.city || '—'; cityAgg[c] ||= { cost: 0, n: 0 }; cityAgg[c].cost += st.cost; } });
+    const staysTotal = stays.reduce((t, st) => t + (st.cost || 0), 0);
+    const total = activities.reduce((t, a) => t + (a.cost || 0), 0) + staysTotal;
     const done = activities.filter((a) => a.done).length;
+    if (staysTotal) kindAgg.push({ k: 'stays', label: 'Hospedagens (diárias)', c: KINDS.stay.color, n: stays.filter((st) => st.cost).length, v: staysTotal });
     return { km, kmDay, costDay, cityAgg, nights, kindAgg, total, done };
   }, [activities, stays, days]);
 

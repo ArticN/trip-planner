@@ -454,3 +454,6 @@ button.big { padding: 12px 22px; font-size: 16px; }
   .cal-cell { min-height: 72px; }
   .cal-cell ul, .cal-cost { display: none; }
 }
+.pair { display: flex; gap: 6px; }
+.pair input[type=time] { width: 110px; flex: none; }
+.stay-line a { color: var(--accent); text-decoration: none; }
