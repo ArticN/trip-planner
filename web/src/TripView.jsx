@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import MapView from './MapView.jsx';
 import { getTheme, toggleTheme } from './theme.js';
+import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal } from './Modals.jsx';
@@ -247,8 +248,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     onHome(d.trip.id);
   };
 
-  if (error) return <div className="splash"><h1>🧳</h1><p>Não consegui abrir esta viagem.</p><code>{error}</code><div><button onClick={reload}>Tentar de novo</button> <button onClick={() => onHome()}>Voltar às viagens</button></div></div>;
-  if (!data) return <div className="splash"><h1>🧳</h1><p>Carregando roteiro…</p></div>;
+  if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>Não consegui abrir esta viagem.</p><code>{error}</code><div><button onClick={reload}>Tentar de novo</button> <button onClick={() => onHome()}>Voltar às viagens</button></div></div>;
+  if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
   const today = todayStr();
   const countdown = today < trip.start ? `Faltam ${daysBetween(today, trip.start)} dias`
@@ -261,24 +262,24 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       <header className="top">
         <button className="icon-btn" onClick={() => onHome()} title="Minhas viagens" aria-label="Minhas viagens">←</button>
         <div className="brand" onClick={() => go('trip')} role="button" tabIndex={0}>
-          <span className="logo">{trip.emoji || '🧳'}</span>
+          <span className="logo"><Mark /></span>
           <div>
             <div className="brand-name">{trip.name}</div>
             {trip.subtitle && <div className="brand-sub">{trip.subtitle}</div>}
           </div>
         </div>
-        <div className="countdown">⏳ {countdown}</div>
+        <div className="countdown">{countdown}</div>
         <span className="spacer" />
-        <button onClick={() => setModal('stays')}>🏨 <span className="hide-sm">Hospedagens</span></button>
-        <button onClick={() => setModal('budget')}>💰 <span className="hide-sm">Orçamento</span></button>
+        <button onClick={() => setModal('stays')}>Hospedagens</button>
+        <button onClick={() => setModal('budget')}>Orçamento</button>
         <details className="menu">
           <summary>⋯</summary>
           <div className="menu-pop" onClick={(e) => e.currentTarget.parentElement.removeAttribute('open')}>
-            <button onClick={() => setTheme(toggleTheme())}>{theme === 'dark' ? '☀️ Tema claro' : '🌙 Tema escuro'}</button>
-            <button onClick={() => setModal('trip')}>✎ Editar viagem</button>
-            <button onClick={() => setModal('cities')}>📍 Cidades e locais</button>
-            <button onClick={() => window.print()}>🖨️ Imprimir roteiro</button>
-            <a href={`/api/trips/${tripId}/export`}>⬇️ Exportar backup (JSON)</a>
+            <button onClick={() => setTheme(toggleTheme())}>{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</button>
+            <button onClick={() => setModal('trip')}>Editar viagem</button>
+            <button onClick={() => setModal('cities')}>Cidades e locais</button>
+            <button onClick={() => window.print()}>Imprimir roteiro</button>
+            <a href={`/api/trips/${tripId}/export`}>Exportar backup (JSON)</a>
           </div>
         </details>
       </header>
@@ -286,12 +287,12 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       <div className="main">
         <aside className="side">
           <nav className="strip" aria-label="Dias da viagem">
-            <button className={`dchip trip${sel === 'trip' ? ' on' : ''}`} onClick={() => go('trip')}>🗾<span>Viagem</span></button>
+            <button className={`dchip trip${sel === 'trip' ? ' on' : ''}`} onClick={() => go('trip')}><b>Geral</b></button>
             {daysInfo.map((d) => (
               <button key={d.day} className={`dchip${sel === d.day ? ' on' : ''}${d.day === today ? ' today' : ''}`} onClick={() => go(d.day)} style={{ '--c': cityMap[d.cities[0]]?.color || '#94a3b8' }} title={fmtDayLong(d.day)}>
                 <small>{d.week}</small>
                 <b>{d.num}</b>
-                <span>{cityMap[d.cities[0]]?.emoji || '·'}</span>
+                <i className="cdot" />
                 {d.conflicts > 0 && <i className="alert" />}
               </button>
             ))}
@@ -350,11 +351,11 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           )}
           <div className="map-tools">
             {sel !== 'trip' && (
-              <button className={labelNumbers ? 'on' : ''} onClick={() => setLabelNumbers((v) => !v)} title="Alternar entre números e ícones">{labelNumbers ? '① Números' : '⛩️ Ícones'}</button>
+              <button className={labelNumbers ? 'on' : ''} onClick={() => setLabelNumbers((v) => !v)} title="Alternar entre números e ícones">{labelNumbers ? 'Números' : 'Ícones'}</button>
             )}
-            <button className={(sel === 'trip' ? showStaysTrip : showStaysDay) ? 'on' : ''} onClick={() => (sel === 'trip' ? setShowStaysTrip((v) => !v) : setShowStaysDay((v) => !v))}>🏨 Hotéis</button>
+            <button className={(sel === 'trip' ? showStaysTrip : showStaysDay) ? 'on' : ''} onClick={() => (sel === 'trip' ? setShowStaysTrip((v) => !v) : setShowStaysDay((v) => !v))}>Hotéis</button>
             {sel !== 'trip' && (
-              <button className={editPositions ? 'on warn' : ''} onClick={() => setEditPositions((v) => !v)} title="Arraste os marcadores para corrigir a posição">✋ Mover pontos</button>
+              <button className={editPositions ? 'on warn' : ''} onClick={() => setEditPositions((v) => !v)} title="Arraste os marcadores para corrigir a posição">Mover pontos</button>
             )}
           </div>
           {sel === 'trip' && (
@@ -366,11 +367,11 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           )}
           {picking && (
             <div className="pick-banner">
-              📍 Clique no mapa para definir o local
+              Clique no mapa para definir o local
               <button onClick={() => setPicking(false)}>Cancelar</button>
             </div>
           )}
-          {editPositions && !picking && <div className="pick-banner soft">✋ Arraste os marcadores — a posição é salva automaticamente</div>}
+          {editPositions && !picking && <div className="pick-banner soft">Arraste os marcadores — a posição é salva automaticamente</div>}
         </section>
       </div>
 

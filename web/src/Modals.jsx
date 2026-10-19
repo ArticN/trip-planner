@@ -12,7 +12,7 @@ export function Modal({ title, onClose, children, wide, footer }) {
       <div className={`modal${wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-head">
           <h3>{title}</h3>
-          <button className="icon-btn" onClick={onClose} aria-label="Fechar">✕</button>
+          <button className="icon-btn" onClick={onClose} aria-label="Fechar"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" /></svg></button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
@@ -131,7 +131,7 @@ export function EditModal({ draft, isNew, cities, days, fxCur, onChange, onSave,
           <div className="row">
             <label>Lat<input type="number" step="0.0001" value={draft.lat ?? ''} onChange={(e) => set({ lat: num(e.target.value) })} /></label>
             <label>Lng<input type="number" step="0.0001" value={draft.lng ?? ''} onChange={(e) => set({ lng: num(e.target.value) })} /></label>
-            <button type="button" onClick={onPickMap}>📍 Marcar no mapa</button>
+            <button type="button" onClick={onPickMap}>Marcar no mapa</button>
             {hasCoords(draft) && <button type="button" onClick={() => set({ lat: null, lng: null })}>Limpar</button>}
           </div>
         </div>
@@ -165,7 +165,7 @@ export function StaysModal({ stays, cities, trip, onSave, onCreate, onDelete, on
   };
 
   return (
-    <Modal title="🏨 Hospedagens" onClose={onClose} wide footer={<><button onClick={add}>+ Hospedagem</button><span className="spacer" /><button onClick={onClose}>Fechar</button><button className="primary" disabled={!dirty.size} onClick={saveAll}>Salvar alterações</button></>}>
+    <Modal title="Hospedagens" onClose={onClose} wide footer={<><button onClick={add}>+ Hospedagem</button><span className="spacer" /><button onClick={onClose}>Fechar</button><button className="primary" disabled={!dirty.size} onClick={saveAll}>Salvar alterações</button></>}>
       <div className="stays">
         {rows.length === 0 && <div className="empty">Nenhuma hospedagem ainda. Cadastre onde você vai dormir para ver a rota entre cidades no mapa.</div>}
         {rows.map((s) => (
@@ -206,7 +206,7 @@ export function BudgetModal({ activities, cityMap, days, fx, onRate, onClose }) 
   const byCity = Object.entries(byCityObj).sort((x, y) => y[1] - x[1]);
 
   return (
-    <Modal title={`💰 Orçamento (${fx.cur})`} onClose={onClose} wide footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
+    <Modal title={`Orçamento (${fx.cur})`} onClose={onClose} wide footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
       <div className="budget-top">
         {fx.cur !== fx.home && (
           <label>1 {fx.cur} =
@@ -251,7 +251,7 @@ export function BudgetModal({ activities, cityMap, days, fx, onRate, onClose }) 
   );
 }
 
-const EMOJIS = ['🧳', '✈️', '🏖️', '🏔️', '🌆', '🗺️', '🚗', '🚆', '🏝️', '🌍', '🗼', '🏕️'];
+const EMOJIS = ['🧳', '✈️', '🏖️', '🏔️', '🌆', '🗺️', '🚗', '🚆', '🏝️', '🌍', '🗼', '🏕️']; // taste-skill-ignore: user-chosen trip emoji
 
 export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
   const isNew = !trip.id;
@@ -300,7 +300,7 @@ export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
             <input inputMode="decimal" value={d.rate ?? ''} onChange={(e) => set({ rate: e.target.value })} />
           </label>
         )}
-        {d.end && d.start && d.end < d.start && <div className="full warn">⚠️ A data final é anterior à inicial.</div>}
+        {d.end && d.start && d.end < d.start && <div className="full warn">A data final é anterior à inicial.</div>}
       </div>
     </Modal>
   );
@@ -343,7 +343,7 @@ export function CitiesModal({ cities, onCreate, onSave, onDelete, onClose }) {
   };
 
   return (
-    <Modal title="📍 Cidades e locais" onClose={onClose} wide footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button><button className="primary" disabled={!dirty.size} onClick={saveAll}>Salvar alterações</button></>}>
+    <Modal title="Cidades e locais" onClose={onClose} wide footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button><button className="primary" disabled={!dirty.size} onClick={saveAll}>Salvar alterações</button></>}>
       <p className="muted small">As cidades agrupam as atividades de cada dia, colorem o calendário e aparecem no mapa da visão geral.</p>
       <div className="row add-city">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nova cidade (ex: Lisboa)" onKeyDown={(e) => { if (e.key === 'Enter') add(); }} />
@@ -359,7 +359,7 @@ export function CitiesModal({ cities, onCreate, onSave, onDelete, onClose }) {
             <input type="color" value={c.color || '#2874a6'} onChange={(e) => upd(c.id, { color: e.target.value })} aria-label="Cor" />
             <input type="number" step="0.0001" placeholder="lat" value={c.lat ?? ''} onChange={(e) => upd(c.id, { lat: num(e.target.value) })} aria-label="Latitude" />
             <input type="number" step="0.0001" placeholder="lng" value={c.lng ?? ''} onChange={(e) => upd(c.id, { lng: num(e.target.value) })} aria-label="Longitude" />
-            <button className="icon-btn" onClick={() => del(c)} title="Excluir">🗑</button>
+            <button className="icon-btn" onClick={() => del(c)} title="Excluir" aria-label="Excluir"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" /></svg></button>
           </div>
         ))}
       </div>

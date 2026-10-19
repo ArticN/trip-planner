@@ -58,6 +58,15 @@ Bancos criados quando o app tinha uma única viagem (Japão) são migrados autom
 `GET/POST /api/trips` · `GET/PUT/DELETE /api/trips/:id` · `POST /api/trips/:id/duplicate` · `GET /api/trips/:id/export` · `POST /api/trips/import` ·
 `POST /api/trips/:id/activities|stays|cities` · `PUT/DELETE /api/activities|stays|cities/:id` · `PUT /api/trips/:id/days/reorder` · `GET /api/examples`, `POST /api/examples/:key`.
 
+## Design e skills
+
+O visual (preto chapado, tipografia Instrument Sans/Serif, uma cor de destaque, botão primário em pílula branca) segue o guia da skill `design-taste-frontend`.
+
+Skills instaladas em `.claude/skills/`:
+
+- `design-taste-frontend` (de leonxlnx/taste-skill): completa, com os scripts locais `lint.mjs`, `draw.mjs` e `inspect.mjs`. Rode `node .claude/skills/design-taste-frontend/scripts/lint.mjs --app web/src` para checar a interface.
+- `impeccable` (de pbakaus/impeccable): apenas `SKILL.md` e `reference/`, como guia de design. O launcher e os hooks não foram instalados, porque baixam e executam um binário que não foi auditado.
+
 ## Observações
 
 - Coordenadas dos exemplos são aproximadas; ajuste arrastando os pontos.

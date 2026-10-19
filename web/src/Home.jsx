@@ -3,6 +3,7 @@ import { api } from './api.js';
 import { TripModal } from './Modals.jsx';
 import { daysBetween, fmtDay } from './util.js';
 import { getTheme, toggleTheme } from './theme.js';
+import Mark from './Mark.jsx';
 
 const todayStr = () => {
   const d = new Date();
@@ -38,7 +39,7 @@ export default function Home({ version, onOpen, onChanged }) {
     const t = new Date();
     const end = new Date(t.getTime() + 6 * 86400000);
     const f = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    setCreating({ name: '', subtitle: '', emoji: '🧳', start: f(t), end: f(end), currency: 'BRL', home_currency: 'BRL', rate: 1 });
+    setCreating({ name: '', subtitle: '', emoji: '', start: f(t), end: f(end), currency: 'BRL', home_currency: 'BRL', rate: 1 });
   };
 
   const create = async (t) => {
@@ -65,17 +66,17 @@ export default function Home({ version, onOpen, onChanged }) {
     } catch (err) { say('Não consegui importar: arquivo de backup inválido'); }
   };
 
-  if (error) return <div className="splash"><h1>🧳</h1><p>Não consegui falar com o servidor.</p><code>{error}</code><button onClick={load}>Tentar de novo</button></div>;
-  if (!trips) return <div className="splash"><h1>🧳</h1><p>Carregando…</p></div>;
+  if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>Não consegui falar com o servidor.</p><code>{error}</code><button onClick={load}>Tentar de novo</button></div>;
+  if (!trips) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando…</p></div>;
 
   const today = todayStr();
   return (
     <div className="home">
       <header className="home-top">
-        <div className="brand"><span className="logo">🧳</span><div><div className="brand-name">Trip Planner</div><div className="brand-sub">mapa, roteiro dia a dia e orçamento</div></div></div>
+        <div className="brand"><span className="logo"><Mark /></span><div><div className="brand-name">Trip Planner</div><div className="brand-sub">mapa, roteiro dia a dia e orçamento</div></div></div>
         <span className="spacer" />
-        <button onClick={() => setTheme(toggleTheme())} title="Alternar tema" aria-label="Alternar tema">{theme === 'dark' ? '☀️' : '🌙'}</button>
-        <button onClick={() => fileRef.current.click()}>⬆️ <span className="hide-sm">Importar backup</span></button>
+        <button onClick={() => setTheme(toggleTheme())} title="Alternar tema" aria-label="Alternar tema">{theme === 'dark' ? 'Claro' : 'Escuro'}</button>
+        <button onClick={() => fileRef.current.click()}>Importar<span className="hide-sm"> backup</span></button>
         <button className="primary" onClick={newTrip}>+ Nova viagem</button>
         <input ref={fileRef} type="file" accept="application/json" hidden onChange={onImport} />
       </header>
@@ -95,8 +96,7 @@ export default function Home({ version, onOpen, onChanged }) {
                 const st = status(t, today);
                 return (
                   <button key={t.id} className="trip-card" onClick={() => onOpen(t.id)}>
-                    <span className="tc-emoji">{t.emoji || '🧳'}</span>
-                    <span className="tc-name">{t.name}</span>
+                    <span className="tc-name">{t.emoji ? <span className="tc-emoji">{t.emoji}</span> : null}{t.name}</span>
                     {t.subtitle && <span className="tc-sub">{t.subtitle}</span>}
                     <span className="tc-dates">{fmtDay(t.start)} → {fmtDay(t.end)} · {daysBetween(t.start, t.end) + 1} dias</span>
                     <span className="tc-foot">

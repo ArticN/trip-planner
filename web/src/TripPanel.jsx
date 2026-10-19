@@ -1,5 +1,24 @@
 import { KINDS, KIND_KEYS, fmtDay, daysBetween, hasCoords } from './util.js';
 
+// faixa da viagem: uma fatia por hospedagem, larga na proporção das noites, na cor da cidade
+function TripStrip({ stays, cityMap, onCity }) {
+  const parts = stays.map((s) => ({ s, c: cityMap[s.city], n: Math.max(0, daysBetween(s.check_in, s.check_out)) })).filter((p) => p.n > 0);
+  if (!parts.length) return null;
+  const total = parts.reduce((t, p) => t + p.n, 0);
+  return (
+    <div className="tripstrip" role="list" aria-label="Noites por cidade">
+      {parts.map(({ s, c, n }) => (
+        <button key={s.id} role="listitem" className="seg" style={{ flex: n, '--c': c?.color || '#888' }} onClick={() => c && onCity(c)} title={`${c?.name || s.name} · ${n} ${n === 1 ? 'noite' : 'noites'}`}>
+          <i />
+          <span>{c?.name || s.name}</span>
+          <small>{n}</small>
+        </button>
+      ))}
+      <span className="visually-hidden">{total} noites no total</span>
+    </div>
+  );
+}
+
 export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo }) {
   const total = activities.reduce((s, a) => s + (a.cost || 0), 0);
   const sights = activities.filter((a) => a.kind === 'sight').length;
@@ -11,7 +30,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
       <div className="day-head">
         <div className="day-kicker">Visão geral</div>
         <h2 className="day-title">{trip.name}</h2>
-        <button className="link-btn" onClick={onEditTrip}>✎ Editar viagem</button>
+        <button className="link-btn" onClick={onEditTrip}>Editar viagem</button>
         <div className="muted">{fmtDay(trip.start)} → {fmtDay(trip.end)} · {daysBetween(trip.start, trip.end) + 1} dias</div>
         <div className="stats">
           <div><b>{activities.length}</b><span>atividades</span></div>
@@ -21,15 +40,17 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
         </div>
         {(conflictsTotal > 0 || noCoords > 0) && (
           <div className="warns">
-            {conflictsTotal > 0 && <span className="warn">⚠️ {conflictsTotal} atividades com horário sobreposto</span>}
-            {noCoords > 0 && <span className="warn soft">📍 {noCoords} atividades sem local</span>}
+            {conflictsTotal > 0 && <span className="warn">{conflictsTotal} atividades com horário sobreposto</span>}
+            {noCoords > 0 && <span className="warn soft">{noCoords} atividades sem local</span>}
           </div>
         )}
       </div>
 
+      <TripStrip stays={stays} cityMap={cityMap} onCity={onCity} />
+
       <div className="section-title">Rota</div>
       {stays.length === 0 && (
-        <div className="empty small">Cadastre as <button onClick={onOpenStays}>🏨 hospedagens</button> para ver a rota entre cidades no mapa.</div>
+        <div className="empty small">Cadastre as <button onClick={onOpenStays}>hospedagens</button> para ver a rota entre cidades no mapa.</div>
       )}
       <ol className="route">
         {stays.map((s) => {
@@ -37,11 +58,11 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
           const n = Math.max(0, daysBetween(s.check_in, s.check_out));
           return (
             <li key={s.id} onClick={() => c && onCity(c)} style={{ '--c': c?.color }}>
-              <span className="dot">{c?.emoji}</span>
+              <span className="dot" />
               <div>
                 <div className="r-title">{c?.name} <span className="muted">· {n} {n === 1 ? 'noite' : 'noites'}</span></div>
                 <div className="muted">{fmtDay(s.check_in)} → {fmtDay(s.check_out)}</div>
-                <div className="muted small">🏨 {s.name}</div>
+                <div className="muted small">{s.name}</div>
               </div>
             </li>
           );
@@ -57,10 +78,10 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
           <li key={d.day} onClick={() => onPickDay(d.day)}>
             <div className="d-date"><b>{d.num}</b><span>{d.week}</span></div>
             <div className="d-mid">
-              <div className="d-cities">{d.cities.length ? `${d.cities.map((k) => cityMap[k]?.emoji).join(' ')} ${d.cities.map((k) => cityMap[k]?.name).join(' · ')}` : d.count ? '✈️ Em trânsito' : 'Sem atividades'}</div>
+              <div className="d-cities">{d.cities.length ? `${d.cities.map((k) => cityMap[k]?.emoji).join(' ')} ${d.cities.map((k) => cityMap[k]?.name).join(' · ')}` : d.count ? 'Em trânsito' : 'Sem atividades'}</div>
               <div className="muted small">{d.count} {d.count === 1 ? 'atividade' : 'atividades'}{d.cost ? ` · ${fx.fmt(d.cost)}` : ''}</div>
             </div>
-            {d.conflicts > 0 && <span className="tag warn">⚠️ {d.conflicts}</span>}
+            {d.conflicts > 0 && <span className="tag warn">{d.conflicts} sobrepostas</span>}
           </li>
         ))}
       </ul>
@@ -75,9 +96,9 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
       </div>
 
       <div className="day-foot">
-        <button onClick={onOpenCities}>📍 Cidades</button>
-        <button onClick={onOpenStays}>🏨 Hospedagens</button>
-        <button onClick={onOpenBudget}>💴 Orçamento</button>
+        <button onClick={onOpenCities}>Cidades</button>
+        <button onClick={onOpenStays}>Hospedagens</button>
+        <button onClick={onOpenBudget}>Orçamento</button>
       </div>
     </div>
   );

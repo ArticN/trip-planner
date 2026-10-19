@@ -108,8 +108,8 @@ export default function MapView({
       el.innerHTML = `
         <div class="popup-kind" style="color:${k.color}">${k.icon} ${esc(k.label)}${n ? ` · #${n}` : ''}</div>
         <div class="popup-title">${esc(a.title)}</div>
-        ${time ? `<div class="popup-time">🕐 ${time}</div>` : ''}
-        ${a.location ? `<div class="popup-loc">📍 ${esc(a.location)}</div>` : ''}
+        ${time ? `<div class="popup-time">${time}</div>` : ''}
+        ${a.location ? `<div class="popup-loc">${esc(a.location)}</div>` : ''}
         ${a.details ? `<div class="popup-det">${esc(a.details.length > 160 ? a.details.slice(0, 160) + '…' : a.details)}</div>` : ''}
         <div class="popup-actions">
           <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}">Abrir no Google Maps ↗</a>
@@ -145,7 +145,7 @@ export default function MapView({
         const km = haversine(p, q);
         if (km < 0.03) continue;
         L.polyline([[p.lat, p.lng], [q.lat, q.lng]], {
-          color: isTransit ? '#2874a6' : '#c0392b', weight: isTransit ? 3 : 4, opacity: 0.75,
+          color: isTransit ? '#b4b1ab' : '#f2b33d', weight: isTransit ? 2.5 : 3.5, opacity: 0.85,
           dashArray: isTransit ? '2 8' : null, lineCap: 'round',
         }).bindTooltip(`${fmtKm(km)} em linha reta`, { sticky: true }).addTo(group);
         if (km > 0.15) {
@@ -159,7 +159,7 @@ export default function MapView({
       // hospedagem do dia
       const st = showStays && stayByDay ? stayByDay : null;
       if (st && hasCoords(st)) {
-        L.marker([st.lat, st.lng], { icon: labelIcon('🏨', 'stay-lbl') }).bindTooltip(st.name).addTo(group);
+        L.marker([st.lat, st.lng], { icon: labelIcon('H', 'stay-lbl') }).bindTooltip(st.name).addTo(group);
         bounds.push([st.lat, st.lng]);
       }
     } else {
@@ -168,7 +168,7 @@ export default function MapView({
       stays.forEach((s) => { if (!stayCities.length || stayCities[stayCities.length - 1] !== s.city) stayCities.push(s.city); });
       const routePts = stayCities.map((k) => cityMap[k]).filter(hasCoords).map((c) => [c.lat, c.lng]);
       if (routePts.length > 1) {
-        L.polyline(routePts, { color: '#c0392b', weight: 4, opacity: 0.8 }).addTo(group);
+        L.polyline(routePts, { color: '#f2b33d', weight: 3.5, opacity: 0.9 }).addTo(group);
         for (let i = 0; i < routePts.length - 1; i++) {
           const p = { lat: routePts[i][0], lng: routePts[i][1] };
           const q = { lat: routePts[i + 1][0], lng: routePts[i + 1][1] };
@@ -188,7 +188,7 @@ export default function MapView({
         seen.add(key);
         const from = cityMap[stay.city];
         const to = cityMap[a.city];
-        if (hasCoords(from) && hasCoords(to)) L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: '#2874a6', weight: 3, opacity: 0.7, dashArray: '6 8' }).addTo(group);
+        if (hasCoords(from) && hasCoords(to)) L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: '#b4b1ab', weight: 2.5, opacity: 0.8, dashArray: '6 8' }).addTo(group);
       });
       cities.filter((c) => c.key !== 'transito' && hasCoords(c)).forEach((c) => {
         const n = items.filter((a) => a.city === c.key && a.kind === 'sight').length;
@@ -211,7 +211,7 @@ export default function MapView({
       });
       if (showStays) {
         stays.filter(hasCoords).forEach((s) => {
-          L.marker([s.lat, s.lng], { icon: labelIcon('🏨', 'stay-lbl') }).bindTooltip(`${s.name} · ${s.check_in.slice(8)}/${s.check_in.slice(5, 7)}–${s.check_out.slice(8)}/${s.check_out.slice(5, 7)}`).addTo(group);
+          L.marker([s.lat, s.lng], { icon: labelIcon('H', 'stay-lbl') }).bindTooltip(`${s.name} · ${s.check_in.slice(8)}/${s.check_in.slice(5, 7)}–${s.check_out.slice(8)}/${s.check_out.slice(5, 7)}`).addTo(group);
         });
       }
     }

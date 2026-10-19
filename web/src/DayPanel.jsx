@@ -51,7 +51,7 @@ export default function DayPanel({
             <span key={k} className="chip" style={{ '--c': cityMap[k]?.color }}>{cityMap[k]?.emoji} {cityMap[k]?.name || k}</span>
           ))}
         </div>
-        {stay && <div className="stay-line">🏨 {stay.name}</div>}
+        {stay && <div className="stay-line">Hospedagem · {stay.name}</div>}
         <div className="stats">
           <div><b>{items.length}</b><span>atividades</span></div>
           <div><b>{cost ? fx.fmt(cost) : '—'}</b><span>{cost ? (fx.fmtHome(cost) || 'custo do dia') : 'sem custos'}</span></div>
@@ -60,8 +60,8 @@ export default function DayPanel({
         </div>
         {(conflicts.size > 0 || missing > 0) && (
           <div className="warns">
-            {conflicts.size > 0 && <span className="warn">⚠️ {conflicts.size} atividades com horário sobreposto</span>}
-            {missing > 0 && <span className="warn soft">📍 {missing} sem local no mapa</span>}
+            {conflicts.size > 0 && <span className="warn">{conflicts.size} atividades com horário sobreposto</span>}
+            {missing > 0 && <span className="warn soft">{missing} sem local no mapa</span>}
           </div>
         )}
       </div>
@@ -119,7 +119,7 @@ export default function DayPanel({
                   <div className="title-row">
                     <span className="title">{a.title}</span>
                   </div>
-                  {a.location && <div className="loc">📍 {a.location}</div>}
+                  {a.location && <div className="loc">{a.location}</div>}
                   {a.details && <div className="det">{a.details}</div>}
                   <div className="tags">
                     <span className="tag" style={{ '--c': k.color }}>{k.icon} {k.label}</span>
@@ -127,12 +127,12 @@ export default function DayPanel({
                     {a.transport && <span className="tag">{a.transport}</span>}
                     {a.cost > 0 && <span className="tag cost">{fx.fmt(a.cost)}</span>}
                     {!hasCoords(a) && a.kind !== 'free' && <span className="tag warn">sem local</span>}
-                    {conflicts.has(a.id) && <span className="tag warn">⚠️ sobreposto</span>}
+                    {conflicts.has(a.id) && <span className="tag warn">sobreposto</span>}
                   </div>
                 </div>
                 <div className="actions">
-                  <button className={`check${a.done ? ' on' : ''}`} title="Marcar como feito" onClick={(e) => { e.stopPropagation(); onToggleDone(a); }}>✓</button>
-                  <button className="icon-btn sm" title="Editar" onClick={(e) => { e.stopPropagation(); onEdit(a.id); }}>✎</button>
+                  <button className={`check${a.done ? ' on' : ''}`} title="Marcar como feito" onClick={(e) => { e.stopPropagation(); onToggleDone(a); }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5" /></svg></button>
+                  <button className="icon-btn sm" title="Editar" onClick={(e) => { e.stopPropagation(); onEdit(a.id); }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 13.5l.7-3L11 2.7a1.4 1.4 0 012 2L5.5 12.8z" /></svg></button>
                 </div>
               </div>
             </li>
