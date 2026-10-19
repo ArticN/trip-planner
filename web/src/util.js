@@ -186,3 +186,7 @@ export function sunTimes(day, lat, lng, tz) {
   const fmt = (j) => new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: tz || undefined }).format(new Date((j - 2440587.5) * 86400000));
   return { rise: fmt(jTransit - h), set: fmt(jTransit + h) };
 }
+
+// filtro "mostrar": todas, só as que faltam ou só as feitas
+export const DONE_FILTERS = [['all', 'Todas'], ['todo', 'A fazer'], ['done', 'Feitas']];
+export const passDone = (a, f) => f === 'all' || (f === 'done' ? !!a.done : !a.done);

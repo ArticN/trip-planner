@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Stars } from './Stars.jsx';
+import { wikiSummary, wikiCached } from './wiki.js';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { KINDS, hasCoords, duration, fmtDuration, fmtDayLong, endDayOf, directionsUrl } from './util.js';
 
@@ -45,10 +47,43 @@ export default function PinPanel({ a, n, cityMap, fx, tripTz, onEdit, onToggleDo
           {links.map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer">{linkLabel(l)}</a>)}
         </div>
       )}
-      <div className="pp-actions">
-        <button onClick={() => onToggleDone(a)}>{a.done ? 'Marcar como não feita' : 'Marcar como feita'}</button>
-        <button className="primary" onClick={() => onEdit(a.id)}>Editar</button>
-      </div>
+      {WIKI_KINDS.has(a.kind) && <Wiki key={a.id} a={a} />}
+      {onEdit && (
+        <div className="pp-actions">
+          <button onClick={() => onToggleDone(a)}>{a.done ? 'Marcar como não feita' : 'Marcar como feita'}</button>
+          <button className="primary" onClick={() => onEdit(a.id)}>Editar</button>
+        </div>
+      )}
     </aside>
+  );
+}
+
+const WIKI_KINDS = new Set(['sight', 'shop', 'stay']);
+
+// resumo sob demanda: só busca quando a pessoa pede (e guarda a resposta no aparelho)
+function Wiki({ a }) {
+  const [st, setSt] = useState({ state: 'idle' });
+  const load = () => {
+    setSt({ state: 'loading' });
+    wikiSummary(a).then((r) => setSt({ state: r ? 'ok' : 'none', r })).catch(() => setSt({ state: 'error' }));
+  };
+  useEffect(() => {
+    // se já foi buscado antes, mostra direto
+    if (wikiCached(a)) load();
+  }, []);
+  if (st.state === 'idle') return <button className="mini pp-wiki-btn" onClick={load}>Sobre este lugar (Wikipédia)</button>;
+  if (st.state === 'loading') return <div className="pp-wiki muted small">Procurando na Wikipédia…</div>;
+  if (st.state === 'none') return <div className="pp-wiki muted small">Não achei este lugar na Wikipédia.</div>;
+  if (st.state === 'error') return <div className="pp-wiki muted small">A Wikipédia não respondeu. <button className="mini" onClick={load}>Tentar de novo</button></div>;
+  const { r } = st;
+  return (
+    <div className="pp-wiki">
+      {r.img && <img src={r.img} alt="" loading="lazy" />}
+      <div>
+        <b>{r.title}</b>
+        <p>{r.text}</p>
+        <a href={r.url} target="_blank" rel="noreferrer">Ler na Wikipédia{r.lang === 'en' ? ' (inglês)' : ''}</a>
+      </div>
+    </div>
   );
 }

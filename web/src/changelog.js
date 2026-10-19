@@ -1,6 +1,17 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.9',
+    date: '2026-10-19',
+    title: 'Compartilhar, meu mapa e Wikipédia',
+    items: [
+      'Compartilhar roteiro (no menu ⋯): cria um link só de leitura para quem viaja com você, sem senha. Notas, links, reservas, custos e checklist não aparecem, e o link pode ser desativado a qualquer momento.',
+      'Meu mapa, na tela inicial: mapa-múndi com os países que você já visitou e os das viagens planejadas.',
+      'No painel de um ponto turístico, “Sobre este lugar” traz o resumo da Wikipédia, com link para a página.',
+      'Filtro Todas / A fazer / Feitas no roteiro do dia e no mapa.',
+    ],
+  },
+  {
     version: '1.8',
     date: '2026-10-19',
     title: 'Avaliações, busca e calendário por semana',

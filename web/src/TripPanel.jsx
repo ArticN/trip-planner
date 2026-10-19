@@ -1,3 +1,4 @@
+import { DoneFilter } from './DayPanel.jsx';
 import { KINDS, KIND_KEYS, fmtDay, daysBetween, hasCoords } from './util.js';
 
 // faixa da viagem: uma fatia por hospedagem, larga na proporção das noites, na cor da cidade
@@ -19,7 +20,7 @@ function TripStrip({ stays, cityMap, onCity }) {
   );
 }
 
-export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo, checklist = [], onOpen, ideas = [], days = [], onIdea, onSchedule }) {
+export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, doneFilter = 'all', onDoneFilter, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo, checklist = [], onOpen, ideas = [], days = [], onIdea, onSchedule }) {
   const total = activities.reduce((s, a) => s + (a.cost || 0), 0);
   const sights = activities.filter((a) => a.kind === 'sight').length;
   const noCoords = activities.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
@@ -120,6 +121,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
           </button>
         ))}
       </div>
+      <div className="filters"><DoneFilter value={doneFilter} onChange={onDoneFilter} /></div>
 
       <div className="day-foot">
         <button onClick={onOpenCities}>Cidades</button>

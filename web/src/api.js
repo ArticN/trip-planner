@@ -26,6 +26,10 @@ export const api = {
   deleteTrip: (id) => req('DELETE', `/api/trips/${id}`),
   duplicateTrip: (id) => req('POST', `/api/trips/${id}/duplicate`),
   importTrip: (data) => req('POST', '/api/trips/import', data),
+  share: (id) => req('POST', `/api/trips/${id}/share`),
+  unshare: (id) => req('DELETE', `/api/trips/${id}/share`),
+  shared: (token) => req('GET', `/api/share/${encodeURIComponent(token)}`),
+  places: () => req('GET', '/api/places'),
   // atividades
   createActivity: (tripId, a) => req('POST', `/api/trips/${tripId}/activities`, a),
   updateActivity: (id, patch) => req('PUT', `/api/activities/${id}`, patch),

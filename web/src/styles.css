@@ -465,6 +465,8 @@ button.big { padding: 12px 22px; font-size: 16px; }
 .seg-tabs { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 14px; border-radius: 10px; background: var(--raised); }
 .seg-tabs button { border: 0; background: none; padding: 6px 14px; border-radius: 8px; font-size: 14px; color: var(--muted); }
 .seg-tabs button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.seg-tabs.mini-seg { margin: 0; padding: 2px; }
+.seg-tabs.mini-seg button { padding: 3px 10px; font-size: 13px; }
 .wk-nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
 .wk-nav b { font-weight: 500; min-width: 180px; text-align: center; }
 .wk { display: grid; grid-template-columns: 44px repeat(7, minmax(0, 1fr)); column-gap: 4px; row-gap: 4px; }
@@ -635,6 +637,12 @@ div.ms-pop { padding: 10px 12px; }
 .pp-money b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 .pp-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 14px; }
 .pp-links a { color: var(--accent); }
+.pp-wiki-btn { margin-top: 12px; }
+.pp-wiki { display: flex; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.pp-wiki img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; flex: none; }
+.pp-wiki b { font-weight: 500; }
+.pp-wiki p { margin: 4px 0 6px; line-height: 1.5; color: var(--ink-2); }
+.pp-wiki a { color: var(--accent); }
 .pp-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 @media (max-width: 900px) {
   .pin-panel { left: 8px; right: 8px; bottom: 76px; width: auto; max-height: 55%; }
@@ -684,3 +692,36 @@ div.ms-pop { padding: 10px 12px; }
   color: var(--ink);
   background: linear-gradient(180deg, rgba(10, 10, 10, 0.35) 0%, rgba(10, 10, 10, 0.88) 70%), var(--cover) center / cover no-repeat; /* taste-skill-ignore: scrim sobre a foto de capa */
 }
+
+/* ── roteiro compartilhado (só leitura) */
+.share-badge { font-size: 13px; color: var(--muted); border: 1px solid var(--ctl); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.share-body { padding: 16px; display: grid; gap: 10px; align-content: start; }
+.share-body p { margin: 0; }
+.share-cover { height: 160px; border-radius: 12px; background: var(--raised) center / cover no-repeat; }
+.share-h { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 26px; }
+.share-h::first-letter { text-transform: uppercase; }
+.share-day { flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 12px; border-radius: 0 8px 8px 0; }
+.share-day:hover { background: var(--hover); }
+.share-day b::first-letter { text-transform: uppercase; }
+.ag-item.sel { background: var(--raised); }
+.ag-title small.wrap { white-space: normal; margin-top: 2px; }
+.share-link { display: flex; gap: 8px; }
+.share-link input { flex: 1; min-width: 0; }
+
+/* ── mapa de países (home) */
+.world { margin: 8px 0 32px; }
+.world-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.world-head .home-h { margin: 0; }
+.world-kpis { display: flex; gap: 18px; font-size: 14px; color: var(--muted); }
+.world-kpis b { color: var(--ink); font-weight: 500; font-size: 18px; font-variant-numeric: tabular-nums; }
+.world-map { display: block; width: 100%; height: auto; padding: 16px; border-radius: 16px; background: var(--card); }
+.world-map path { fill: var(--raised); stroke: var(--card); stroke-width: 0.6; }
+.world-map path.been { fill: var(--accent); }
+.world-map path.plan { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 0.8; }
+.world-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 20px; }
+.world-list li { display: grid; grid-template-columns: 10px 1fr; column-gap: 10px; align-items: baseline; font-size: 14px; }
+.world-list li span { grid-column: 2; color: var(--muted); font-size: 13px; }
+.world-list i, .world-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); }
+.world-list .plan i, .world-legend .plan i { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.world-legend { display: flex; gap: 16px; margin-top: 12px; }
+.world-legend span { display: inline-flex; align-items: center; gap: 6px; }

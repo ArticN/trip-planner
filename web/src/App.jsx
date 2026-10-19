@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Home from './Home.jsx';
 import TripView from './TripView.jsx';
 import Login from './Login.jsx';
+import ShareView from './ShareView.jsx';
 import { api } from './api.js';
 
 // rotas por hash: #/ (viagens) · #/t/<id> (visão geral) · #/t/<id>/<aaaa-mm-dd> (dia)
@@ -10,7 +11,15 @@ function parseHash() {
   return m ? { tripId: Number(m[1]), sel: m[2] || 'trip' } : { tripId: null, sel: 'trip' };
 }
 
+const shareToken = () => window.location.hash.match(/^#\/s\/([\w-]{16,})/)?.[1] || null;
+
 export default function App() {
+  const [share] = useState(shareToken);
+  if (share) return <ShareView token={share} />;
+  return <Planner />;
+}
+
+function Planner() {
   const [route, setRoute] = useState(parseHash);
   const [version, setVersion] = useState(0); // muda quando a lista de viagens precisa recarregar
   const [auth, setAuth] = useState('checking'); // checking | ok | login

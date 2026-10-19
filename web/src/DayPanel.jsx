@@ -2,7 +2,7 @@ import { Stars } from './Stars.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { useEffect, useState } from 'react';
 import {
-  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes,
+  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone,
 } from './util.js';
 
 function Gap({ a, b }) {
@@ -48,7 +48,7 @@ function DayInfo({ info, onSave }) {
 
 export default function DayPanel({
   day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
-  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo,
+  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo, doneFilter = 'all', onDoneFilter,
 }) {
   // atividade escolhida (no mapa ou na busca) fica visível na lista
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function DayPanel({
   for (let i = 0; i < geo.length - 1; i++) dist += haversine(geo[i], geo[i + 1]);
   const doneCount = items.filter((a) => a.done).length;
   const missing = items.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
-  const visible = items.filter((a) => kinds.has(a.kind));
+  const visible = items.filter((a) => kinds.has(a.kind) && passDone(a, doneFilter));
   // sol: no primeiro ponto do dia que não seja voo; senão, na hospedagem
   const here = items.find((a) => hasCoords(a) && a.kind !== 'flight') || (hasCoords(stay) ? stay : null);
   const sun = here && tripTz ? sunTimes(day, here.lat, here.lng, tripTz) : null; // sem fuso da viagem o horário sairia errado
@@ -133,9 +133,13 @@ export default function DayPanel({
             {KINDS[k].icon}
           </button>
         ))}
+      </div>
+      <div className="filters">
+        <DoneFilter value={doneFilter} onChange={onDoneFilter} />
         <span className="spacer" />
         <button className="mini" onClick={onSortTime} title="Reordena as atividades com horário">Ordenar por horário</button>
       </div>
+      {items.length > 0 && visible.length === 0 && <div className="empty small">Nenhuma atividade com esses filtros.</div>}
 
       {items.length === 0 && (
         <div className="empty">
@@ -156,7 +160,7 @@ export default function DayPanel({
           const cls = ['item', a.id === nowId ? 'now' : '', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
           return (
             <li key={a.id}>
-              {prev && kinds.has(prev.kind) && <Gap a={prev} b={a} />}
+              {prev && visible.includes(prev) && <Gap a={prev} b={a} />}
               <div
                 className={cls}
                 draggable
@@ -228,6 +232,16 @@ export default function DayPanel({
       <div className="day-foot">
         <button className="primary" onClick={onAdd}>＋ Atividade</button>
       </div>
+    </div>
+  );
+}
+
+export function DoneFilter({ value, onChange }) {
+  return (
+    <div className="seg-tabs mini-seg" role="radiogroup" aria-label="Mostrar">
+      {DONE_FILTERS.map(([k, l]) => (
+        <button key={k} role="radio" aria-checked={value === k} className={value === k ? 'on' : ''} onClick={() => onChange(k)}>{l}</button>
+      ))}
     </div>
   );
 }

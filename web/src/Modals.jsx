@@ -522,3 +522,35 @@ export function CitiesModal({ cities, onCreate, onSave, onDelete, onClose }) {
     </Modal>
   );
 }
+
+// link de só leitura para mandar a quem viaja junto (sem notas, links, reservas, gastos e checklist)
+export function ShareModal({ trip, onCreate, onRemove, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const url = trip.share_token ? `${window.location.origin}/#/s/${trip.share_token}` : '';
+  const run = (fn) => async () => { setBusy(true); try { await fn(); } finally { setBusy(false); } };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* sem permissão: o campo fica selecionável */ }
+  };
+  return (
+    <Modal title="Compartilhar roteiro" onClose={onClose} footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
+      <p className="muted">Quem tiver o link vê o roteiro, o mapa e as hospedagens, sem precisar da senha e sem poder editar. Notas, links, códigos de reserva, custos e o checklist não aparecem.</p>
+      {url ? (
+        <>
+          <div className="share-link">
+            <input readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Link do roteiro" />
+            <button className="primary" onClick={copy}>{copied ? 'Copiado' : 'Copiar'}</button>
+          </div>
+          <div className="row" style={{ marginTop: 12, gap: 8, display: 'flex', flexWrap: 'wrap' }}>
+            {navigator.share && <button onClick={() => navigator.share({ title: trip.name, url }).catch(() => {})}>Enviar…</button>}
+            <a className="btn-like" href={url} target="_blank" rel="noreferrer">Abrir como visitante</a>
+            <span className="spacer" />
+            <button className="danger" disabled={busy} onClick={run(onRemove)}>Desativar link</button>
+          </div>
+        </>
+      ) : (
+        <button className="primary" disabled={busy} onClick={run(onCreate)}>Criar link</button>
+      )}
+    </Modal>
+  );
+}

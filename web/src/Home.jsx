@@ -5,6 +5,7 @@ import { daysBetween, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
 import { getTheme, toggleTheme } from './theme.js';
 import Mark from './Mark.jsx';
 import WhatsNew from './WhatsNew.jsx';
+import WorldMap from './WorldMap.jsx';
 
 const coverUrl = (c) => `url("${String(c).replace(/"/g, '%22')}")`;
 
@@ -125,6 +126,7 @@ export default function Home({ version, onOpen, onChanged }) {
           </>
         )}
 
+        <WorldMap version={version} />
         <WhatsNew />
       </main>
 

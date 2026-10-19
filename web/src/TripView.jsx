@@ -8,9 +8,9 @@ import TripPanel from './TripPanel.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
-import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal } from './Modals.jsx';
+import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal } from './Modals.jsx';
 import {
-  KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn,
+  KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
 } from './util.js';
 
 
@@ -20,6 +20,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [selectedId, setSelectedId] = useState(null);
   const mapCenter = useRef(null);
   const [kinds, setKinds] = useState(() => new Set(KIND_KEYS));
+  const [doneFilter, setDoneFilter] = useState('all');
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
@@ -110,9 +111,10 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   }, [data]);
 
   const mapItems = useMemo(() => {
-    if (sel === 'trip') return (data?.activities || []).filter((a) => kinds.has(a.kind));
-    return dayItems.filter((a) => kinds.has(a.kind));
-  }, [sel, data, dayItems, kinds]);
+    const show = (a) => kinds.has(a.kind) && passDone(a, doneFilter);
+    if (sel === 'trip') return (data?.activities || []).filter(show);
+    return dayItems.filter(show);
+  }, [sel, data, dayItems, kinds, doneFilter]);
 
   // ── navegação
   const go = useCallback((target) => {
@@ -367,6 +369,12 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     reload();
   };
 
+  const setShare = async (on) => {
+    try {
+      const r = on ? await api.share(tripId) : await api.unshare(tripId);
+      setData((d) => ({ ...d, trip: { ...d.trip, share_token: r.share_token } }));
+    } catch { say('Não consegui alterar o link'); }
+  };
   const saveTrip = async (t) => {
     try {
       const saved = await api.saveTrip(tripId, t);
@@ -428,6 +436,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button onClick={() => setModal('cities')}>Cidades e locais</button>
             <button onClick={() => setModal('stats')}>Estatísticas</button>
             <button onClick={() => setModal('calendar')}>Calendário</button>
+            <button onClick={() => setModal('share')}>Compartilhar roteiro</button>
             <button onClick={() => window.print()}>Imprimir ou salvar PDF</button>
             <button onClick={() => downloadIcs(trip, data.activities, cityMap)}>Exportar para agenda (.ics)</button>
             <a href={`/api/trips/${tripId}/export`}>Exportar backup (JSON)</a>
@@ -452,7 +461,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             {sel === 'trip' ? (
               <TripPanel
                 trip={trip} cities={data.cities} cityMap={cityMap} stays={data.stays} activities={data.activities}
-                conflictsTotal={conflictsTotal} kinds={kinds} onToggleKind={toggleKind} fx={fx}
+                conflictsTotal={conflictsTotal} kinds={kinds} onToggleKind={toggleKind} doneFilter={doneFilter} onDoneFilter={setDoneFilter} fx={fx}
                 onCity={focusCity} onOpenStays={() => setModal('stays')} onOpenBudget={() => setModal('budget')}
                 onOpenCities={() => setModal('cities')} onEditTrip={() => setModal('trip')}
                 checklist={data.checklist} onOpen={setModal}
@@ -464,7 +473,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 day={sel} dayIndex={dayIndex} items={dayItems} cityMap={cityMap} stay={stayFor(sel)} checkout={sel === 'trip' ? null : (data.stays || []).find((s) => s.check_out === sel && s !== stayFor(sel)) || null}
                 conflicts={dayConflicts} selectedId={selectedId} onSelect={selectFromList} onEdit={openEdit}
                 onToggleDone={toggleDone} onAdd={openNew} onReorder={reorder} onSortTime={sortTime}
-                kinds={kinds} onToggleKind={toggleKind} fx={fx} tripTz={trip.tz} now={sel === today ? now.min : null}
+                kinds={kinds} onToggleKind={toggleKind} doneFilter={doneFilter} onDoneFilter={setDoneFilter} fx={fx} tripTz={trip.tz} now={sel === today ? now.min : null}
                 onPrev={() => step(-1)} onNext={() => step(1)} hasPrev={dayIndex > 0} hasNext={dayIndex < days.length - 1}
                 dayInfo={(data.days || []).find((d) => d.day === sel) || null} onSaveDayInfo={saveDayInfo}
               />
@@ -561,6 +570,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} initialDay={sel === 'trip' ? days[0] : sel} onPick={(d, aid) => { setModal(null); go(d); if (aid) setSelectedId(aid); }} onClose={() => setModal(null)} />}
       {modal === 'search' && <SearchModal data={data} cityMap={cityMap} onPick={onSearchPick} onClose={() => setModal(null)} />}
       {modal === 'budget' && <BudgetModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} onClose={() => setModal(null)} />}
+      {modal === 'share' && <ShareModal trip={trip} onCreate={() => setShare(true)} onRemove={() => setShare(false)} onClose={() => setModal(null)} />}
       {toast && !undo && <div className="toast">{toast}</div>}
       {undo && (
         <div className="toast undo-toast" role="status">

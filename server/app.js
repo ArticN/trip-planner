@@ -91,7 +91,7 @@ async function migrate() {
   };
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT']]);
 
   if (legacy) {
     const kv = Object.fromEntries((await db.all('SELECT key, value FROM trip')).map((r) => [r.key, r.value]));
@@ -232,6 +232,24 @@ app.post('/api/logout', (req, res) => {
   res.setHeader('Set-Cookie', `${COOKIE}=; ${cookieAttrs(req, 0)}`);
   res.json({ ok: true });
 });
+// ── link de compartilhamento: só leitura, sem senha, sem dados privados (notas, links, reservas, gastos, checklist)
+const SHARE_ACT = ['id', 'day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'lat', 'lng', 'sort', 'start_tz', 'end_tz', 'from_code', 'to_code'];
+const only = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k] ?? null]));
+app.get('/api/share/:token', h(async (req, res) => {
+  const t = String(req.params.token || '');
+  const row = t.length >= 16 && (await db.get('SELECT id FROM trips WHERE share_token = ?', [t]));
+  if (!row) return res.status(404).json({ error: 'link inválido ou desativado' });
+  const d = await getTrip(row.id);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    trip: only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate']),
+    cities: d.cities.map((c) => only(c, ['key', 'name', 'emoji', 'color', 'lat', 'lng'])),
+    stays: d.stays.map((x) => only(x, ['id', 'city', 'name', 'check_in', 'check_out', 'lat', 'lng'])),
+    activities: d.activities.map((a) => only(a, SHARE_ACT)),
+    days: d.days.map((x) => only(x, ['day', 'title'])),
+  });
+}));
+
 app.use('/api', (req, res, next) => (authed(req) ? next() : res.status(401).json({ error: 'login necessário' })));
 
 // resolve :id → viagem existente (404 se não houver)
@@ -301,7 +319,25 @@ app.get('/api/trips/:id/export', needTrip, h(async (req, res) => {
   const d = await getTrip(req.tripId);
   const file = `${d.trip.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'viagem'}.json`;
   res.setHeader('Content-Disposition', `attachment; filename="${file}"`);
-  res.json(d);
+  res.json({ ...d, trip: { ...d.trip, share_token: undefined } });
+}));
+
+app.post('/api/trips/:id/share', needTrip, h(async (req, res) => {
+  const t = crypto.randomBytes(18).toString('base64url');
+  await db.run('UPDATE trips SET share_token = ? WHERE id = ?', [t, req.tripId]);
+  res.json({ share_token: t });
+}));
+app.delete('/api/trips/:id/share', needTrip, h(async (req, res) => {
+  await db.run('UPDATE trips SET share_token = NULL WHERE id = ?', [req.tripId]);
+  res.json({ share_token: null });
+}));
+
+// cidades de todas as viagens, para o mapa de países
+app.get('/api/places', h(async (_req, res) => {
+  res.json(await db.all(`
+    SELECT c.trip_id, c.key, c.name, c.lat, c.lng, t.name AS trip, t.start, t.end
+    FROM cities c JOIN trips t ON t.id = c.trip_id
+    WHERE c.lat IS NOT NULL AND c.lng IS NOT NULL AND c.key != 'transito'`));
 }));
 
 // ── checklist
