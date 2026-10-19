@@ -1,6 +1,17 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.13',
+    date: '2026-10-19',
+    title: 'Visão geral mais limpa',
+    items: [
+      'O botão de tipo de mapa (Mapa, Nomes locais, Relevo, Satélite) agora fica no canto do mapa, por cima de tudo, e lembra a sua escolha.',
+      'A faixa com as noites por cidade foi para o pé do mapa, junto com a legenda. A barra de rota do topo saiu, porque repetia a mesma informação.',
+      'Na lista de dias, cada dia tem a cor da cidade, o dia de hoje aparece destacado, os dias que já passaram ficam mais apagados e os dias sem nada ficam discretos.',
+      'O cabeçalho da viagem ficou mais enxuto: o link “Editar” foi para a linha das datas.',
+    ],
+  },
+  {
     version: '1.12',
     date: '2026-10-19',
     title: 'Aparência: o app com a sua cara',

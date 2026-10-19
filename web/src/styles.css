@@ -262,7 +262,6 @@ input, select, textarea {
 .map-tools button { background: var(--glass); border-color: var(--ctl); font-size: 14px; }
 .map-tools button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .map-tools button.on.warn { background: var(--warn); border-color: var(--warn); color: var(--on-accent); }
-.legend-box { position: absolute; left: 12px; bottom: 34px; z-index: 1000; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; display: grid; gap: 4px; }
 .ln { display: inline-block; width: 28px; height: 0; border-top: 4px solid var(--accent); vertical-align: middle; margin-right: 6px; }
 .ln.dashed { border-top: 3px dashed var(--ink-2); }
 .pick-banner { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); z-index: 1100; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: var(--r-pill); display: flex; gap: 10px; align-items: center; font-size: 14px; }
@@ -349,8 +348,7 @@ input, select, textarea {
   .brand-name { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .brand-sub { display: none; }
   .stats { grid-template-columns: repeat(2, 1fr); row-gap: 14px; }
-  .legend-box { display: none; }
-  .map-tools { right: 12px; }
+  .map-tools { right: 60px; }
   .map-search { flex: 1 1 100%; }
   .map-search input { width: 100%; }
   .view-toggle { display: block; }
@@ -412,15 +410,6 @@ button.big { padding: 12px 22px; font-size: 16px; }
 @media (max-width: 640px) { .city-row { grid-template-columns: 48px 1fr 40px 36px; } .city-row input[type='number'] { grid-column: span 2; } }
 
 /* ── barra de rota no mapa (estilo Notion) e tema */
-.route-bar { position: absolute; top: 12px; left: 12px; right: 64px; z-index: 1000; display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; white-space: nowrap; align-items: center; gap: 4px 6px; padding: 7px 12px; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); font-size: 14px; }
-.route-bar b { color: var(--muted); font-weight: 500; font-size: 13px; margin-right: 6px; }
-.route-bar > *, .route-bar span { flex: none; }
-.route-bar .stop { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; border: 0; padding: 1px 3px; background: none; border-radius: 6px; }
-.route-bar .stop:hover { background: var(--hover); }
-.route-bar .stop i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; }
-.route-bar .sep { color: var(--muted); }
-.mapwrap.with-bar .map-tools { top: 58px; }
-.mapwrap.with-bar .pick-banner { top: 100px; }
 .theme-btn { width: 100%; }
 
 /* mapa escuro: controles e popups do Leaflet */
@@ -443,10 +432,10 @@ button.big { padding: 12px 22px; font-size: 16px; }
 
 /* ── faixa da viagem: noites por cidade, na cor de cada cidade (o dado) */
 .tripstrip { display: flex; flex-wrap: wrap; row-gap: 10px; gap: 3px; padding: 18px 16px 0; }
-.tripstrip .seg { min-width: 56px; flex: var(--n, 1) 1 0; border: 0; padding: 0; background: none; display: grid; gap: 6px; text-align: left; border-radius: 6px; }
-.tripstrip .seg i { display: block; height: 10px; border-radius: 5px; background: var(--c); }
+.tripstrip .seg { min-width: 56px; flex: var(--n, 1) 1 0; border: 0; padding: 0; background: none; display: grid; grid-template-columns: minmax(0, max-content) 1fr; align-items: baseline; gap: 6px 5px; text-align: left; border-radius: 6px; }
+.tripstrip .seg i { grid-column: 1 / -1; display: block; height: 10px; border-radius: 5px; background: var(--c); }
 .tripstrip .seg span { font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tripstrip .seg small { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: -4px; }
+.tripstrip .seg small { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tripstrip .seg:hover:not(:disabled) { background: none; }
 .tripstrip .seg:hover i { filter: brightness(1.2); }
 
@@ -842,3 +831,39 @@ div.ms-pop { padding: 10px 12px; }
 .lk-corner.suave { border-top-left-radius: 5px; }
 .lk-corner.reto { border-top-left-radius: 0; }
 @media (max-width: 560px) { .lk-cards { grid-template-columns: 1fr; } .lk-types { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* tipo de mapa: botão no canto, acima de tudo que flutua no mapa */
+.base-pick { position: absolute; top: 12px; right: 12px; z-index: 1100; }
+.base-btn { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: var(--r-box); background: var(--glass); border-color: var(--ctl); color: var(--ink); }
+.base-btn[aria-expanded='true'] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.base-pop { position: absolute; top: 46px; right: 0; width: 240px; padding: 6px; display: grid; gap: 2px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); }
+.base-pop button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border: 0; border-radius: var(--r-ctl); background: none; text-align: left; font-weight: 400; }
+.base-pop button b { display: block; font-weight: 500; }
+.base-pop button small { display: block; font-size: 12.5px; color: var(--muted); }
+.base-pop .base-ic { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: var(--r-ctl); background: var(--raised); color: var(--ink-2); }
+.base-pop button.on .base-ic { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.leaflet-control-layers { display: none; }
+
+/* visão geral: a forma da viagem (noites por cidade) fica no pé do mapa, com a legenda */
+.map-route { position: absolute; left: 12px; right: 64px; bottom: 34px; z-index: 1000; max-width: 720px; padding: 10px 14px 10px; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); }
+.map-route .tripstrip { padding: 0; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.map-legend .ln { width: 20px; margin-right: 6px; }
+.only-sm-block { display: none; }
+@media (max-width: 900px) {
+  .only-sm-block { display: block; }
+  .map-route { right: 60px; bottom: 76px; padding: 8px 10px; }
+  .map-route .tripstrip .seg { min-width: 40px; }
+  .map-route .tripstrip .seg small { display: none; }
+  .map-route .map-legend { display: none; }
+}
+
+/* dias na visão geral */
+.trip-when { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 2px; }
+.trip-when .link-btn { font-size: 13px; color: var(--muted); }
+.days-list .d-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--c); }
+.days-list li.empty .d-cities, .days-list li.empty .d-date b { color: var(--muted); font-weight: 400; }
+.days-list li.past { opacity: 0.6; }
+.days-list li.today { background: var(--accent-soft); border-radius: var(--r-ctl); border-top-color: transparent; }
+.days-list li.today + li { border-top-color: transparent; }
+.days-list li.today .d-date span { color: var(--accent); font-weight: 600; }

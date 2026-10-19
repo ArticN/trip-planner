@@ -5,7 +5,7 @@ import { setTripAccent } from './theme.js';
 import AppearanceModal from './Look.jsx';
 import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
-import TripPanel from './TripPanel.jsx';
+import TripPanel, { TripStrip } from './TripPanel.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
@@ -110,16 +110,6 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       conflicts: findConflicts(list).size,
     };
   }), [days, byDay]);
-
-  // ordem de visita das cidades (primeira atividade de cada uma), como na barra de rota do Notion
-  const routeStops = useMemo(() => {
-    const order = [];
-    const seen = new Set();
-    const add = (k) => { if (k && k !== 'transito' && cityMap[k] && !seen.has(k)) { seen.add(k); order.push(cityMap[k]); } };
-    [...(data?.activities || [])].sort((a, b) => a.day.localeCompare(b.day) || a.sort - b.sort).forEach((a) => add(a.city));
-    (data?.stays || []).forEach((s) => add(s.city));
-    return order;
-  }, [data, cityMap]);
 
   const conflictsTotal = daysInfo.reduce((s, d) => s + d.conflicts, 0);
   const dayIndex = sel === 'trip' ? -1 : days.indexOf(sel);
@@ -549,7 +539,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           </div>
         </aside>
 
-        <section className={`mapwrap${sel === 'trip' && routeStops.length ? ' with-bar' : ''}`}>
+        <section className="mapwrap">
           <MapView
             centerRef={mapCenter}
             mode={sel === 'trip' ? 'trip' : 'day'}
@@ -579,17 +569,6 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
               onEdit={openEdit} onToggleDone={toggleDone} onClose={() => setSelectedId(null)}
             />
           )}
-          {sel === 'trip' && routeStops.length > 0 && (
-            <div className="route-bar">
-              <b>Rota da viagem</b>
-              {routeStops.map((c, i) => (
-                <span key={c.key} style={{ display: 'contents' }}>
-                  {i > 0 && <span className="sep">→</span>}
-                  <button className="stop" style={{ '--c': c.color }} onClick={() => focusCity(c)}><i />{c.name}</button>
-                </span>
-              ))}
-            </div>
-          )}
           <div className="map-tools">
             <MapSearch onPick={(lat, lng, name, address) => { setFlyTarget({ lat, lng, nonce: ++nonce.current }); quickOpen(lat, lng, name, address); }} />
             <Nearby
@@ -606,10 +585,12 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             )}
           </div>
           {sel === 'trip' && (
-            <div className="legend-box">
-              <b>Legenda</b>
-              <div><span className="ln solid" /> Rota entre hospedagens</div>
-              <div><span className="ln dashed" /> Bate-volta</div>
+            <div className="map-route">
+              <TripStrip stays={data.stays} cityMap={cityMap} onCity={focusCity} />
+              <div className="map-legend">
+                <span><i className="ln solid" />Rota entre hospedagens</span>
+                <span><i className="ln dashed" />Bate-volta</span>
+              </div>
             </div>
           )}
           {picking && (

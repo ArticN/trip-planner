@@ -6,6 +6,49 @@ import { translatedBasemap, osmLayer } from './basemap.js';
 import { accentColor } from './theme.js';
 
 const WORLD_CENTER = [20, 0];
+const BASE_KEY = 'trip-planner-basemap';
+
+const BASES = [
+  { key: 'map', name: 'Mapa', hint: 'nomes em português', icon: <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" /> },
+  { key: 'local', name: 'Nomes locais', hint: 'como nas placas', icon: <path d="M4 6h16M4 12h10M4 18h7M17 14l3 6M20 14l-3 6" /> },
+  { key: 'topo', name: 'Relevo', hint: 'trilhas e montanhas', icon: <path d="m3 19 6-10 4 6 2-3 6 7H3z" /> },
+  { key: 'sat', name: 'Satélite', hint: 'foto aérea', icon: <><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16" /></> },
+];
+
+function LayerIcon({ children, size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>;
+}
+
+function BasePicker({ value, onPick }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  const cur = BASES.find((b) => b.key === value) || BASES[0];
+  return (
+    <div className="base-pick" ref={ref}>
+      <button className="base-btn" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Tipo de mapa: ${cur.name}`} title="Tipo de mapa">
+        <LayerIcon><path d="m12 3 9 5-9 5-9-5 9-5z" /><path d="m3 13 9 5 9-5" /></LayerIcon>
+      </button>
+      {open && (
+        <div className="base-pop" role="menu" aria-label="Tipo de mapa">
+          {BASES.map((b) => (
+            <button key={b.key} role="menuitemradio" aria-checked={b.key === value} className={b.key === value ? 'on' : ''} onClick={() => { onPick(b.key); setOpen(false); }}>
+              <span className="base-ic"><LayerIcon size={20}>{b.icon}</LayerIcon></span>
+              <span><b>{b.name}</b><small>{b.hint}</small></span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // região da viagem (cidades, hospedagens e atividades), com um tamanho mínimo de ~60 km
 function regionOf(cities, stays, items) {
@@ -73,6 +116,18 @@ export default function MapView({
   cb.current = { onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground };
   const lastFit = useRef(null);
   const declutterRef = useRef(null);
+  // tipo de mapa: botão próprio (o controle do Leaflet ficava atrás da barra da rota)
+  const basesRef = useRef({});
+  const [baseKey, setBaseKey] = useState(() => { try { return localStorage.getItem(BASE_KEY) || 'map'; } catch { return 'map'; } });
+  const pickBase = (k) => {
+    const map = mapRef.current;
+    const bases = basesRef.current;
+    if (!map || !bases[k]) return;
+    Object.values(bases).forEach((l) => { if (map.hasLayer(l)) map.removeLayer(l); });
+    bases[k].addTo(map);
+    setBaseKey(k);
+    try { localStorage.setItem(BASE_KEY, k); } catch { /* vale só agora */ }
+  };
   // a rota usa a cor de destaque escolhida em Aparência: redesenha quando ela muda
   const [look, setLook] = useState(0);
   useEffect(() => {
@@ -93,9 +148,9 @@ export default function MapView({
     const osm = osmLayer();
     const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
     const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' });
-    base.addTo(map);
     // no tema escuro o CSS inverte os tiles do OpenStreetMap (.osm-tiles)
-    L.control.layers({ 'Mapa': base, 'Mapa (nomes locais)': osm, 'Relevo': topo, 'Satélite': sat }, null, { position: 'topright' }).addTo(map);
+    basesRef.current = { map: base, local: osm, topo, sat };
+    (basesRef.current[baseKey] || base).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
@@ -285,5 +340,10 @@ export default function MapView({
     if (cityFocus && mapRef.current) mapRef.current.flyTo([cityFocus.lat, cityFocus.lng], 12, { duration: 0.8 });
   }, [cityFocus?.nonce]);
 
-  return <div ref={elRef} className="map" />;
+  return (
+    <>
+      <div ref={elRef} className="map" />
+      <BasePicker value={baseKey} onPick={pickBase} />
+    </>
+  );
 }
