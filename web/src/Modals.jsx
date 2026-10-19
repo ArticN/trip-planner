@@ -111,18 +111,19 @@ function TzInput({ value, onChange, placeholder }) {
   );
 }
 
-export function EditModal({ draft, isNew, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap }) {
+export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap }) {
   const set = (patch) => onChange({ ...draft, ...patch });
   const num = (v) => (v === '' || v == null ? null : Number(v));
-  const valid = draft.title?.trim() && draft.day;
+  const valid = draft.title?.trim() && (isIdea || draft.day);
 
   return (
     <Modal
-      title={isNew ? 'Nova atividade' : 'Editar atividade'}
+      title={isIdea ? (isNew ? 'Nova ideia' : 'Editar ideia') : isNew ? 'Nova atividade' : 'Editar atividade'}
       onClose={onClose}
       footer={
         <>
           {!isNew && <button className="danger" onClick={onDelete}>Excluir</button>}
+          {!isNew && !isIdea && <button onClick={onToIdeas} title="Tira do dia e guarda na lista de ideias">Mover para ideias</button>}
           <span className="spacer" />
           <button onClick={onClose}>Cancelar</button>
           <button className="primary" disabled={!valid} onClick={onSave}>Salvar</button>
@@ -133,22 +134,22 @@ export function EditModal({ draft, isNew, cities, days, fxCur, tripTz, onChange,
         <label className="full">Título
           <input autoFocus value={draft.title || ''} onChange={(e) => set({ title: e.target.value })} placeholder="Ex: Museu do Louvre" />
         </label>
-        <label>Dia
+        {!isIdea && <label>Dia
           <select value={draft.day} onChange={(e) => set({ day: e.target.value })}>
             {days.map((d) => <option key={d} value={d}>{fmtDay(d)}</option>)}
           </select>
-        </label>
+        </label>}
         <label>Tipo
           <select value={draft.kind || 'sight'} onChange={(e) => set({ kind: e.target.value })}>
             {KIND_KEYS.map((k) => <option key={k} value={k}>{KINDS[k].icon} {KINDS[k].label}</option>)}
           </select>
         </label>
-        <label>Início
+        {!isIdea && <label>Início
           <input type="time" value={draft.start || ''} onChange={(e) => set({ start: e.target.value || null })} />
-        </label>
-        <label>Fim
+        </label>}
+        {!isIdea && <label>Fim
           <input type="time" value={draft.end || ''} onChange={(e) => set({ end: e.target.value || null })} />
-        </label>
+        </label>}
         <label>Cidade
           <select value={draft.city || ''} onChange={(e) => set({ city: e.target.value || null })}>
             <option value="">—</option>
@@ -169,7 +170,7 @@ export function EditModal({ draft, isNew, cities, days, fxCur, tripTz, onChange,
         <label className="full">Detalhes
           <textarea rows={3} value={draft.details || ''} onChange={(e) => set({ details: e.target.value })} />
         </label>
-        {(draft.kind === 'flight' || draft.kind === 'move' || draft.from_code || draft.ref) && (
+        {!isIdea && (draft.kind === 'flight' || draft.kind === 'move' || draft.from_code || draft.ref) && (
           <div className="full fieldset">
             <div className="legend">Trecho (voo, trem, ônibus)</div>
             <div className="form">

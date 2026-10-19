@@ -459,3 +459,33 @@ button.big { padding: 12px 22px; font-size: 16px; }
 .stay-line a { color: var(--accent); text-decoration: none; }
 .leg { margin-top: 2px; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .leg b { font-weight: 600; color: var(--ink); letter-spacing: 0.02em; }
+
+/* ── ideias (sem dia) */
+.ideas-h { display: flex; align-items: center; justify-content: space-between; }
+.ideas { list-style: none; margin: 0; padding: 0 16px; }
+.ideas li { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+.idea-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 8px 0; text-align: left; font-weight: 400; border-radius: 0; }
+.idea-main:hover:not(:disabled) { background: none; }
+.idea-main:hover b { text-decoration: underline; }
+.idea-main .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+.idea-main span { display: grid; min-width: 0; }
+.idea-main b { font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idea-main small { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ideas select { flex: none; width: auto; font-size: 13px; padding: 4px 8px; }
+
+/* ── busca no mapa */
+.map-search { position: relative; }
+.map-search input { width: 240px; height: 34px; border-radius: 999px; padding: 0 14px; background: var(--glass); border: 1px solid var(--ctl); font-size: 14px; }
+.ms-pop { position: absolute; top: 40px; left: 0; width: 340px; max-height: 320px; overflow-y: auto; margin: 0; padding: 6px; list-style: none; background: var(--card); border: 1px solid var(--line); border-radius: 12px; z-index: 1100; }
+div.ms-pop { padding: 10px 12px; }
+.ms-pop button { display: grid; width: 100%; text-align: left; border: 0; background: none; padding: 6px 8px; border-radius: 8px; font-weight: 400; }
+.ms-pop button:hover:not(:disabled) { background: var(--hover); }
+.ms-pop b { font-weight: 500; font-size: 14px; }
+.ms-pop span { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 760px) { .map-search input { width: 160px; } .ms-pop { width: 260px; } }
+.map-tools .ms-pop button { background: none; border: 0; }
+.map-tools .ms-pop button:hover:not(:disabled) { background: var(--hover); }
+
+/* ── modo hoje */
+.item.now { box-shadow: inset 3px 0 0 var(--accent); }
+.now-badge { margin-left: 8px; font-size: 12.5px; font-weight: 600; color: #1a1408; background: var(--accent); border-radius: 999px; padding: 1px 8px; vertical-align: 2px; }

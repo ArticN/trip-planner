@@ -35,6 +35,12 @@ export const api = {
   createCheck: (tripId, c) => req('POST', `/api/trips/${tripId}/checklist`, c),
   updateCheck: (id, patch) => req('PUT', `/api/checklist/${id}`, patch),
   deleteCheck: (id) => req('DELETE', `/api/checklist/${id}`),
+  // ideias
+  createIdea: (tripId, x) => req('POST', `/api/trips/${tripId}/ideas`, x),
+  updateIdea: (id, patch) => req('PUT', `/api/ideas/${id}`, patch),
+  deleteIdea: (id) => req('DELETE', `/api/ideas/${id}`),
+  scheduleIdea: (id, day) => req('POST', `/api/ideas/${id}/schedule`, { day }),
+  unscheduleActivity: (id) => req('POST', `/api/activities/${id}/unschedule`),
   // cidades
   createCity: (tripId, c) => req('POST', `/api/trips/${tripId}/cities`, c),
   updateCity: (id, patch) => req('PUT', `/api/cities/${id}`, patch),

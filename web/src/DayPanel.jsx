@@ -1,7 +1,7 @@
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { useState } from 'react';
 import {
-  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf,
+  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl,
 } from './util.js';
 
 function Gap({ a, b }) {
@@ -14,7 +14,7 @@ function Gap({ a, b }) {
 
 export default function DayPanel({
   day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
-  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz,
+  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null,
 }) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
@@ -27,6 +27,10 @@ export default function DayPanel({
   const doneCount = items.filter((a) => a.done).length;
   const missing = items.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
   const visible = items.filter((a) => kinds.has(a.kind));
+  // hoje: o que está acontecendo agora, ou a próxima atividade ainda não feita
+  const nowId = now == null ? null : (visible.find((a) => !a.done && a.start && a.end && toMin(a.start) <= now && now < toMin(a.end) && endDayOf(a) === a.day)
+    || visible.find((a) => !a.done && a.start && toMin(a.start) >= now))?.id ?? null;
+  const nowLabel = (a) => (toMin(a.start) <= now ? 'Agora' : 'Próxima');
 
   const drop = (targetId) => {
     if (dragId == null || dragId === targetId) return;
@@ -102,7 +106,7 @@ export default function DayPanel({
           const endDay = endDayOf(a);
           const endPlus = a.end && endDay !== a.day ? ` (+${daysBetween(a.day, endDay)}d)` : '';
           const leg = a.from_code || a.to_code || a.ref;
-          const cls = ['item', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
+          const cls = ['item', a.id === nowId ? 'now' : '', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
           return (
             <li key={a.id}>
               {prev && kinds.has(prev.kind) && <Gap a={prev} b={a} />}
@@ -130,6 +134,7 @@ export default function DayPanel({
                 <div className="body">
                   <div className="title-row">
                     <span className="title">{a.title}</span>
+                    {a.id === nowId && <span className="now-badge">{nowLabel(a)}</span>}
                   </div>
                   {leg && (
                     <div className="leg">
@@ -142,8 +147,9 @@ export default function DayPanel({
                   {a.location && <div className="loc">{a.location}</div>}
                   {a.details && <div className="det">{a.details}</div>}
                   {a.notes && <div className="note">{a.notes}</div>}
-                  {parseLinks(a.links).length > 0 && (
+                  {(parseLinks(a.links).length > 0 || hasCoords(a)) && (
                     <div className="links">
+                      {hasCoords(a) && <a href={directionsUrl(a)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Como chegar</a>}
                       {parseLinks(a.links).map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{linkLabel(l)}</a>)}
                     </div>
                   )}

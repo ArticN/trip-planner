@@ -19,7 +19,7 @@ function TripStrip({ stays, cityMap, onCity }) {
   );
 }
 
-export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo, checklist = [], onOpen }) {
+export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo, checklist = [], onOpen, ideas = [], days = [], onIdea, onSchedule }) {
   const total = activities.reduce((s, a) => s + (a.cost || 0), 0);
   const sights = activities.filter((a) => a.kind === 'sight').length;
   const noCoords = activities.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
@@ -85,6 +85,32 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
           </li>
         ))}
       </ul>
+
+      <div className="section-title ideas-h">
+        Ideias{ideas.length ? ` · ${ideas.length}` : ''}
+        <button className="mini" onClick={() => onIdea(null)}>+ Ideia</button>
+      </div>
+      {ideas.length === 0 ? (
+        <div className="empty small">Guarde aqui lugares que você quer conhecer e ainda não sabe em que dia. Depois é só escolher o dia.</div>
+      ) : (
+        <ul className="ideas">
+          {ideas.map((x) => (
+            <li key={x.id} style={{ '--c': (KINDS[x.kind] || KINDS.sight).color }}>
+              <button className="idea-main" onClick={() => onIdea(x)} title="Editar ideia">
+                <i className="dot" />
+                <span>
+                  <b>{x.title}</b>
+                  <small>{[cityMap[x.city]?.name, x.location, !hasCoords(x) && 'sem local'].filter(Boolean).join(' · ')}</small>
+                </span>
+              </button>
+              <select aria-label={`Agendar ${x.title}`} value="" onChange={(e) => e.target.value && onSchedule(x.id, e.target.value)}>
+                <option value="">Agendar…</option>
+                {days.map((d) => <option key={d} value={d}>{fmtDay(d)}</option>)}
+              </select>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="section-title">Camadas do mapa</div>
       <div className="filters wrap">

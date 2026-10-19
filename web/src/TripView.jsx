@@ -6,15 +6,12 @@ import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, downloadIcs, parseLinks } from './Extras.jsx';
+import { MapSearch } from './MapSearch.jsx';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal } from './Modals.jsx';
 import {
-  KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx,
+  KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn,
 } from './util.js';
 
-const todayStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChanged }) {
   const [data, setData] = useState(null);
@@ -23,6 +20,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [kinds, setKinds] = useState(() => new Set(KIND_KEYS));
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(false);
+  const [quickAdd, setQuickAdd] = useState(false);
   const [editPositions, setEditPositions] = useState(false);
   const [showStaysDay, setShowStaysDay] = useState(true);
   const [showStaysTrip, setShowStaysTrip] = useState(false);
@@ -40,6 +38,15 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     try { setData(await api.trip(tripId)); setError(''); } catch (e) { setError(String(e.message || e)); }
   }, []);
   useEffect(() => { setData(null); reload(); }, [reload]);
+
+  // durante a viagem, abrir a viagem sem dia na URL vai direto para hoje
+  const openedToday = useRef(false);
+  useEffect(() => {
+    if (!data || openedToday.current) return;
+    openedToday.current = true;
+    const t = nowIn(data.trip.tz).day;
+    if (sel === 'trip' && t >= data.trip.start && t <= data.trip.end) onNavigate(t);
+  }, [data]);
 
   // ── derivados
   const trip = data?.trip;
@@ -141,8 +148,40 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     setEditing({ draft: { day, city, kind: 'sight', title: '', start: null, end: null, location: '', details: '', transport: '', cost: null, lat: null, lng: null, done: 0 }, isNew: true });
   };
 
+  const openIdea = (idea) => setEditing({ draft: idea ? { ...idea } : { kind: 'sight', title: '', city: '', location: '', details: '', cost: null, lat: null, lng: null }, isNew: !idea, idea: true });
+
+  const scheduleIdea = async (id, day) => {
+    try {
+      const created = await api.scheduleIdea(id, day);
+      setData((d) => ({ ...d, ideas: d.ideas.filter((x) => x.id !== id), activities: [...d.activities, created] }));
+      say(`Agendado em ${fmtDay(day)}`);
+    } catch { say('Erro ao agendar'); }
+  };
+  const toIdeas = async () => {
+    const { draft } = editing;
+    try {
+      const idea = await api.unscheduleActivity(draft.id);
+      setData((d) => ({ ...d, activities: d.activities.filter((a) => a.id !== draft.id), ideas: [...d.ideas, idea] }));
+      setEditing(null);
+      say('Movido para as ideias');
+    } catch { say('Erro ao mover'); }
+  };
+
   const saveEdit = async () => {
     const { draft, isNew } = editing;
+    if (editing.idea) {
+      try {
+        if (isNew) {
+          const created = await api.createIdea(tripId, draft);
+          setData((d) => ({ ...d, ideas: [...d.ideas, created] }));
+        } else {
+          const saved = await api.updateIdea(draft.id, draft);
+          setData((d) => ({ ...d, ideas: d.ideas.map((x) => (x.id === saved.id ? saved : x)) }));
+        }
+        setEditing(null);
+      } catch { say('Erro ao salvar'); }
+      return;
+    }
     try {
       if (isNew) {
         const created = await api.createActivity(tripId, draft);
@@ -160,6 +199,14 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const deleteEdit = async () => {
     const { draft } = editing;
     if (!window.confirm(`Excluir "${draft.title}"?`)) return;
+    if (editing.idea) {
+      try {
+        await api.deleteIdea(draft.id);
+        setData((d) => ({ ...d, ideas: d.ideas.filter((x) => x.id !== draft.id) }));
+        setEditing(null);
+      } catch { say('Erro ao excluir'); }
+      return;
+    }
     try {
       await api.deleteActivity(draft.id);
       setData((d) => ({ ...d, activities: d.activities.filter((a) => a.id !== draft.id) }));
@@ -179,7 +226,33 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     say('Ordenado por horário');
   };
 
+  // ── adição rápida: clique no mapa ou resultado da busca → atividade do dia (ou ideia, na visão geral)
+  const nearestCity = (lat, lng) => {
+    let best = null; let bd = 80;
+    (data.cities || []).filter((c) => c.key !== 'transito' && hasCoords(c)).forEach((c) => { const d = haversine(c, { lat, lng }); if (d < bd) { bd = d; best = c.key; } });
+    return best || '';
+  };
+  const quickOpen = (lat, lng, name, address) => {
+    const base = { title: name || '', kind: 'sight', city: nearestCity(lat, lng), location: address || '', details: '', cost: null, lat: +lat.toFixed(5), lng: +lng.toFixed(5) };
+    if (sel === 'trip') setEditing({ draft: base, isNew: true, idea: true });
+    else setEditing({ draft: { ...base, day: sel, start: null, end: null, transport: '', done: 0 }, isNew: true });
+  };
+  const quickAddAt = async (lat, lng) => {
+    setQuickAdd(false);
+    let name = ''; let address = '';
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=pt-BR&lat=${lat}&lon=${lng}`);
+      if (r.ok) {
+        const j = await r.json();
+        name = j.name || '';
+        address = (j.display_name || '').split(',').slice(name ? 1 : 0, name ? 3 : 2).join(',').trim();
+      }
+    } catch { /* sem rede: abre só com a posição */ }
+    quickOpen(lat, lng, name, address);
+  };
+
   const onMapPick = (lat, lng) => {
+    if (quickAdd) { quickAddAt(lat, lng); return; }
     setEditing((e) => (e ? { ...e, draft: { ...e.draft, lat: +lat.toFixed(5), lng: +lng.toFixed(5) } } : e));
     setPicking(false);
   };
@@ -265,7 +338,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>Não consegui abrir esta viagem.</p><code>{error}</code><div><button onClick={reload}>Tentar de novo</button> <button onClick={() => onHome()}>Voltar às viagens</button></div></div>;
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
-  const today = todayStr();
+  const now = nowIn(trip.tz);
+  const today = now.day;
   const countdown = today < trip.start ? `Faltam ${daysBetween(today, trip.start)} dias`
     : today <= trip.end ? `Dia ${daysBetween(trip.start, today) + 1} da viagem` : 'Viagem concluída';
 
@@ -323,6 +397,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 onCity={focusCity} onOpenStays={() => setModal('stays')} onOpenBudget={() => setModal('budget')}
                 onOpenCities={() => setModal('cities')} onEditTrip={() => setModal('trip')}
                 checklist={data.checklist} onOpen={setModal}
+                ideas={data.ideas} days={days} onIdea={openIdea} onSchedule={scheduleIdea}
                 onPickDay={go} daysInfo={daysInfo}
               />
             ) : (
@@ -330,7 +405,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 day={sel} dayIndex={dayIndex} items={dayItems} cityMap={cityMap} stay={stayFor(sel)} checkout={sel === 'trip' ? null : (data.stays || []).find((s) => s.check_out === sel && s !== stayFor(sel)) || null}
                 conflicts={dayConflicts} selectedId={selectedId} onSelect={selectFromList} onEdit={openEdit}
                 onToggleDone={toggleDone} onAdd={openNew} onReorder={reorder} onSortTime={sortTime}
-                kinds={kinds} onToggleKind={toggleKind} fx={fx} tripTz={trip.tz}
+                kinds={kinds} onToggleKind={toggleKind} fx={fx} tripTz={trip.tz} now={sel === today ? now.min : null}
                 onPrev={() => step(-1)} onNext={() => step(1)} hasPrev={dayIndex > 0} hasNext={dayIndex < days.length - 1}
               />
             )}
@@ -349,8 +424,10 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             onEdit={openEdit}
             editPositions={editPositions}
             onMove={onMarkerMove}
-            picking={picking}
+            picking={picking || quickAdd}
             onPick={onMapPick}
+            ideas={sel === 'trip' ? data.ideas : []}
+            onIdea={openIdea}
             flyTarget={flyTarget}
             cityFocus={cityFocus}
             fitKey={sel}
@@ -369,6 +446,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             </div>
           )}
           <div className="map-tools">
+            <MapSearch onPick={(lat, lng, name, address) => { setFlyTarget({ lat, lng, nonce: ++nonce.current }); quickOpen(lat, lng, name, address); }} />
+            <button className={quickAdd ? 'on' : ''} onClick={() => setQuickAdd((v) => !v)} title={sel === 'trip' ? 'Clique no mapa para criar uma ideia ali' : 'Clique no mapa para criar uma atividade ali'}>{quickAdd ? 'Clique no mapa…' : '+ No mapa'}</button>
             {sel !== 'trip' && (
               <button className={labelNumbers ? 'on' : ''} onClick={() => setLabelNumbers((v) => !v)} title="Alternar entre números e ícones">{labelNumbers ? 'Números' : 'Ícones'}</button>
             )}
@@ -396,7 +475,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
       {editing && !draftHidden && (
         <EditModal tripTz={trip.tz}
-          draft={editing.draft} isNew={editing.isNew} cities={data.cities} days={days} fxCur={fx.cur}
+          draft={editing.draft} isNew={editing.isNew} isIdea={!!editing.idea} onToIdeas={toIdeas} cities={data.cities} days={days} fxCur={fx.cur}
           onChange={(d) => setEditing((e) => ({ ...e, draft: d }))}
           onSave={saveEdit} onDelete={deleteEdit} onClose={() => setEditing(null)}
           onPickMap={() => setPicking(true)}

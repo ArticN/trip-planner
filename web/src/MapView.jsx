@@ -47,14 +47,14 @@ function jitterMap(items) {
 
 export default function MapView({
   mode, items, stays, cities, stayByDay, selectedId, onSelect, onEdit, editPositions, onMove,
-  picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers,
+  picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const markersRef = useRef(new Map());
   const cb = useRef({});
-  cb.current = { onSelect, onEdit, onMove, onPick, picking };
+  cb.current = { onSelect, onEdit, onMove, onPick, picking, onIdea };
   const lastFit = useRef(null);
 
   // ── cria o mapa uma vez
@@ -205,6 +205,14 @@ export default function MapView({
           L.marker([s.lat, s.lng], { icon: labelIcon('H', 'stay-lbl') }).bindTooltip(`${s.name} · ${s.check_in.slice(8)}/${s.check_in.slice(5, 7)}–${s.check_out.slice(8)}/${s.check_out.slice(5, 7)}`).addTo(group);
         });
       }
+      // ideias (sem dia): anel vazado, clique abre a ideia
+      ideas.filter(hasCoords).forEach((x) => {
+        const k = KINDS[x.kind] || KINDS.sight;
+        L.circleMarker([x.lat, x.lng], { radius: 7, color: k.color, weight: 2.5, fillColor: '#000', fillOpacity: 0.35, dashArray: '3 3' })
+          .bindTooltip(`Ideia · ${x.title}`)
+          .on('click', () => cb.current.onIdea?.(x))
+          .addTo(group);
+      });
     }
 
     // enquadra o mapa só quando o contexto muda (dia/modo), não a cada edição
@@ -219,7 +227,7 @@ export default function MapView({
 
     const sel = markersRef.current.get(selectedId);
     if (sel && !editPositions) sel.openPopup();
-  }, [mode, items, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers]);
+  }, [mode, items, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas]);
 
   useEffect(() => {
     if (flyTarget && mapRef.current) {

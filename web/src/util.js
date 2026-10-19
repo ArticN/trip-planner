@@ -45,6 +45,16 @@ export function zonedMs(day, time, tz) {
   } catch { return guess; }
 }
 const nextDay = (d) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); };
+// dia e minuto atuais no fuso da viagem (sem fuso: o do aparelho)
+export function nowIn(tz) {
+  const opt = { hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
+  let p;
+  try { p = Object.fromEntries(new Intl.DateTimeFormat('en-US', tz ? { ...opt, timeZone: tz } : opt).formatToParts(new Date()).map((x) => [x.type, x.value])); } catch { p = Object.fromEntries(new Intl.DateTimeFormat('en-US', opt).formatToParts(new Date()).map((x) => [x.type, x.value])); }
+  return { day: `${p.year}-${p.month}-${p.day}`, min: Number(p.hour) * 60 + Number(p.minute) };
+}
+// link de rota no Google Maps até a atividade
+export const directionsUrl = (a) => `https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}`;
+
 // fusos de início e fim de uma atividade (o do transporte, se houver; senão o da viagem)
 export const actTz = (a, tripTz) => ({ start: a.start_tz || tripTz || null, end: a.end_tz || a.start_tz || tripTz || null });
 // dia em que a atividade termina

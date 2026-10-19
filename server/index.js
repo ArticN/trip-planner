@@ -56,6 +56,12 @@ db.exec(`
     trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     grp TEXT, text TEXT NOT NULL, done INTEGER DEFAULT 0, sort INTEGER DEFAULT 0
   );
+  CREATE TABLE IF NOT EXISTS ideas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    title TEXT NOT NULL, kind TEXT DEFAULT 'sight', city TEXT, location TEXT, details TEXT,
+    cost REAL, lat REAL, lng REAL, notes TEXT, links TEXT, sort INTEGER DEFAULT 0
+  );
   CREATE INDEX IF NOT EXISTS idx_act_trip_day ON activities(trip_id, day, sort);
   CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
 `);
@@ -74,6 +80,7 @@ const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', '
 const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
 const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
+const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz'];
 
 const clean = (v) => (v === '' || v === undefined ? null : v);
@@ -88,6 +95,9 @@ function insertStay(tripId, row) {
 }
 function insertCheck(tripId, row) {
   return db.prepare(`INSERT INTO checklist (trip_id,${CHECK_FIELDS.join(',')}) VALUES (?,${marks(CHECK_FIELDS)})`).run(tripId, ...pick({ ...row, done: row.done ? 1 : 0 }, CHECK_FIELDS));
+}
+function insertIdea(tripId, row) {
+  return db.prepare(`INSERT INTO ideas (trip_id,${IDEA_FIELDS.join(',')}) VALUES (?,${marks(IDEA_FIELDS)})`).run(tripId, ...pick({ kind: 'sight', ...row }, IDEA_FIELDS));
 }
 function insertCity(tripId, row) {
   return db.prepare(`INSERT OR REPLACE INTO cities (trip_id,${CITY_FIELDS.join(',')}) VALUES (?,${marks(CITY_FIELDS)})`).run(tripId, ...pick(row, CITY_FIELDS));
@@ -135,6 +145,7 @@ function createTripFull(b) {
     cities.forEach((c) => insertCity(id, c));
     (b.stays || []).forEach((s) => insertStay(id, s));
     (b.checklist || []).forEach((c, i) => insertCheck(id, { sort: i, ...c }));
+    (b.ideas || []).forEach((x, i) => insertIdea(id, { sort: i, ...x }));
     const byDay = new Map();
     (b.activities || []).forEach((x) => {
       const row = { ...x, cost: x.cost ?? x.cost_jpy ?? null };
@@ -163,6 +174,7 @@ function getTrip(id) {
     stays: db.prepare('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id').all(id),
     activities: db.prepare('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id').all(id),
     checklist: db.prepare('SELECT * FROM checklist WHERE trip_id = ? ORDER BY sort, id').all(id),
+    ideas: db.prepare('SELECT * FROM ideas WHERE trip_id = ? ORDER BY sort, id').all(id),
   };
 }
 
@@ -260,6 +272,50 @@ app.put('/api/checklist/:cid', (req, res) => {
 app.delete('/api/checklist/:cid', (req, res) => {
   db.prepare('DELETE FROM checklist WHERE id = ?').run(Number(req.params.cid));
   res.status(204).end();
+});
+
+// ── ideias (lugares sem dia definido)
+app.post('/api/trips/:id/ideas', needTrip, (req, res) => {
+  const b = req.body || {};
+  if (!b.title?.trim()) return res.status(400).json({ error: 'title é obrigatório' });
+  const max = db.prepare('SELECT COALESCE(MAX(sort), -1) AS m FROM ideas WHERE trip_id = ?').get(req.tripId).m;
+  const r = insertIdea(req.tripId, { ...b, sort: max + 1 });
+  res.status(201).json(db.prepare('SELECT * FROM ideas WHERE id = ?').get(r.lastInsertRowid));
+});
+app.put('/api/ideas/:iid', (req, res) => {
+  const cur = db.prepare('SELECT * FROM ideas WHERE id = ?').get(Number(req.params.iid));
+  if (!cur) return res.status(404).json({ error: 'não encontrada' });
+  const row = { ...cur, ...req.body };
+  db.prepare(`UPDATE ideas SET ${IDEA_FIELDS.map((f) => `${f} = ?`).join(', ')} WHERE id = ?`).run(...pick(row, IDEA_FIELDS), cur.id);
+  res.json(db.prepare('SELECT * FROM ideas WHERE id = ?').get(cur.id));
+});
+app.delete('/api/ideas/:iid', (req, res) => {
+  db.prepare('DELETE FROM ideas WHERE id = ?').run(Number(req.params.iid));
+  res.status(204).end();
+});
+// ideia → atividade no fim do dia escolhido
+app.post('/api/ideas/:iid/schedule', (req, res) => {
+  const idea = db.prepare('SELECT * FROM ideas WHERE id = ?').get(Number(req.params.iid));
+  const day = req.body?.day;
+  if (!idea) return res.status(404).json({ error: 'não encontrada' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) return res.status(400).json({ error: 'day inválido' });
+  const max = db.prepare('SELECT COALESCE(MAX(sort), -1) AS m FROM activities WHERE trip_id = ? AND day = ?').get(idea.trip_id, day).m;
+  db.exec('BEGIN');
+  const r = insertActivity(idea.trip_id, { ...idea, day, sort: max + 1, done: 0 });
+  db.prepare('DELETE FROM ideas WHERE id = ?').run(idea.id);
+  db.exec('COMMIT');
+  res.status(201).json(db.prepare('SELECT * FROM activities WHERE id = ?').get(r.lastInsertRowid));
+});
+// atividade → volta para as ideias
+app.post('/api/activities/:aid/unschedule', (req, res) => {
+  const a = db.prepare('SELECT * FROM activities WHERE id = ?').get(Number(req.params.aid));
+  if (!a) return res.status(404).json({ error: 'não encontrada' });
+  const max = db.prepare('SELECT COALESCE(MAX(sort), -1) AS m FROM ideas WHERE trip_id = ?').get(a.trip_id).m;
+  db.exec('BEGIN');
+  const r = insertIdea(a.trip_id, { ...a, sort: max + 1 });
+  db.prepare('DELETE FROM activities WHERE id = ?').run(a.id);
+  db.exec('COMMIT');
+  res.status(201).json(db.prepare('SELECT * FROM ideas WHERE id = ?').get(r.lastInsertRowid));
 });
 
 // ── atividades
