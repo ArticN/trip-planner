@@ -5,22 +5,34 @@ cidades, hospedagens e orçamento (moeda da viagem + conversão para a sua moeda
 
 ## Ambiente de desenvolvimento
 
-Requer **Node 22.13+** (usa o `node:sqlite` embutido, sem dependências nativas).
+Requer **Node 22.13+**.
 
 ```bash
-bash scripts/setup.sh            # copia para ~/trip-planner, roda npm ci e build
-cd ~/trip-planner
-npm run dev                      # API em :3000 + Vite com hot reload em http://localhost:5173
-npm start                        # só o app compilado em http://localhost:3000
+npm ci
+npm run dev      # API em :3000 + Vite com hot reload em http://localhost:5173
+npm start        # só o app compilado (depois de npm run build) em http://localhost:3000
 ```
 
-Esta pasta (`/mnt/project-files/trip-planner`) é a cópia oficial do código, compartilhada entre as conversas do projeto.
-Ela é um disco de rede que não aceita os links simbólicos do `node_modules`, por isso o `npm install` roda numa cópia local
-criada pelo `setup.sh`. Depois de editar na cópia local, rode `bash scripts/sync-to-shared.sh` para trazer o código de volta.
-No seu computador, basta rodar `npm ci && npm run dev` direto na pasta do projeto.
+Localmente os dados ficam em `data/planner.db` (SQLite, fora do git). O banco é acessado pelo `@libsql/client`,
+que usa esse arquivo no computador e o **Turso** quando publicado.
 
-Os dados ficam em `data/planner.db` (SQLite, fora do git) e persistem entre execuções. Para guardar o roteiro editado,
-use **Exportar JSON** no menu ⋯ e salve o arquivo junto ao projeto.
+## Publicar na web (grátis): Vercel + Turso
+
+1. **Banco (Turso)**: crie uma conta em https://turso.tech (grátis, sem cartão), crie um banco e gere um token.
+   Guarde a URL (`libsql://….turso.io`) e o token.
+2. **App (Vercel)**: em https://vercel.com, "Add New → Project", importe o repositório `trip-planner`.
+   O `vercel.json` já define o build (`npm run build`, saída `dist`) e a API em `api/index.js`.
+3. Em **Settings → Environment Variables** do projeto na Vercel, crie:
+   - `TURSO_DATABASE_URL` = a URL do banco
+   - `TURSO_AUTH_TOKEN` = o token
+   - `APP_PASSWORD` = a senha para entrar no app (o link é público; sem ela qualquer pessoa edita)
+4. Faça o deploy (ou "Redeploy" depois de criar as variáveis). As tabelas são criadas sozinhas no primeiro acesso.
+5. **Levar os dados do computador**: no app local, menu ⋯ → *Exportar backup (JSON)* de cada viagem; no app publicado,
+   tela inicial → *Importar backup*.
+
+No celular, abra o link e use "Adicionar à tela inicial" para ter um ícone como app.
+
+Variáveis também aceitas localmente: `DB_PATH` (arquivo do banco), `PORT`, `APP_PASSWORD`.
 
 ### Estrutura
 

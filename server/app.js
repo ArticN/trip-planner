@@ -1,0 +1,426 @@
+import crypto from 'node:crypto';
+import express from 'express';
+import { db } from './db.js';
+import * as japan from './examples/japan.js';
+
+// viagens de exemplo que o usuário pode carregar na tela inicial
+const EXAMPLES = { japao: japan };
+
+const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code'];
+const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
+const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
+const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
+const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz'];
+
+const clean = (v) => (v === '' || v === undefined ? null : v);
+const pick = (body, fields) => fields.map((f) => (f in body ? clean(body[f]) : null));
+const marks = (fields) => fields.map(() => '?').join(',');
+const setList = (fields) => fields.map((f) => `${f} = ?`).join(', ');
+
+// comandos de inserção como [sql, args], para rodar sozinhos ou em lote
+const insAct = (tripId, row) => [`INSERT INTO activities (trip_id,${ACT_FIELDS.join(',')}) VALUES (?,${marks(ACT_FIELDS)})`, [tripId, ...pick(row, ACT_FIELDS)]];
+const insStay = (tripId, row) => [`INSERT INTO stays (trip_id,${STAY_FIELDS.join(',')}) VALUES (?,${marks(STAY_FIELDS)})`, [tripId, ...pick(row, STAY_FIELDS)]];
+const insCheck = (tripId, row) => [`INSERT INTO checklist (trip_id,${CHECK_FIELDS.join(',')}) VALUES (?,${marks(CHECK_FIELDS)})`, [tripId, ...pick({ ...row, done: row.done ? 1 : 0 }, CHECK_FIELDS)]];
+const insIdea = (tripId, row) => [`INSERT INTO ideas (trip_id,${IDEA_FIELDS.join(',')}) VALUES (?,${marks(IDEA_FIELDS)})`, [tripId, ...pick({ kind: 'sight', ...row }, IDEA_FIELDS)]];
+const insCity = (tripId, row) => [`INSERT OR REPLACE INTO cities (trip_id,${CITY_FIELDS.join(',')}) VALUES (?,${marks(CITY_FIELDS)})`, [tripId, ...pick(row, CITY_FIELDS)]];
+const run1 = ([sql, args]) => db.run(sql, args);
+
+// ── esquema e migrações (roda uma vez por processo)
+async function migrate() {
+  const hasTable = async (n) => !!(await db.get("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", [n]));
+  // versão antiga: uma única viagem, tabela `trip` chave/valor, custo em `cost_jpy`
+  const legacy = (await hasTable('trip')) && !(await hasTable('trips'));
+  if (legacy) await db.exec('ALTER TABLE cities RENAME TO cities_old; ALTER TABLE stays RENAME TO stays_old; ALTER TABLE activities RENAME TO activities_old;');
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS trips (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL, subtitle TEXT, emoji TEXT DEFAULT '🧳',
+      start TEXT NOT NULL, end TEXT NOT NULL,
+      currency TEXT DEFAULT 'BRL', home_currency TEXT DEFAULT 'BRL', rate REAL DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS cities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      key TEXT NOT NULL, name TEXT, emoji TEXT, color TEXT, lat REAL, lng REAL,
+      UNIQUE (trip_id, key)
+    );
+    CREATE TABLE IF NOT EXISTS stays (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      city TEXT, name TEXT, address TEXT, check_in TEXT, check_out TEXT, lat REAL, lng REAL, notes TEXT
+    );
+    CREATE TABLE IF NOT EXISTS activities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      day TEXT NOT NULL, end_day TEXT, start TEXT, end TEXT,
+      city TEXT, title TEXT NOT NULL, kind TEXT DEFAULT 'sight',
+      location TEXT, details TEXT, transport TEXT, cost REAL,
+      lat REAL, lng REAL, sort INTEGER DEFAULT 0, done INTEGER DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS checklist (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      grp TEXT, text TEXT NOT NULL, done INTEGER DEFAULT 0, sort INTEGER DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS ideas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      title TEXT NOT NULL, kind TEXT DEFAULT 'sight', city TEXT, location TEXT, details TEXT,
+      cost REAL, lat REAL, lng REAL, notes TEXT, links TEXT, sort INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_act_trip_day ON activities(trip_id, day, sort);
+    CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
+  `);
+
+  // colunas novas em bancos antigos
+  const cols = async (t) => (await db.all(`PRAGMA table_info(${t})`)).map((c) => c.name);
+  const addCols = async (table, list) => {
+    const have = await cols(table);
+    for (const [c, type] of list) if (!have.includes(c)) await db.exec(`ALTER TABLE ${table} ADD COLUMN ${c} ${type}`);
+  };
+  await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT']]);
+  await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
+  await addCols('trips', [['tz', 'TEXT']]);
+
+  if (legacy) {
+    const kv = Object.fromEntries((await db.all('SELECT key, value FROM trip')).map((r) => [r.key, r.value]));
+    const { lastInsertRowid: tid } = await db.run('INSERT INTO trips (name, subtitle, emoji, start, end, currency, home_currency, rate) VALUES (?,?,?,?,?,?,?,?)',
+      [kv.name || 'Minha viagem', kv.subtitle || null, '🗾', kv.start, kv.end, 'JPY', 'BRL', Number(kv.brl_rate) || 0.035]);
+    const oldStay = await cols('stays_old');
+    const stayF = STAY_FIELDS.filter((f) => oldStay.includes(f));
+    const oldAct = await cols('activities_old');
+    const af = ACT_FIELDS.filter((f) => oldAct.includes(f === 'cost' ? 'cost_jpy' : f));
+    await db.batch([
+      [`INSERT INTO cities (trip_id,${CITY_FIELDS.join(',')}) SELECT ?,${CITY_FIELDS.join(',')} FROM cities_old`, [tid]],
+      [`INSERT INTO stays (trip_id,${stayF.join(',')}) SELECT ?,${stayF.join(',')} FROM stays_old`, [tid]],
+      [`INSERT INTO activities (trip_id,${af.join(',')}) SELECT ?,${af.map((f) => (f === 'cost' ? 'cost_jpy' : f)).join(',')} FROM activities_old`, [tid]],
+      ['DROP TABLE cities_old'], ['DROP TABLE stays_old'], ['DROP TABLE activities_old'], ['DROP TABLE trip'],
+    ]);
+  }
+}
+export const ready = migrate();
+
+// Ordena só os itens com horário entre si, mantendo itens sem horário nos seus lugares.
+function sortTimedSlots(items) {
+  const idx = [];
+  const timed = [];
+  items.forEach((it, i) => { if (it.start) { idx.push(i); timed.push(it); } });
+  timed.sort((x, y) => x.start.localeCompare(y.start));
+  const out = items.slice();
+  idx.forEach((slot, k) => { out[slot] = timed[k]; });
+  return out;
+}
+
+const TRANSIT_CITY = { key: 'transito', name: 'Em trânsito', emoji: '✈️', color: '#64748b', lat: null, lng: null };
+
+// cria uma viagem completa a partir de { trip, cities, stays, activities } (exemplo ou backup).
+// Tudo depois da viagem vai num único lote: no banco remoto é uma ida só.
+async function createTripFull(b) {
+  const { lastInsertRowid: id } = await db.run(`INSERT INTO trips (${TRIP_FIELDS.join(',')}) VALUES (${marks(TRIP_FIELDS)})`, pick({ rate: 1, emoji: '🧳', ...b.trip }, TRIP_FIELDS));
+  const list = [];
+  const cities = [...(b.cities || [])];
+  if (!cities.some((c) => c.key === 'transito')) cities.push(TRANSIT_CITY);
+  cities.forEach((c) => list.push(insCity(id, c)));
+  (b.stays || []).forEach((s) => list.push(insStay(id, s)));
+  (b.checklist || []).forEach((c, i) => list.push(insCheck(id, { sort: i, ...c })));
+  (b.ideas || []).forEach((x, i) => list.push(insIdea(id, { sort: i, ...x })));
+  const byDay = new Map();
+  (b.activities || []).forEach((x) => {
+    const row = { ...x, cost: x.cost ?? x.cost_jpy ?? null };
+    if (!byDay.has(row.day)) byDay.set(row.day, []);
+    byDay.get(row.day).push(row);
+  });
+  for (const [, items] of [...byDay.entries()].sort()) {
+    // backup já traz a ordem (sort); exemplos vêm sem `sort` e são ordenados por horário
+    const ordered = items.every((x) => typeof x.sort === 'number') ? items.sort((x, y) => x.sort - y.sort) : sortTimedSlots(items);
+    ordered.forEach((x, i) => list.push(insAct(id, { ...x, sort: i, done: x.done ? 1 : 0 })));
+  }
+  try {
+    if (list.length) await db.batch(list);
+  } catch (e) {
+    await deleteTrip(id);
+    throw e;
+  }
+  return id;
+}
+
+// apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
+const deleteTrip = (id) => db.batch(['activities', 'stays', 'cities', 'checklist', 'ideas'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
+
+async function getTrip(id) {
+  const trip = await db.get('SELECT * FROM trips WHERE id = ?', [id]);
+  if (!trip) return null;
+  const [cities, stays, activities, checklist, ideas] = await Promise.all([
+    db.all('SELECT * FROM cities WHERE trip_id = ? ORDER BY id', [id]),
+    db.all('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id', [id]),
+    db.all('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id', [id]),
+    db.all('SELECT * FROM checklist WHERE trip_id = ? ORDER BY sort, id', [id]),
+    db.all('SELECT * FROM ideas WHERE trip_id = ? ORDER BY sort, id', [id]),
+  ]);
+  return { trip, cities, stays, activities, checklist, ideas };
+}
+
+const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MAX(sort), -1) AS m FROM ${table} WHERE ${where}`, args)).m + 1;
+
+export const app = express();
+app.disable('x-powered-by');
+app.use(express.json({ limit: '5mb' }));
+
+// rotas async: erros viram 500 em vez de derrubar o processo
+const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+// espera o banco estar pronto (na Vercel cada instância nova passa por aqui uma vez)
+app.use('/api', h(async (_req, _res, next) => { await ready; next(); }));
+
+// ── senha de acesso (opcional): defina APP_PASSWORD para exigir login
+const PASSWORD = process.env.APP_PASSWORD || '';
+const COOKIE = 'tp_session';
+const token = PASSWORD ? crypto.createHmac('sha256', PASSWORD).update('trip-planner-session-v1').digest('hex') : '';
+const readCookie = (req) => (req.headers.cookie || '').split(';').map((c) => c.trim().split('=')).find(([k]) => k === COOKIE)?.[1] || '';
+const authed = (req) => {
+  if (!PASSWORD) return true;
+  const got = Buffer.from(readCookie(req));
+  const want = Buffer.from(token);
+  return got.length === want.length && crypto.timingSafeEqual(got, want);
+};
+const cookieAttrs = (req, maxAge) => `Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${req.secure || req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''}`;
+
+app.get('/api/session', (req, res) => res.json({ required: !!PASSWORD, ok: authed(req) }));
+app.post('/api/login', h(async (req, res) => {
+  const given = Buffer.from(String(req.body?.password || ''));
+  const want = Buffer.from(PASSWORD);
+  const ok = PASSWORD && given.length === want.length && crypto.timingSafeEqual(given, want);
+  if (!ok) {
+    await new Promise((r) => setTimeout(r, 600)); // atrasa tentativas em sequência
+    return res.status(401).json({ error: 'senha incorreta' });
+  }
+  res.setHeader('Set-Cookie', `${COOKIE}=${token}; ${cookieAttrs(req, 60 * 60 * 24 * 180)}`);
+  res.json({ ok: true });
+}));
+app.post('/api/logout', (req, res) => {
+  res.setHeader('Set-Cookie', `${COOKIE}=; ${cookieAttrs(req, 0)}`);
+  res.json({ ok: true });
+});
+app.use('/api', (req, res, next) => (authed(req) ? next() : res.status(401).json({ error: 'login necessário' })));
+
+// resolve :id → viagem existente (404 se não houver)
+app.param('id', (req, _res, next, v) => { req.tripId = Number(v); next(); });
+const needTrip = h(async (req, res, next) => ((await db.get('SELECT 1 AS ok FROM trips WHERE id = ?', [req.tripId])) ? next() : res.status(404).json({ error: 'viagem não encontrada' })));
+
+// ── viagens
+app.get('/api/trips', h(async (_req, res) => {
+  res.json(await db.all(`
+    SELECT t.*,
+      (SELECT COUNT(*) FROM activities a WHERE a.trip_id = t.id) AS activity_count,
+      (SELECT COUNT(*) FROM activities a WHERE a.trip_id = t.id AND a.done = 1) AS done_count
+    FROM trips t ORDER BY t.start DESC, t.id DESC`));
+}));
+
+app.post('/api/trips', h(async (req, res) => {
+  const b = req.body || {};
+  if (!b.name || !b.start || !b.end) return res.status(400).json({ error: 'name, start e end são obrigatórios' });
+  if (b.end < b.start) return res.status(400).json({ error: 'a data final é anterior à inicial' });
+  const id = await createTripFull({ trip: b, cities: [], stays: [], activities: [] });
+  res.status(201).json(await getTrip(id));
+}));
+
+app.get('/api/examples', (_req, res) => {
+  res.json(Object.entries(EXAMPLES).map(([key, m]) => ({ key, ...m.EXAMPLE })));
+});
+
+app.post('/api/examples/:key', h(async (req, res) => {
+  const m = EXAMPLES[req.params.key];
+  if (!m) return res.status(404).json({ error: 'exemplo não encontrado' });
+  const id = await createTripFull({ trip: m.TRIP, cities: m.CITIES.map((c) => ({ ...c })), stays: m.STAYS, activities: m.ACTIVITIES });
+  res.status(201).json(await getTrip(id));
+}));
+
+// importa um backup (formato do /export; aceita também o formato da versão antiga com cost_jpy)
+app.post('/api/trips/import', h(async (req, res) => {
+  const b = req.body || {};
+  if (!Array.isArray(b.activities) || !b.trip?.start || !b.trip?.end) return res.status(400).json({ error: 'JSON inválido (faltam trip e activities)' });
+  const t = { currency: 'BRL', home_currency: 'BRL', ...b.trip, rate: b.trip.rate ?? b.trip.brl_rate ?? 1 };
+  try {
+    res.status(201).json(await getTrip(await createTripFull({ ...b, trip: t })));
+  } catch (e) { res.status(400).json({ error: String(e.message || e) }); }
+}));
+
+app.get('/api/trips/:id', needTrip, h(async (req, res) => res.json(await getTrip(req.tripId))));
+
+app.put('/api/trips/:id', needTrip, h(async (req, res) => {
+  const cur = await db.get('SELECT * FROM trips WHERE id = ?', [req.tripId]);
+  const row = { ...cur, ...req.body };
+  if (!row.name || !row.start || !row.end || row.end < row.start) return res.status(400).json({ error: 'nome e datas válidas são obrigatórios' });
+  await db.run(`UPDATE trips SET ${setList(TRIP_FIELDS)} WHERE id = ?`, [...pick(row, TRIP_FIELDS), req.tripId]);
+  res.json(await db.get('SELECT * FROM trips WHERE id = ?', [req.tripId]));
+}));
+
+app.delete('/api/trips/:id', needTrip, h(async (req, res) => {
+  await deleteTrip(req.tripId);
+  res.status(204).end();
+}));
+
+app.post('/api/trips/:id/duplicate', needTrip, h(async (req, res) => {
+  const d = await getTrip(req.tripId);
+  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0 })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })) });
+  res.status(201).json(await getTrip(id));
+}));
+
+app.get('/api/trips/:id/export', needTrip, h(async (req, res) => {
+  const d = await getTrip(req.tripId);
+  const file = `${d.trip.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'viagem'}.json`;
+  res.setHeader('Content-Disposition', `attachment; filename="${file}"`);
+  res.json(d);
+}));
+
+// ── checklist
+app.post('/api/trips/:id/checklist', needTrip, h(async (req, res) => {
+  const b = req.body || {};
+  if (!b.text?.trim()) return res.status(400).json({ error: 'text é obrigatório' });
+  const r = await run1(insCheck(req.tripId, { ...b, sort: await nextSort('checklist', 'trip_id = ?', [req.tripId]) }));
+  res.status(201).json(await db.get('SELECT * FROM checklist WHERE id = ?', [r.lastInsertRowid]));
+}));
+app.put('/api/checklist/:cid', h(async (req, res) => {
+  const cur = await db.get('SELECT * FROM checklist WHERE id = ?', [Number(req.params.cid)]);
+  if (!cur) return res.status(404).json({ error: 'não encontrado' });
+  const row = { ...cur, ...req.body, done: (req.body.done ?? cur.done) ? 1 : 0 };
+  await db.run(`UPDATE checklist SET ${setList(CHECK_FIELDS)} WHERE id = ?`, [...pick(row, CHECK_FIELDS), cur.id]);
+  res.json(await db.get('SELECT * FROM checklist WHERE id = ?', [cur.id]));
+}));
+app.delete('/api/checklist/:cid', h(async (req, res) => {
+  await db.run('DELETE FROM checklist WHERE id = ?', [Number(req.params.cid)]);
+  res.status(204).end();
+}));
+
+// ── ideias (lugares sem dia definido)
+app.post('/api/trips/:id/ideas', needTrip, h(async (req, res) => {
+  const b = req.body || {};
+  if (!b.title?.trim()) return res.status(400).json({ error: 'title é obrigatório' });
+  const r = await run1(insIdea(req.tripId, { ...b, sort: await nextSort('ideas', 'trip_id = ?', [req.tripId]) }));
+  res.status(201).json(await db.get('SELECT * FROM ideas WHERE id = ?', [r.lastInsertRowid]));
+}));
+app.put('/api/ideas/:iid', h(async (req, res) => {
+  const cur = await db.get('SELECT * FROM ideas WHERE id = ?', [Number(req.params.iid)]);
+  if (!cur) return res.status(404).json({ error: 'não encontrada' });
+  const row = { ...cur, ...req.body };
+  await db.run(`UPDATE ideas SET ${setList(IDEA_FIELDS)} WHERE id = ?`, [...pick(row, IDEA_FIELDS), cur.id]);
+  res.json(await db.get('SELECT * FROM ideas WHERE id = ?', [cur.id]));
+}));
+app.delete('/api/ideas/:iid', h(async (req, res) => {
+  await db.run('DELETE FROM ideas WHERE id = ?', [Number(req.params.iid)]);
+  res.status(204).end();
+}));
+// ideia → atividade no fim do dia escolhido
+app.post('/api/ideas/:iid/schedule', h(async (req, res) => {
+  const idea = await db.get('SELECT * FROM ideas WHERE id = ?', [Number(req.params.iid)]);
+  const day = req.body?.day;
+  if (!idea) return res.status(404).json({ error: 'não encontrada' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) return res.status(400).json({ error: 'day inválido' });
+  const sort = await nextSort('activities', 'trip_id = ? AND day = ?', [idea.trip_id, day]);
+  const [ins] = await db.batch([insAct(idea.trip_id, { ...idea, day, sort, done: 0 }), ['DELETE FROM ideas WHERE id = ?', [idea.id]]]);
+  res.status(201).json(await db.get('SELECT * FROM activities WHERE id = ?', [ins.lastInsertRowid]));
+}));
+// atividade → volta para as ideias
+app.post('/api/activities/:aid/unschedule', h(async (req, res) => {
+  const a = await db.get('SELECT * FROM activities WHERE id = ?', [Number(req.params.aid)]);
+  if (!a) return res.status(404).json({ error: 'não encontrada' });
+  const sort = await nextSort('ideas', 'trip_id = ?', [a.trip_id]);
+  const [ins] = await db.batch([insIdea(a.trip_id, { ...a, sort }), ['DELETE FROM activities WHERE id = ?', [a.id]]]);
+  res.status(201).json(await db.get('SELECT * FROM ideas WHERE id = ?', [ins.lastInsertRowid]));
+}));
+
+// ── atividades
+app.post('/api/trips/:id/activities', needTrip, h(async (req, res) => {
+  const b = req.body || {};
+  if (!b.day || !b.title) return res.status(400).json({ error: 'day e title são obrigatórios' });
+  const sort = b.sort ?? await nextSort('activities', 'trip_id = ? AND day = ?', [req.tripId, b.day]);
+  const r = await run1(insAct(req.tripId, { ...b, sort, done: b.done ? 1 : 0, kind: b.kind || 'sight' }));
+  res.status(201).json(await db.get('SELECT * FROM activities WHERE id = ?', [r.lastInsertRowid]));
+}));
+
+app.put('/api/activities/:id', h(async (req, res) => {
+  const id = Number(req.params.id);
+  const cur = await db.get('SELECT * FROM activities WHERE id = ?', [id]);
+  if (!cur) return res.status(404).json({ error: 'não encontrada' });
+  const row = { ...cur, ...req.body, done: (req.body.done ?? cur.done) ? 1 : 0 };
+  if (row.day !== cur.day && !('sort' in req.body)) row.sort = await nextSort('activities', 'trip_id = ? AND day = ?', [cur.trip_id, row.day]);
+  await db.run(`UPDATE activities SET ${setList(ACT_FIELDS)} WHERE id = ?`, [...pick(row, ACT_FIELDS), id]);
+  res.json(await db.get('SELECT * FROM activities WHERE id = ?', [id]));
+}));
+
+app.delete('/api/activities/:id', h(async (req, res) => {
+  await db.run('DELETE FROM activities WHERE id = ?', [Number(req.params.id)]);
+  res.status(204).end();
+}));
+
+// reordena um dia: body = { day, ids: [..] }
+app.put('/api/trips/:id/days/reorder', needTrip, h(async (req, res) => {
+  const { day, ids } = req.body || {};
+  if (!day || !Array.isArray(ids)) return res.status(400).json({ error: 'day e ids são obrigatórios' });
+  if (ids.length) await db.batch(ids.map((aid, i) => ['UPDATE activities SET sort = ? WHERE id = ? AND day = ? AND trip_id = ?', [i, Number(aid), day, req.tripId]]));
+  res.json(await db.all('SELECT * FROM activities WHERE trip_id = ? AND day = ? ORDER BY sort, id', [req.tripId, day]));
+}));
+
+// ── hospedagens
+app.post('/api/trips/:id/stays', needTrip, h(async (req, res) => {
+  const r = await run1(insStay(req.tripId, req.body || {}));
+  res.status(201).json(await db.get('SELECT * FROM stays WHERE id = ?', [r.lastInsertRowid]));
+}));
+
+app.put('/api/stays/:id', h(async (req, res) => {
+  const id = Number(req.params.id);
+  const cur = await db.get('SELECT * FROM stays WHERE id = ?', [id]);
+  if (!cur) return res.status(404).json({ error: 'não encontrada' });
+  const row = { ...cur, ...req.body };
+  await db.run(`UPDATE stays SET ${setList(STAY_FIELDS)} WHERE id = ?`, [...pick(row, STAY_FIELDS), id]);
+  res.json(await db.get('SELECT * FROM stays WHERE id = ?', [id]));
+}));
+
+app.delete('/api/stays/:id', h(async (req, res) => {
+  await db.run('DELETE FROM stays WHERE id = ?', [Number(req.params.id)]);
+  res.status(204).end();
+}));
+
+// ── cidades / locais da viagem
+app.post('/api/trips/:id/cities', needTrip, h(async (req, res) => {
+  const b = req.body || {};
+  if (!b.name) return res.status(400).json({ error: 'name é obrigatório' });
+  const used = new Set((await db.all('SELECT key FROM cities WHERE trip_id = ?', [req.tripId])).map((c) => c.key));
+  const base = b.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'local';
+  let key = base;
+  for (let i = 2; used.has(key); i++) key = `${base}-${i}`;
+  await run1(insCity(req.tripId, { color: '#2874a6', emoji: '📍', ...b, key }));
+  res.status(201).json(await db.get('SELECT * FROM cities WHERE trip_id = ? AND key = ?', [req.tripId, key]));
+}));
+
+app.put('/api/cities/:id', h(async (req, res) => {
+  const id = Number(req.params.id);
+  const cur = await db.get('SELECT * FROM cities WHERE id = ?', [id]);
+  if (!cur) return res.status(404).json({ error: 'não encontrada' });
+  const row = { ...cur, ...req.body, key: cur.key }; // a chave é o vínculo com as atividades, não muda
+  await db.run(`UPDATE cities SET ${setList(CITY_FIELDS)} WHERE id = ?`, [...pick(row, CITY_FIELDS), id]);
+  res.json(await db.get('SELECT * FROM cities WHERE id = ?', [id]));
+}));
+
+app.delete('/api/cities/:id', h(async (req, res) => {
+  const cur = await db.get('SELECT * FROM cities WHERE id = ?', [Number(req.params.id)]);
+  if (cur) {
+    await db.batch([
+      ['UPDATE activities SET city = NULL WHERE trip_id = ? AND city = ?', [cur.trip_id, cur.key]],
+      ['UPDATE stays SET city = NULL WHERE trip_id = ? AND city = ?', [cur.trip_id, cur.key]],
+      ['UPDATE ideas SET city = NULL WHERE trip_id = ? AND city = ?', [cur.trip_id, cur.key]],
+      ['DELETE FROM cities WHERE id = ?', [cur.id]],
+    ]);
+  }
+  res.status(204).end();
+}));
+
+app.use('/api', (_req, res) => res.status(404).json({ error: 'rota não encontrada' }));
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ error: 'erro no servidor' });
+});

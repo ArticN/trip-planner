@@ -4,6 +4,7 @@ async function req(method, url, body) {
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 401 && !url.startsWith('/api/login')) window.dispatchEvent(new Event('auth-required'));
   if (!res.ok) {
     const msg = await res.text().catch(() => '');
     throw new Error(`${method} ${url} → ${res.status} ${msg}`);
@@ -12,6 +13,10 @@ async function req(method, url, body) {
 }
 
 export const api = {
+  // acesso
+  session: () => req('GET', '/api/session'),
+  login: (password) => req('POST', '/api/login', { password }),
+  logout: () => req('POST', '/api/logout'),
   // viagens
   trips: () => req('GET', '/api/trips'),
   trip: (id) => req('GET', `/api/trips/${id}`),

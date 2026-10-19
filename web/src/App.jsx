@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Home from './Home.jsx';
 import TripView from './TripView.jsx';
+import Login from './Login.jsx';
+import { api } from './api.js';
 
 // rotas por hash: #/ (viagens) · #/t/<id> (visão geral) · #/t/<id>/<aaaa-mm-dd> (dia)
 function parseHash() {
@@ -11,6 +13,14 @@ function parseHash() {
 export default function App() {
   const [route, setRoute] = useState(parseHash);
   const [version, setVersion] = useState(0); // muda quando a lista de viagens precisa recarregar
+  const [auth, setAuth] = useState('checking'); // checking | ok | login
+
+  useEffect(() => {
+    api.session().then((s) => setAuth(s.ok ? 'ok' : 'login')).catch(() => setAuth('ok'));
+    const need = () => setAuth('login');
+    window.addEventListener('auth-required', need);
+    return () => window.removeEventListener('auth-required', need);
+  }, []);
 
   useEffect(() => {
     const onHash = () => setRoute(parseHash());
@@ -26,6 +36,8 @@ export default function App() {
   }, [route.tripId]);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
 
+  if (auth === 'checking') return null;
+  if (auth === 'login') return <Login onDone={() => { setAuth('ok'); refresh(); }} />;
   if (route.tripId == null) return <Home version={version} onOpen={openTrip} onChanged={refresh} />;
   return <TripView key={route.tripId} tripId={route.tripId} sel={route.sel} onNavigate={navigate} onHome={goHome} onTripsChanged={refresh} />;
 }
