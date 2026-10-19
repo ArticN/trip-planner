@@ -47,7 +47,7 @@ function jitterMap(items) {
 
 export default function MapView({
   mode, items, stays, cities, stayByDay, selectedId, onSelect, onEdit, editPositions, onMove,
-  picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea,
+  picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
@@ -71,6 +71,7 @@ export default function MapView({
     layerRef.current = L.layerGroup().addTo(map);
     map.on('click', (e) => { if (cb.current.picking) cb.current.onPick?.(e.latlng.lat, e.latlng.lng); });
     mapRef.current = map;
+    if (centerRef) centerRef.current = () => { const c = map.getCenter(); return { lat: c.lat, lng: c.lng, zoom: map.getZoom() }; };
     setTimeout(() => map.invalidateSize(), 50);
     const ro = new ResizeObserver(() => map.invalidateSize());
     ro.observe(elRef.current);

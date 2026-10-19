@@ -6,11 +6,12 @@ import * as japan from './examples/japan.js';
 // viagens de exemplo que o usuário pode carregar na tela inicial
 const EXAMPLES = { japao: japan };
 
-const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code'];
+const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code', 'spent'];
 const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
 const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
+const DAY_FIELDS = ['day', 'title', 'notes'];
 const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz'];
 
 const clean = (v) => (v === '' || v === undefined ? null : v);
@@ -24,6 +25,7 @@ const insStay = (tripId, row) => [`INSERT INTO stays (trip_id,${STAY_FIELDS.join
 const insCheck = (tripId, row) => [`INSERT INTO checklist (trip_id,${CHECK_FIELDS.join(',')}) VALUES (?,${marks(CHECK_FIELDS)})`, [tripId, ...pick({ ...row, done: row.done ? 1 : 0 }, CHECK_FIELDS)]];
 const insIdea = (tripId, row) => [`INSERT INTO ideas (trip_id,${IDEA_FIELDS.join(',')}) VALUES (?,${marks(IDEA_FIELDS)})`, [tripId, ...pick({ kind: 'sight', ...row }, IDEA_FIELDS)]];
 const insCity = (tripId, row) => [`INSERT OR REPLACE INTO cities (trip_id,${CITY_FIELDS.join(',')}) VALUES (?,${marks(CITY_FIELDS)})`, [tripId, ...pick(row, CITY_FIELDS)]];
+const insDay = (tripId, row) => [`INSERT OR REPLACE INTO days (trip_id,${DAY_FIELDS.join(',')}) VALUES (?,${marks(DAY_FIELDS)})`, [tripId, ...pick(row, DAY_FIELDS)]];
 const run1 = ([sql, args]) => db.run(sql, args);
 
 // ── esquema e migrações (roda uma vez por processo)
@@ -71,6 +73,12 @@ async function migrate() {
       title TEXT NOT NULL, kind TEXT DEFAULT 'sight', city TEXT, location TEXT, details TEXT,
       cost REAL, lat REAL, lng REAL, notes TEXT, links TEXT, sort INTEGER DEFAULT 0
     );
+    CREATE TABLE IF NOT EXISTS days (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      day TEXT NOT NULL, title TEXT, notes TEXT,
+      UNIQUE (trip_id, day)
+    );
     CREATE INDEX IF NOT EXISTS idx_act_trip_day ON activities(trip_id, day, sort);
     CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
   `);
@@ -81,7 +89,7 @@ async function migrate() {
     const have = await cols(table);
     for (const [c, type] of list) if (!have.includes(c)) await db.exec(`ALTER TABLE ${table} ADD COLUMN ${c} ${type}`);
   };
-  await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT']]);
+  await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
   await addCols('trips', [['tz', 'TEXT']]);
 
@@ -128,6 +136,7 @@ async function createTripFull(b) {
   (b.stays || []).forEach((s) => list.push(insStay(id, s)));
   (b.checklist || []).forEach((c, i) => list.push(insCheck(id, { sort: i, ...c })));
   (b.ideas || []).forEach((x, i) => list.push(insIdea(id, { sort: i, ...x })));
+  (b.days || []).filter((d) => d.day && (d.title || d.notes)).forEach((d) => list.push(insDay(id, d)));
   const byDay = new Map();
   (b.activities || []).forEach((x) => {
     const row = { ...x, cost: x.cost ?? x.cost_jpy ?? null };
@@ -149,19 +158,20 @@ async function createTripFull(b) {
 }
 
 // apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
-const deleteTrip = (id) => db.batch(['activities', 'stays', 'cities', 'checklist', 'ideas'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
+const deleteTrip = (id) => db.batch(['activities', 'stays', 'cities', 'checklist', 'ideas', 'days'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
 
 async function getTrip(id) {
   const trip = await db.get('SELECT * FROM trips WHERE id = ?', [id]);
   if (!trip) return null;
-  const [cities, stays, activities, checklist, ideas] = await Promise.all([
+  const [cities, stays, activities, checklist, ideas, days] = await Promise.all([
     db.all('SELECT * FROM cities WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id', [id]),
     db.all('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id', [id]),
     db.all('SELECT * FROM checklist WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT * FROM ideas WHERE trip_id = ? ORDER BY sort, id', [id]),
+    db.all('SELECT * FROM days WHERE trip_id = ? ORDER BY day', [id]),
   ]);
-  return { trip, cities, stays, activities, checklist, ideas };
+  return { trip, cities, stays, activities, checklist, ideas, days };
 }
 
 const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MAX(sort), -1) AS m FROM ${table} WHERE ${where}`, args)).m + 1;
@@ -269,7 +279,7 @@ app.delete('/api/trips/:id', needTrip, h(async (req, res) => {
 
 app.post('/api/trips/:id/duplicate', needTrip, h(async (req, res) => {
   const d = await getTrip(req.tripId);
-  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0 })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })) });
+  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })) });
   res.status(201).json(await getTrip(id));
 }));
 
@@ -366,6 +376,19 @@ app.put('/api/trips/:id/days/reorder', needTrip, h(async (req, res) => {
   if (!day || !Array.isArray(ids)) return res.status(400).json({ error: 'day e ids são obrigatórios' });
   if (ids.length) await db.batch(ids.map((aid, i) => ['UPDATE activities SET sort = ? WHERE id = ? AND day = ? AND trip_id = ?', [i, Number(aid), day, req.tripId]]));
   res.json(await db.all('SELECT * FROM activities WHERE trip_id = ? AND day = ? ORDER BY sort, id', [req.tripId, day]));
+}));
+
+// tema e anotações de um dia: body = { title, notes }; vazio apaga
+app.put('/api/trips/:id/daynotes/:day', needTrip, h(async (req, res) => {
+  const day = req.params.day;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return res.status(400).json({ error: 'dia inválido' });
+  const row = { day, title: req.body?.title?.trim() || null, notes: req.body?.notes?.trim() || null };
+  if (!row.title && !row.notes) {
+    await db.run('DELETE FROM days WHERE trip_id = ? AND day = ?', [req.tripId, day]);
+    return res.json({ day, title: null, notes: null });
+  }
+  await run1(insDay(req.tripId, row));
+  res.json(await db.get('SELECT * FROM days WHERE trip_id = ? AND day = ?', [req.tripId, day]));
 }));
 
 // ── hospedagens

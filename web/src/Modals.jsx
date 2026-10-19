@@ -161,9 +161,14 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
             {TRANSPORTS.map((t) => <option key={t} value={t}>{t || '—'}</option>)}
           </select>
         </label>
-        <label>Custo ({fxCur})
+        <label>{isIdea ? 'Custo' : 'Custo previsto'} ({fxCur})
           <input type="number" min="0" step="any" value={draft.cost ?? ''} onChange={(e) => set({ cost: num(e.target.value) })} />
         </label>
+        {!isIdea && (
+          <label>Gasto real ({fxCur})
+            <input type="number" min="0" step="any" value={draft.spent ?? ''} onChange={(e) => set({ spent: num(e.target.value) })} placeholder="quanto saiu de fato" />
+          </label>
+        )}
         <label>Local (texto)
           <input value={draft.location || ''} onChange={(e) => set({ location: e.target.value })} placeholder="Bairro / endereço" />
         </label>
@@ -277,13 +282,18 @@ export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate,
   const [rate, setRate] = useState(String(fx.rate));
   const r = Number(rate.replace(',', '.')) || 0;
   const home = (n) => (fx.convert && r > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: fx.home }).format(n * r) : '');
-  const withCost = activities.filter((a) => a.cost > 0);
+  const withCost = activities.filter((a) => a.cost > 0 || a.spent != null);
+  // gasto real: só nas atividades em que você anotou quanto saiu; compara com o previsto delas
+  const tracked = activities.filter((a) => a.spent != null);
+  const spentTotal = tracked.reduce((t, a) => t + a.spent, 0);
+  const trackedPlan = tracked.reduce((t, a) => t + (a.cost || 0), 0);
+  const diff = spentTotal - trackedPlan;
   const staysCost = stays.filter((s) => s.cost > 0);
   const staysTotal = staysCost.reduce((t, s) => t + s.cost, 0);
-  const total = withCost.reduce((s, a) => s + a.cost, 0) + staysTotal;
-  const byDay = days.map((d) => ({ d, v: withCost.filter((a) => a.day === d).reduce((s, a) => s + a.cost, 0) })).filter((x) => x.v);
+  const total = withCost.reduce((s, a) => s + (a.cost || 0), 0) + staysTotal;
+  const byDay = days.map((d) => ({ d, v: withCost.filter((a) => a.day === d).reduce((s, a) => s + (a.cost || 0), 0) })).filter((x) => x.v);
   const byCityObj = {};
-  withCost.forEach((a) => { byCityObj[a.city || '—'] = (byCityObj[a.city || '—'] || 0) + a.cost; });
+  withCost.forEach((a) => { byCityObj[a.city || '—'] = (byCityObj[a.city || '—'] || 0) + (a.cost || 0); });
   staysCost.forEach((s) => { byCityObj[s.city || '—'] = (byCityObj[s.city || '—'] || 0) + s.cost; });
   const byCity = Object.entries(byCityObj).sort((x, y) => y[1] - x[1]);
 
@@ -295,9 +305,16 @@ export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate,
             <input value={rate} onChange={(e) => setRate(e.target.value)} onBlur={() => r > 0 && onRate(r)} inputMode="decimal" /> {fx.home}
           </label>
         )}
-        <div className="big"><b>{fx.fmt(total)}</b><span>{home(total)}</span></div>
+        <div className="big"><b>{fx.fmt(total)}</b><span>previsto{home(total) ? ` · ${home(total)}` : ''}</span></div>
       </div>
-      <p className="muted small">Só entram os custos que você preencheu nas atividades.{fx.cur !== fx.home && ' O câmbio é editável, confira o do dia.'} Moedas e câmbio podem ser alterados em “Editar viagem”.</p>
+      {tracked.length > 0 && (
+        <div className="spent-box">
+          <div><b>{fx.fmt(spentTotal)}</b><span>gasto real em {tracked.length} {tracked.length === 1 ? 'item' : 'itens'}</span></div>
+          <div><b>{fx.fmt(trackedPlan)}</b><span>previsto nesses itens</span></div>
+          <div className={diff > 0 ? 'over' : 'under'}><b>{diff > 0 ? '+' : diff < 0 ? '−' : ''}{fx.fmt(Math.abs(diff))}</b><span>{diff > 0 ? 'acima do previsto' : diff < 0 ? 'abaixo do previsto' : 'igual ao previsto'}</span></div>
+        </div>
+      )}
+      <p className="muted small">Só entram os custos que você preencheu nas atividades e hospedagens. Anote o “Gasto real” ao editar uma atividade para comparar com o previsto.{fx.cur !== fx.home && ' O câmbio é editável, confira o do dia.'} Moedas e câmbio podem ser alterados em “Editar viagem”.</p>
       {withCost.length === 0 && <div className="empty">Nenhum custo cadastrado ainda. Preencha o campo “Custo” ao editar uma atividade.</div>}
       <div className="two-col">
         <div>
@@ -305,7 +322,7 @@ export function BudgetModal({ activities, stays = [], cityMap, days, fx, onRate,
           <table className="tbl">
             <tbody>
               {withCost.sort((a, b) => a.day.localeCompare(b.day)).map((a) => (
-                <tr key={a.id}><td>{fmtDay(a.day)}</td><td>{a.title}</td><td className="r">{fx.fmt(a.cost)}</td><td className="r muted">{home(a.cost)}</td></tr>
+                <tr key={a.id}><td>{fmtDay(a.day)}</td><td>{a.title}</td><td className="r">{a.cost ? fx.fmt(a.cost) : '—'}{a.spent != null && <div className={`spent-cell ${a.spent > (a.cost || 0) ? 'over' : 'under'}`}>gasto {fx.fmt(a.spent)}</div>}</td><td className="r muted">{a.cost ? home(a.cost) : ''}</td></tr>
               ))}
               {staysCost.map((s) => (
                 <tr key={`s${s.id}`}><td>{fmtDay(s.check_in)}</td><td>Hospedagem · {s.name}</td><td className="r">{fx.fmt(s.cost)}</td><td className="r muted">{home(s.cost)}</td></tr>

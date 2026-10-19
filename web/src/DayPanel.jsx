@@ -12,15 +12,50 @@ function Gap({ a, b }) {
   return <div className="gap">↓ {fmtKm(km)} em linha reta{walk}</div>;
 }
 
+// tema do dia (ex.: "Templos de Higashiyama") e anotações livres
+function DayInfo({ info, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState('');
+  const [notes, setNotes] = useState('');
+  const [busy, setBusy] = useState(false);
+  const open = () => { setTitle(info?.title || ''); setNotes(info?.notes || ''); setEditing(true); };
+  const save = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try { await onSave({ title, notes }); setEditing(false); } finally { setBusy(false); }
+  };
+  if (editing) {
+    return (
+      <form className="dayinfo-form" onSubmit={save}>
+        <input autoFocus placeholder="Tema do dia (ex.: templos e Gion)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} />
+        <textarea rows={3} placeholder="Anotações do dia: lembretes, plano B se chover…" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <div className="dayinfo-actions">
+          <button type="button" className="mini" onClick={() => setEditing(false)}>Cancelar</button>
+          <button className="mini primary" disabled={busy}>{busy ? 'Salvando…' : 'Salvar'}</button>
+        </div>
+      </form>
+    );
+  }
+  if (!info?.title && !info?.notes) return <button className="dayinfo-add" onClick={open}>+ Tema e anotações do dia</button>;
+  return (
+    <button className="dayinfo" onClick={open} title="Editar tema e anotações">
+      {info.title && <span className="dayinfo-title">{info.title}</span>}
+      {info.notes && <span className="dayinfo-notes">{info.notes}</span>}
+    </button>
+  );
+}
+
 export default function DayPanel({
   day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
-  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null,
+  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo,
 }) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
 
   const cities = [...new Set(items.map((a) => a.city).filter((c) => c && c !== 'transito'))];
   const cost = items.reduce((s, a) => s + (a.cost || 0), 0);
+  const spent = items.reduce((s, a) => s + (a.spent || 0), 0);
+  const hasSpent = items.some((a) => a.spent != null);
   const geo = items.filter((a) => hasCoords(a) && a.kind !== 'flight');
   let dist = 0;
   for (let i = 0; i < geo.length - 1; i++) dist += haversine(geo[i], geo[i + 1]);
@@ -51,6 +86,7 @@ export default function DayPanel({
           </div>
           <button className="icon-btn" onClick={onNext} disabled={!hasNext} title="Próximo dia (→)">›</button>
         </div>
+        {onSaveDayInfo && <DayInfo key={day} info={dayInfo} onSave={onSaveDayInfo} />}
         <div className="chips">
           {cities.map((k) => (
             <span key={k} className="chip" style={{ '--c': cityMap[k]?.color }}>{cityMap[k]?.emoji} {cityMap[k]?.name || k}</span>
@@ -68,7 +104,9 @@ export default function DayPanel({
         )}
         <div className="stats">
           <div><b>{items.length}</b><span>atividades</span></div>
-          <div><b>{cost ? fx.fmt(cost) : '—'}</b><span>{cost ? (fx.fmtHome(cost) || 'custo do dia') : 'sem custos'}</span></div>
+          {hasSpent
+            ? <div><b>{fx.fmt(spent)}</b><span>gasto{cost ? ` de ${fx.fmt(cost)} previstos` : ''}</span></div>
+            : <div><b>{cost ? fx.fmt(cost) : '—'}</b><span>{cost ? (fx.fmtHome(cost) || 'custo previsto') : 'sem custos'}</span></div>}
           <div><b>{dist ? fmtKm(dist) : '—'}</b><span>em linha reta</span></div>
           <div><b>{doneCount}/{items.length}</b><span>feitas</span></div>
         </div>

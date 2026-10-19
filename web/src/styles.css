@@ -532,3 +532,34 @@ div.ms-pop { padding: 10px 12px; }
   .ft-name { font-size: 34px; }
   .ft-big b { font-size: 56px; }
 }
+
+/* tema e anotações do dia */
+.dayinfo-add { margin-top: 10px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+.dayinfo-add:hover { color: var(--ink); }
+.dayinfo { display: grid; gap: 4px; width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.dayinfo:hover { border-color: var(--hover-line); }
+.dayinfo-title { font-family: var(--serif); font-size: 19px; line-height: 1.2; }
+.dayinfo-notes { color: var(--ink-2); font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+.dayinfo-form { display: grid; gap: 8px; margin-top: 12px; }
+.dayinfo-form input, .dayinfo-form textarea { width: 100%; }
+.dayinfo-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* gasto real x previsto */
+.spent-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 8px 0 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.spent-box b { display: block; font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.spent-box span { color: var(--muted); font-size: 13px; }
+.spent-box .over b, .spent-cell.over { color: var(--danger); }
+.spent-box .under b, .spent-cell.under { color: var(--ok); }
+.spent-cell { font-size: 12px; white-space: nowrap; }
+@media (max-width: 600px) { .spent-box { grid-template-columns: 1fr; } }
+
+/* lugares próximos */
+.nearby-pop { padding: 8px; }
+.nearby-pop ul { list-style: none; margin: 4px 0 0; padding: 0; }
+.nearby-head { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.nearby-head .mini:last-child { margin-left: auto; }
+.map-tools .nearby-head .mini { display: inline-flex; width: auto; padding: 4px 10px; border-radius: 999px; background: var(--ctl); border: 1px solid var(--line); }
+.map-tools .nearby-head .mini:hover:not(:disabled) { background: var(--hover); }
+.map-tools .nearby-head .mini.on, .map-tools .nearby-head .mini.on:hover { background: var(--ink); color: var(--paper); }
+.nearby-origin { padding: 0 4px 4px; }
+.nearby-pop > .warn, .nearby-pop > .muted { padding: 6px 4px; }

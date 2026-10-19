@@ -6,7 +6,7 @@ import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, downloadIcs, parseLinks } from './Extras.jsx';
-import { MapSearch } from './MapSearch.jsx';
+import { MapSearch, Nearby } from './MapSearch.jsx';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal } from './Modals.jsx';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn,
@@ -17,6 +17,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const mapCenter = useRef(null);
   const [kinds, setKinds] = useState(() => new Set(KIND_KEYS));
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(false);
@@ -129,6 +130,10 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   });
 
   // ── edição de dados
+  const saveDayInfo = async (info) => {
+    const saved = await api.saveDayNotes(tripId, sel, info);
+    setData((d) => ({ ...d, days: [...(d.days || []).filter((x) => x.day !== sel), ...(saved.title || saved.notes ? [saved] : [])] }));
+  };
   const patchLocal = (id, patch) => setData((d) => ({ ...d, activities: d.activities.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
 
   const updateActivity = async (id, patch) => {
@@ -233,8 +238,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     (data.cities || []).filter((c) => c.key !== 'transito' && hasCoords(c)).forEach((c) => { const d = haversine(c, { lat, lng }); if (d < bd) { bd = d; best = c.key; } });
     return best || '';
   };
-  const quickOpen = (lat, lng, name, address) => {
-    const base = { title: name || '', kind: 'sight', city: nearestCity(lat, lng), location: address || '', details: '', cost: null, lat: +lat.toFixed(5), lng: +lng.toFixed(5) };
+  const quickOpen = (lat, lng, name, address, kind = 'sight') => {
+    const base = { title: name || '', kind, city: nearestCity(lat, lng), location: address || '', details: '', cost: null, lat: +lat.toFixed(5), lng: +lng.toFixed(5) };
     if (sel === 'trip') setEditing({ draft: base, isNew: true, idea: true });
     else setEditing({ draft: { ...base, day: sel, start: null, end: null, transport: '', done: 0 }, isNew: true });
   };
@@ -411,6 +416,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 onToggleDone={toggleDone} onAdd={openNew} onReorder={reorder} onSortTime={sortTime}
                 kinds={kinds} onToggleKind={toggleKind} fx={fx} tripTz={trip.tz} now={sel === today ? now.min : null}
                 onPrev={() => step(-1)} onNext={() => step(1)} hasPrev={dayIndex > 0} hasNext={dayIndex < days.length - 1}
+                dayInfo={(data.days || []).find((d) => d.day === sel) || null} onSaveDayInfo={saveDayInfo}
               />
             )}
           </div>
@@ -418,6 +424,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
         <section className={`mapwrap${sel === 'trip' && routeStops.length ? ' with-bar' : ''}`}>
           <MapView
+            centerRef={mapCenter}
             mode={sel === 'trip' ? 'trip' : 'day'}
             items={mapItems}
             stays={data.stays}
@@ -451,6 +458,10 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           )}
           <div className="map-tools">
             <MapSearch onPick={(lat, lng, name, address) => { setFlyTarget({ lat, lng, nonce: ++nonce.current }); quickOpen(lat, lng, name, address); }} />
+            <Nearby
+              getOrigin={() => { const a = (data.activities || []).find((x) => x.id === selectedId); return hasCoords(a) ? { ...a, label: a.title } : mapCenter.current?.(); }}
+              onPick={(lat, lng, name, address, kind) => { setFlyTarget({ lat, lng, nonce: ++nonce.current }); quickOpen(lat, lng, name, address, kind); }}
+            />
             <button className={quickAdd ? 'on' : ''} onClick={() => setQuickAdd((v) => !v)} title={sel === 'trip' ? 'Clique no mapa para criar uma ideia ali' : 'Clique no mapa para criar uma atividade ali'}>{quickAdd ? 'Clique no mapa…' : '+ No mapa'}</button>
             {sel !== 'trip' && (
               <button className={labelNumbers ? 'on' : ''} onClick={() => setLabelNumbers((v) => !v)} title="Alternar entre números e ícones">{labelNumbers ? 'Números' : 'Ícones'}</button>

@@ -31,6 +31,7 @@ export const api = {
   createActivity: (tripId, a) => req('POST', `/api/trips/${tripId}/activities`, a),
   updateActivity: (id, patch) => req('PUT', `/api/activities/${id}`, patch),
   deleteActivity: (id) => req('DELETE', `/api/activities/${id}`),
+  saveDayNotes: (tripId, day, d) => req('PUT', `/api/trips/${tripId}/daynotes/${day}`, d),
   reorderDay: (tripId, day, ids) => req('PUT', `/api/trips/${tripId}/days/reorder`, { day, ids }),
   // hospedagens
   createStay: (tripId, s) => req('POST', `/api/trips/${tripId}/stays`, s),
