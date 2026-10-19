@@ -36,7 +36,8 @@ scripts/           setup.sh e sync-to-shared.sh
 
 - **Minhas viagens**: tela inicial com todas as viagens, contagem regressiva, criar, duplicar, excluir, importar/exportar backup (JSON).
 - **Nova viagem**: nome, datas, ícone, moeda da viagem e sua moeda (com câmbio editável).
-- **Visão geral**: rota entre hospedagens, bate-voltas (tracejado), cidades com contagem de pontos turísticos, lista de dias, camadas por tipo.
+- **Tema escuro** por padrão (alternável no menu ⋯ ou na tela inicial; a escolha fica salva no navegador), com mapa-base escuro.
+- **Visão geral**: barra "Rota da viagem" no topo do mapa (cidades coloridas na ordem de visita), pins em gota por cidade, rota entre hospedagens, bate-voltas (tracejado), cidades com contagem de pontos turísticos, lista de dias, camadas por tipo.
 - **Dia a dia**: timeline com horário, duração, custo, distância em linha reta entre paradas, trajeto numerado no mapa com setas.
 - **Edição**: criar/editar/excluir atividades, marcar como feito, arrastar para reordenar, "Ordenar por horário", arrastar marcadores no mapa (✋ Mover pontos), buscar local (OpenStreetMap) ou clicar no mapa.
 - **Cidades e locais** e **Hospedagens**: cadastro por viagem (a cidade nova já busca a posição no mapa).

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import MapView from './MapView.jsx';
+import { getTheme, toggleTheme } from './theme.js';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal } from './Modals.jsx';
@@ -28,6 +29,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [flyTarget, setFlyTarget] = useState(null);
   const [cityFocus, setCityFocus] = useState(null);
   const [toast, setToast] = useState('');
+  const [theme, setTheme] = useState(getTheme);
   const nonce = useRef(0);
 
   const say = useCallback((msg) => { setToast(msg); setTimeout(() => setToast(''), 3200); }, []);
@@ -60,6 +62,16 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       conflicts: findConflicts(list).size,
     };
   }), [days, byDay]);
+
+  // ordem de visita das cidades (primeira atividade de cada uma), como na barra de rota do Notion
+  const routeStops = useMemo(() => {
+    const order = [];
+    const seen = new Set();
+    const add = (k) => { if (k && k !== 'transito' && cityMap[k] && !seen.has(k)) { seen.add(k); order.push(cityMap[k]); } };
+    [...(data?.activities || [])].sort((a, b) => a.day.localeCompare(b.day) || a.sort - b.sort).forEach((a) => add(a.city));
+    (data?.stays || []).forEach((s) => add(s.city));
+    return order;
+  }, [data, cityMap]);
 
   const conflictsTotal = daysInfo.reduce((s, d) => s + d.conflicts, 0);
   const dayIndex = sel === 'trip' ? -1 : days.indexOf(sel);
@@ -262,6 +274,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <details className="menu">
           <summary>⋯</summary>
           <div className="menu-pop" onClick={(e) => e.currentTarget.parentElement.removeAttribute('open')}>
+            <button onClick={() => setTheme(toggleTheme())}>{theme === 'dark' ? '☀️ Tema claro' : '🌙 Tema escuro'}</button>
             <button onClick={() => setModal('trip')}>✎ Editar viagem</button>
             <button onClick={() => setModal('cities')}>📍 Cidades e locais</button>
             <button onClick={() => window.print()}>🖨️ Imprimir roteiro</button>
@@ -304,7 +317,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           </div>
         </aside>
 
-        <section className="mapwrap">
+        <section className={`mapwrap${sel === 'trip' && routeStops.length ? ' with-bar' : ''}`}>
           <MapView
             mode={sel === 'trip' ? 'trip' : 'day'}
             items={mapItems}
@@ -324,6 +337,17 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             showStays={sel === 'trip' ? showStaysTrip : showStaysDay}
             labelNumbers={labelNumbers}
           />
+          {sel === 'trip' && routeStops.length > 0 && (
+            <div className="route-bar">
+              <b>Rota da viagem</b>
+              {routeStops.map((c, i) => (
+                <span key={c.key} style={{ display: 'contents' }}>
+                  {i > 0 && <span className="sep">→</span>}
+                  <button className="stop" style={{ '--c': c.color }} onClick={() => focusCity(c)}><i />{c.name}</button>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="map-tools">
             {sel !== 'trip' && (
               <button className={labelNumbers ? 'on' : ''} onClick={() => setLabelNumbers((v) => !v)} title="Alternar entre números e ícones">{labelNumbers ? '① Números' : '⛩️ Ícones'}</button>

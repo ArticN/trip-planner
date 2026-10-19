@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { TripModal } from './Modals.jsx';
 import { daysBetween, fmtDay } from './util.js';
+import { getTheme, toggleTheme } from './theme.js';
 
 const todayStr = () => {
   const d = new Date();
@@ -20,6 +21,7 @@ export default function Home({ version, onOpen, onChanged }) {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(null);
   const [toast, setToast] = useState('');
+  const [theme, setTheme] = useState(getTheme);
   const fileRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -72,6 +74,7 @@ export default function Home({ version, onOpen, onChanged }) {
       <header className="home-top">
         <div className="brand"><span className="logo">🧳</span><div><div className="brand-name">Trip Planner</div><div className="brand-sub">mapa, roteiro dia a dia e orçamento</div></div></div>
         <span className="spacer" />
+        <button onClick={() => setTheme(toggleTheme())} title="Alternar tema" aria-label="Alternar tema">{theme === 'dark' ? '☀️' : '🌙'}</button>
         <button onClick={() => fileRef.current.click()}>⬆️ <span className="hide-sm">Importar backup</span></button>
         <button className="primary" onClick={newTrip}>+ Nova viagem</button>
         <input ref={fileRef} type="file" accept="application/json" hidden onChange={onImport} />
