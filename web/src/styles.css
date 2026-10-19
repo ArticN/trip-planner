@@ -867,3 +867,39 @@ div.ms-pop { padding: 10px 12px; }
 .days-list li.today { background: var(--accent-soft); border-radius: var(--r-ctl); border-top-color: transparent; }
 .days-list li.today + li { border-top-color: transparent; }
 .days-list li.today .d-date span { color: var(--accent); font-weight: 600; }
+
+/* hierarquia de botões: principal (cheio), secundário (contorno, o padrão) e terciário (só texto) */
+button.ghost, .btn-ghost { border-color: transparent; background: none; color: var(--ink-2); font-weight: 500; }
+button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.top button.ghost { padding: 6px 12px; }
+.menu summary { border-color: transparent; color: var(--ink-2); }
+.menu summary:hover, .menu[open] summary { background: var(--hover); color: var(--ink); }
+.day-foot { gap: 2px 4px; }
+.day-foot button.ghost { padding: 6px 10px; }
+
+/* ícones desenhados */
+.ic { display: inline-flex; vertical-align: -0.15em; flex: none; }
+.ic svg { display: block; }
+.fchip .ic { color: var(--c); }
+.fchip.on .ic { color: inherit; }
+.tag .ic { margin-right: 2px; }
+.pin span svg { display: block; }
+
+/* avisos: um só, discreto, que filtra os dias */
+.issues-btn { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; width: 100%; margin-top: 12px; padding: 8px 12px; border: 0; border-radius: var(--r-box); background: var(--warn-bg); color: var(--warn); text-align: left; font-size: 13px; font-weight: 500; }
+.issues-btn span { flex: 1; min-width: 0; text-align: left; }
+.issues-btn b { flex-basis: 100%; padding-left: 22px; text-align: left; }
+.issues-btn b { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.issues-btn:hover:not(:disabled) { background: var(--warn-bg); filter: brightness(1.08); }
+.issues-btn.on { box-shadow: inset 0 0 0 1px var(--warn); }
+.issues-line { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--warn); }
+.d-issue { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--warn); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* menos divisórias: a lista de dias se separa por espaço, não por régua */
+.days-list { gap: 2px; }
+.days-list li { border-top: 0; border-radius: var(--r-ctl); padding: 8px 8px; }
+
+/* ferramentas do mapa: sem contorno, só o vidro, para não competir com o mapa */
+.map-tools button { border-color: transparent; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+.map-tools .map-search input { border-color: transparent; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+.menu summary { display: grid; place-items: center; min-width: 36px; padding: 7px 10px; }

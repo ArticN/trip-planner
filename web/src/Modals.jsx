@@ -143,7 +143,7 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
         </label>}
         <label>Tipo
           <select value={draft.kind || 'sight'} onChange={(e) => set({ kind: e.target.value })}>
-            {KIND_KEYS.map((k) => <option key={k} value={k}>{KINDS[k].icon} {KINDS[k].label}</option>)}
+            {KIND_KEYS.map((k) => <option key={k} value={k}>{KINDS[k].label}</option>)}
           </select>
         </label>
         {!isIdea && <label>Início

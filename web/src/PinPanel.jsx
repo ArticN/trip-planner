@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Stars } from './Stars.jsx';
 import { wikiSummary, wikiCached } from './wiki.js';
 import { FileList } from './Attachments.jsx';
+import { Icon } from './icons.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { KINDS, hasCoords, duration, fmtDuration, fmtDayLong, endDayOf, directionsUrl } from './util.js';
 
@@ -21,8 +22,8 @@ export default function PinPanel({ a, n, cityMap, fx, tripTz, onEdit, onToggleDo
   return (
     <aside className="pin-panel" aria-label="Detalhes da atividade">
       <div className="pp-top">
-        <div className="pp-kind" style={{ color: k.color }}>{k.icon} {k.label}{n ? ` · #${n}` : ''}{city ? ` · ${city.name}` : ''}</div>
-        <button className="icon-btn sm" onClick={onClose} title="Fechar" aria-label="Fechar">×</button>
+        <div className="pp-kind" style={{ color: k.color }}><Icon name={a.kind in KINDS ? a.kind : 'sight'} /> {k.label}{n ? ` · #${n}` : ''}{city ? ` · ${city.name}` : ''}</div>
+        <button className="icon-btn sm" onClick={onClose} title="Fechar" aria-label="Fechar"><Icon name="x" size={14} /></button>
       </div>
       <h3 className="pp-title">{a.title}</h3>
       <div className="pp-when">{when}</div>

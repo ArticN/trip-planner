@@ -1,11 +1,11 @@
 export const KINDS = {
-  sight: { label: 'Pontos turísticos', icon: '📍', color: '#c0392b' }, // taste-skill-ignore: kind icons are data
-  food: { label: 'Comida e café', icon: '🍜', color: '#d68910' }, // taste-skill-ignore: kind icons are data
-  move: { label: 'Deslocamento', icon: '🚆', color: '#2874a6' }, // taste-skill-ignore: kind icons are data
-  stay: { label: 'Hospedagem', icon: '🏨', color: '#7d3c98' }, // taste-skill-ignore: kind icons are data
-  shop: { label: 'Compras', icon: '🛍️', color: '#138d75' }, // taste-skill-ignore: kind icons are data
-  free: { label: 'Tempo livre', icon: '⏳', color: '#7f8c8d' }, // taste-skill-ignore: kind icons are data
-  flight: { label: 'Voo', icon: '✈️', color: '#34495e' }, // taste-skill-ignore: kind icons are data
+  sight: { label: 'Pontos turísticos', color: '#c0392b' },
+  food: { label: 'Comida e café', color: '#d68910' },
+  move: { label: 'Deslocamento', color: '#2874a6' },
+  stay: { label: 'Hospedagem', color: '#7d3c98' },
+  shop: { label: 'Compras', color: '#138d75' },
+  free: { label: 'Tempo livre', color: '#7f8c8d' },
+  flight: { label: 'Voo', color: '#34495e' },
 };
 export const KIND_KEYS = Object.keys(KINDS);
 

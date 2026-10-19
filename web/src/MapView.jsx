@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { KINDS, esc, hasCoords, haversine, fmtKm } from './util.js';
 import { translatedBasemap, osmLayer } from './basemap.js';
 import { accentColor } from './theme.js';
+import { iconSvg } from './icons.jsx';
 
 const WORLD_CENTER = [20, 0];
 const BASE_KEY = 'trip-planner-basemap';
@@ -74,7 +75,7 @@ function bearing(a, b) {
 function pinIcon(label, color, selected, kind) {
   return L.divIcon({
     className: 'pin-wrap',
-    html: `<div class="pin${selected ? ' sel' : ''}" style="--c:${color}" title="${esc(kind || '')}"><span>${esc(label)}</span></div>`,
+    html: `<div class="pin${selected ? ' sel' : ''}" style="--c:${color}" title="${esc(kind || '')}"><span>${label}</span></div>`,
     iconSize: [30, 30],
     iconAnchor: [15, 36],
     popupAnchor: [0, -38],
@@ -198,7 +199,7 @@ export default function MapView({
         const kcolor = (KINDS[a.kind] || KINDS.sight).color;
         const [dy, dx] = jit.get(a.id) || [0, 0];
         const m = L.marker([a.lat + dy, a.lng + dx], {
-          icon: pinIcon(labelNumbers ? a.n : (KINDS[a.kind]?.icon || '•'), kcolor, a.id === selectedId, KINDS[a.kind]?.label),
+          icon: pinIcon(labelNumbers ? esc(a.n) : iconSvg(KINDS[a.kind] ? a.kind : 'sight', 15, 2.2), kcolor, a.id === selectedId, KINDS[a.kind]?.label),
           draggable: !!editPositions,
           zIndexOffset: a.id === selectedId ? 1000 : 0,
         });

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Icon } from './icons.jsx';
 
 // busca de lugares sobre o mapa (OpenStreetMap Nominatim); escolher um resultado abre o cadastro já preenchido
 export function MapSearch({ onPick }) {
@@ -103,7 +104,7 @@ export function Nearby({ getOrigin, onPick }) {
             {Object.entries(NEARBY).map(([k, v]) => (
               <button key={k} className={`mini${k === cat ? ' on' : ''}`} onClick={() => load(k)} disabled={busy}>{v.label}</button>
             ))}
-            <button className="mini" onClick={() => setOpen(false)} title="Fechar" aria-label="Fechar">×</button>
+            <button className="mini" onClick={() => setOpen(false)} title="Fechar" aria-label="Fechar"><Icon name="x" size={14} /></button>
           </div>
           {origin && <div className="muted small nearby-origin">até {fmtM(R)} {origin.label ? `de ${origin.label}` : 'do centro do mapa'}</div>}
           {busy && <div className="muted small">Buscando…</div>}

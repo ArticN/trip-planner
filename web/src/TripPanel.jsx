@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { DoneFilter } from './DayPanel.jsx';
+import { Icon } from './icons.jsx';
 import { KINDS, KIND_KEYS, fmtDay, daysBetween, hasCoords, nowIn } from './util.js';
 
 // faixa da viagem: uma fatia por hospedagem, larga na proporção das noites, na cor da cidade
@@ -25,6 +27,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
   const sights = activities.filter((a) => a.kind === 'sight').length;
   const noCoords = activities.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
   const today = nowIn(trip.tz).day;
+  const [issuesOnly, setIssuesOnly] = useState(false);
   const nights = stays.reduce((s, x) => s + Math.max(0, daysBetween(x.check_in, x.check_out)), 0);
 
   return (
@@ -42,10 +45,11 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
           <div><b>{total ? fx.fmt(total) : '—'}</b><span>{total ? (fx.fmtHome(total) || 'em custos') : 'custos'}</span></div>
         </div>
         {(conflictsTotal > 0 || noCoords > 0) && (
-          <div className="warns">
-            {conflictsTotal > 0 && <span className="warn">{conflictsTotal} atividades com horário sobreposto</span>}
-            {noCoords > 0 && <span className="warn soft">{noCoords} atividades sem local</span>}
-          </div>
+          <button className={`issues-btn${issuesOnly ? ' on' : ''}`} aria-pressed={issuesOnly} onClick={() => setIssuesOnly((v) => !v)}>
+            <Icon name="warn" size={14} />
+            <span>{[conflictsTotal > 0 && `${conflictsTotal} com horário sobreposto`, noCoords > 0 && `${noCoords} sem local`].filter(Boolean).join(' · ')}</span>
+            <b>{issuesOnly ? 'Mostrar todos os dias' : 'Ver em quais dias'}</b>
+          </button>
         )}
       </div>
 
@@ -75,17 +79,22 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
         {cities.some((c) => c.key !== 'transito' && !stays.some((s) => s.city === c.key)) && 'Bate-voltas: '}{cities.filter((c) => !['transito'].includes(c.key) && !stays.some((s) => s.city === c.key)).map((c) => `${c.emoji} ${c.name}`).join(' · ')}
       </div>
 
-      <div className="section-title">Dias</div>
+      <div className="section-title">{issuesOnly ? 'Dias para revisar' : 'Dias'}</div>
       <ul className="days-list">
-        {daysInfo.map((d) => (
+        {(issuesOnly ? daysInfo.filter((d) => d.conflicts || d.missing) : daysInfo).map((d) => (
           <li key={d.day} onClick={() => onPickDay(d.day)} className={[!d.count && 'empty', d.day === today && 'today', d.day < today && 'past'].filter(Boolean).join(' ') || undefined} style={{ '--c': cityMap[d.cities[0]]?.color || 'var(--ctl)' }}>
             <div className="d-date"><b>{d.num}</b><span>{d.day === today ? 'hoje' : d.week}</span></div>
             <i className="d-dot" aria-hidden="true" />
             <div className="d-mid">
               <div className="d-cities">{d.cities.length ? `${d.cities.map((k) => cityMap[k]?.emoji).join(' ')} ${d.cities.map((k) => cityMap[k]?.name).join(' · ')}` : d.count ? 'Em trânsito' : 'Sem atividades'}</div>
               <div className="muted small">{d.count} {d.count === 1 ? 'atividade' : 'atividades'}{d.cost ? ` · ${fx.fmt(d.cost)}` : ''}</div>
+              {issuesOnly && (
+                <div className="d-issue"><Icon name="warn" size={12} />{[d.conflicts && `${d.conflicts} com horário sobreposto`, d.missing && `${d.missing} sem local`].filter(Boolean).join(' · ')}</div>
+              )}
             </div>
-            {d.conflicts > 0 && <span className="tag warn">{d.conflicts} sobrepostas</span>}
+            {!issuesOnly && d.conflicts > 0 && (
+              <span className="d-issue" title={`${d.conflicts} com horário sobreposto`}><Icon name="warn" size={12} />{d.conflicts}</span>
+            )}
           </li>
         ))}
       </ul>
@@ -120,19 +129,19 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
       <div className="filters wrap">
         {KIND_KEYS.map((k) => (
           <button key={k} className={`fchip wide${kinds.has(k) ? ' on' : ''}`} style={{ '--c': KINDS[k].color }} onClick={() => onToggleKind(k)}>
-            {KINDS[k].icon} {KINDS[k].label}
+            <Icon name={k} /> {KINDS[k].label}
           </button>
         ))}
       </div>
       <div className="filters"><DoneFilter value={doneFilter} onChange={onDoneFilter} /></div>
 
       <div className="day-foot">
-        <button onClick={onOpenCities}>Cidades</button>
-        <button onClick={onOpenStays}>Hospedagens</button>
-        <button onClick={onOpenBudget}>Orçamento</button>
-        <button onClick={() => onOpen('checklist')}>Checklist{checklist.length ? ` ${checklist.filter((c) => c.done).length}/${checklist.length}` : ''}</button>
-        <button onClick={() => onOpen('stats')}>Estatísticas</button>
-        <button onClick={() => onOpen('calendar')}>Calendário</button>
+        <button className="ghost" onClick={onOpenCities}>Cidades</button>
+        <button className="ghost" onClick={onOpenStays}>Hospedagens</button>
+        <button className="ghost" onClick={onOpenBudget}>Orçamento</button>
+        <button className="ghost" onClick={() => onOpen('checklist')}>Checklist{checklist.length ? ` ${checklist.filter((c) => c.done).length}/${checklist.length}` : ''}</button>
+        <button className="ghost" onClick={() => onOpen('stats')}>Estatísticas</button>
+        <button className="ghost" onClick={() => onOpen('calendar')}>Calendário</button>
       </div>
     </div>
   );

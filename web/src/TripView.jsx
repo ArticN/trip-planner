@@ -108,6 +108,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       day, num: dayNum(day), week: dayWeek(day), cities,
       count: list.length, cost: list.reduce((s, a) => s + (a.cost || 0), 0),
       conflicts: findConflicts(list).size,
+      missing: list.filter((a) => !hasCoords(a) && a.kind !== 'free').length,
     };
   }), [days, byDay]);
 
@@ -478,11 +479,11 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <button className="icon-btn" onClick={() => setModal('search')} title="Buscar na viagem (/)" aria-label="Buscar na viagem">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
         </button>
-        <button className="hide-sm" onClick={() => setModal('stays')}>Hospedagens</button>
-        <button className="hide-sm" onClick={() => setModal('budget')}>Orçamento</button>
-        <button className="hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
+        <button className="ghost hide-sm" onClick={() => setModal('stays')}>Hospedagens</button>
+        <button className="ghost hide-sm" onClick={() => setModal('budget')}>Orçamento</button>
+        <button className="ghost hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
         <details className="menu">
-          <summary>⋯</summary>
+          <summary aria-label="Mais opções" title="Mais opções"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></summary>
           <div className="menu-pop" onClick={(e) => e.currentTarget.parentElement.removeAttribute('open')}>
             <button className="only-sm" onClick={() => setModal('stays')}>Hospedagens</button>
             <button className="only-sm" onClick={() => setModal('budget')}>Orçamento</button>
@@ -668,7 +669,7 @@ function PrintView({ days, byDay, cityMap, stays, trip, fx, checklist }) {
               {list.map((a) => (
                 <li key={a.id}>
                   <span className="pt">{a.start ? `${a.start}${a.end ? '–' + a.end : ''}` : '  —  '}</span>{' '}
-                  {KINDS[a.kind]?.icon} <b>{a.title}</b>
+                  <b>{a.title}</b>
                   {a.location ? ` — ${a.location}` : ''}
                   {a.cost ? ` (${fx.fmt(a.cost)})` : ''}
                   {a.notes ? <div className="pt">{a.notes}</div> : null}

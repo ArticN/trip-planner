@@ -2,6 +2,7 @@ import { Stars } from './Stars.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
+import { Icon } from './icons.jsx';
 import WeatherLine from './WeatherLine.jsx';
 import { travelTime, slack, gmapsDirections } from './travel.js';
 import {
@@ -144,9 +145,9 @@ export default function DayPanel({
           <div><b>{doneCount}/{items.length}</b><span>feitas</span></div>
         </div>
         {(conflicts.size > 0 || missing > 0) && (
-          <div className="warns">
-            {conflicts.size > 0 && <span className="warn">{conflicts.size} atividades com horário sobreposto</span>}
-            {missing > 0 && <span className="warn soft">{missing} sem local no mapa</span>}
+          <div className="issues-line">
+            <Icon name="warn" size={14} />
+            {[conflicts.size > 0 && `${conflicts.size} com horário sobreposto`, missing > 0 && `${missing} sem local no mapa`].filter(Boolean).join(' · ')}
           </div>
         )}
       </div>
@@ -154,7 +155,7 @@ export default function DayPanel({
       <div className="filters">
         {KIND_KEYS.map((k) => (
           <button key={k} className={`fchip${kinds.has(k) ? ' on' : ''}`} style={{ '--c': KINDS[k].color }} onClick={() => onToggleKind(k)} title={KINDS[k].label}>
-            {KINDS[k].icon}
+            <Icon name={k} size={17} />
           </button>
         ))}
       </div>
@@ -240,7 +241,7 @@ export default function DayPanel({
                     </div>
                   )}
                   <div className="tags">
-                    <span className="tag" style={{ '--c': k.color }}>{k.icon} {k.label}</span>
+                    <span className="tag" style={{ '--c': k.color }}><Icon name={a.kind in KINDS ? a.kind : 'sight'} size={13} /> {k.label}</span>
                     {dur != null && <span className="tag">⏱ {fmtDuration(dur)}</span>}
                     {a.transport && <span className="tag">{a.transport}</span>}
                     {a.cost > 0 && <span className="tag cost">{fx.fmt(a.cost)}</span>}

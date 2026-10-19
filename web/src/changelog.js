@@ -1,6 +1,17 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.14',
+    date: '2026-10-19',
+    title: 'Interface mais limpa',
+    items: [
+      'Os botões ganharam três níveis de destaque. O principal é cheio, os comuns têm contorno e os de navegação (Hospedagens, Orçamento, Checklist, Importar) são só texto, para não disputar atenção.',
+      'Os avisos viraram um só. Na visão geral, “Ver em quais dias” mostra apenas os dias com horário sobreposto ou atividade sem local, e “Mostrar todos os dias” volta à lista completa.',
+      'Ícones desenhados no lugar dos emoji nas categorias, nos filtros, nos pinos do mapa e nos botões de fechar. Eles ficam iguais em qualquer aparelho. Os emoji que você escolhe, como os das cidades e das viagens, continuam.',
+      'Menos linhas divisórias. A lista de dias se separa por espaço, e as ferramentas do mapa perderam o contorno.',
+    ],
+  },
+  {
     version: '1.13',
     date: '2026-10-19',
     title: 'Visão geral mais limpa',

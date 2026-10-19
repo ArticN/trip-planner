@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Icon } from './icons.jsx';
 import { api } from './api.js';
 
 // anexos de uma atividade ou ideia: ingressos, passagens, vouchers, confirmações
@@ -91,13 +92,13 @@ export function AttachmentsField({ files: allFiles = [], pending: allPending = [
                 {isImage(f.type) ? <img src={api.fileUrl(f.id)} alt="" loading="lazy" /> : <FileIcon type={f.type} />}
                 <span><b>{f.name}</b><small>{fmtSize(f.size)}</small></span>
               </a>
-              <button type="button" className="icon-btn sm" onClick={() => onRemove(f)} aria-label={`Remover ${f.name}`} title="Remover">×</button>
+              <button type="button" className="icon-btn sm" onClick={() => onRemove(f)} aria-label={`Remover ${f.name}`} title="Remover"><Icon name="x" size={14} /></button>
             </li>
           ))}
           {pending.map((f, i) => (
             <li key={`p${i}`} className="pending">
               <span className="file-a"><FileIcon type={f.type} /><span><b>{f.name}</b><small>{fmtSize(f.size)} · envia ao salvar</small></span></span>
-              <button type="button" className="icon-btn sm" onClick={() => onPending([...others, ...pending.filter((_, j) => j !== i)])} aria-label={`Remover ${f.name}`} title="Remover">×</button>
+              <button type="button" className="icon-btn sm" onClick={() => onPending([...others, ...pending.filter((_, j) => j !== i)])} aria-label={`Remover ${f.name}`} title="Remover"><Icon name="x" size={14} /></button>
             </li>
           ))}
         </ul>
