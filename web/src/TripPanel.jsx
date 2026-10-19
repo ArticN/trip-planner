@@ -1,7 +1,7 @@
-import { KINDS, KIND_KEYS, fmtDay, daysBetween, yen, brl, hasCoords } from './util.js';
+import { KINDS, KIND_KEYS, fmtDay, daysBetween, hasCoords } from './util.js';
 
-export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, brlRate, onCity, onOpenStays, onOpenBudget, onPickDay, daysInfo }) {
-  const total = activities.reduce((s, a) => s + (a.cost_jpy || 0), 0);
+export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo }) {
+  const total = activities.reduce((s, a) => s + (a.cost || 0), 0);
   const sights = activities.filter((a) => a.kind === 'sight').length;
   const noCoords = activities.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
   const nights = stays.reduce((s, x) => s + Math.max(0, daysBetween(x.check_in, x.check_out)), 0);
@@ -11,12 +11,13 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
       <div className="day-head">
         <div className="day-kicker">Visão geral</div>
         <h2 className="day-title">{trip.name}</h2>
+        <button className="link-btn" onClick={onEditTrip}>✎ Editar viagem</button>
         <div className="muted">{fmtDay(trip.start)} → {fmtDay(trip.end)} · {daysBetween(trip.start, trip.end) + 1} dias</div>
         <div className="stats">
           <div><b>{activities.length}</b><span>atividades</span></div>
           <div><b>{sights}</b><span>pontos turísticos</span></div>
-          <div><b>{nights}</b><span>noites no Japão</span></div>
-          <div><b>{total ? yen(total) : '—'}</b><span>{total ? brl(total * brlRate) : 'ingressos'}</span></div>
+          <div><b>{nights}</b><span>noites</span></div>
+          <div><b>{total ? fx.fmt(total) : '—'}</b><span>{total ? (fx.fmtHome(total) || 'em custos') : 'custos'}</span></div>
         </div>
         {(conflictsTotal > 0 || noCoords > 0) && (
           <div className="warns">
@@ -27,6 +28,9 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
       </div>
 
       <div className="section-title">Rota</div>
+      {stays.length === 0 && (
+        <div className="empty small">Cadastre as <button onClick={onOpenStays}>🏨 hospedagens</button> para ver a rota entre cidades no mapa.</div>
+      )}
       <ol className="route">
         {stays.map((s) => {
           const c = cityMap[s.city];
@@ -44,7 +48,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
         })}
       </ol>
       <div className="muted small pad">
-        Bate-voltas: {cities.filter((c) => !['transito'].includes(c.key) && !stays.some((s) => s.city === c.key)).map((c) => `${c.emoji} ${c.name}`).join(' · ')}
+        {cities.some((c) => c.key !== 'transito' && !stays.some((s) => s.city === c.key)) && 'Bate-voltas: '}{cities.filter((c) => !['transito'].includes(c.key) && !stays.some((s) => s.city === c.key)).map((c) => `${c.emoji} ${c.name}`).join(' · ')}
       </div>
 
       <div className="section-title">Dias</div>
@@ -54,7 +58,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
             <div className="d-date"><b>{d.num}</b><span>{d.week}</span></div>
             <div className="d-mid">
               <div className="d-cities">{d.cities.length ? `${d.cities.map((k) => cityMap[k]?.emoji).join(' ')} ${d.cities.map((k) => cityMap[k]?.name).join(' · ')}` : d.count ? '✈️ Em trânsito' : 'Sem atividades'}</div>
-              <div className="muted small">{d.count} {d.count === 1 ? 'atividade' : 'atividades'}{d.cost ? ` · ${yen(d.cost)}` : ''}</div>
+              <div className="muted small">{d.count} {d.count === 1 ? 'atividade' : 'atividades'}{d.cost ? ` · ${fx.fmt(d.cost)}` : ''}</div>
             </div>
             {d.conflicts > 0 && <span className="tag warn">⚠️ {d.conflicts}</span>}
           </li>
@@ -71,6 +75,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
       </div>
 
       <div className="day-foot">
+        <button onClick={onOpenCities}>📍 Cidades</button>
         <button onClick={onOpenStays}>🏨 Hospedagens</button>
         <button onClick={onOpenBudget}>💴 Orçamento</button>
       </div>

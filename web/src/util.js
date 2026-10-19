@@ -1,5 +1,5 @@
 export const KINDS = {
-  sight: { label: 'Pontos turísticos', icon: '⛩️', color: '#c0392b' },
+  sight: { label: 'Pontos turísticos', icon: '📍', color: '#c0392b' },
   food: { label: 'Comida e café', icon: '🍜', color: '#d68910' },
   move: { label: 'Deslocamento', icon: '🚆', color: '#2874a6' },
   stay: { label: 'Hospedagem', icon: '🏨', color: '#7d3c98' },
@@ -9,7 +9,7 @@ export const KINDS = {
 };
 export const KIND_KEYS = Object.keys(KINDS);
 
-export const TRANSPORTS = ['', '🚶 A pé', '🚇 Metrô', '🚃 Trem', '🚄 Shinkansen', '🚌 Ônibus', '🚕 Táxi', '✈️ Avião'];
+export const TRANSPORTS = ['', '🚶 A pé', '🚇 Metrô', '🚃 Trem', '🚄 Trem de alta velocidade', '🚌 Ônibus', '🚕 Táxi', '✈️ Avião'];
 
 export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -76,8 +76,30 @@ export function rangeDays(start, end) {
   return out;
 }
 
-export const yen = (n) => `¥${Math.round(n).toLocaleString('pt-BR')}`;
-export const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+export const CURRENCIES = ['BRL', 'USD', 'EUR', 'GBP', 'JPY', 'ARS', 'CLP', 'CAD', 'AUD', 'CHF', 'MXN', 'KRW', 'CNY', 'THB'];
+
+const fmtCache = {};
+export function money(n, cur) {
+  try {
+    fmtCache[cur] ||= new Intl.NumberFormat('pt-BR', { style: 'currency', currency: cur });
+    return fmtCache[cur].format(n);
+  } catch {
+    return `${cur} ${n.toFixed(2)}`;
+  }
+}
+
+// moeda da viagem + conversão opcional para a moeda de casa (rate = 1 moeda da viagem em moeda de casa)
+export function makeFx(trip) {
+  const cur = trip.currency || 'BRL';
+  const home = trip.home_currency || cur;
+  const rate = Number(trip.rate) || 0;
+  const convert = cur !== home && rate > 0;
+  return {
+    cur, home, rate, convert,
+    fmt: (n) => money(n, cur),
+    fmtHome: (n) => (convert ? money(n * rate, home) : ''),
+  };
+}
 
 // ids com conflito de horário (ignora "tempo livre")
 export function findConflicts(items) {

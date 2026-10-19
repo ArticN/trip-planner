@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Prepara um workspace de desenvolvimento a partir desta pasta.
-# Uso: bash scripts/setup.sh [destino]   (padrão: ~/japan-planner)
+# Uso: bash scripts/setup.sh [destino]   (padrão: ~/trip-planner)
 # Copia o código (sem node_modules/dist/data), instala dependências e compila.
 set -euo pipefail
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
-DEST="${1:-$HOME/japan-planner}"
+DEST="${1:-$HOME/trip-planner}"
 
 node -e 'const [a,b]=process.versions.node.split(".").map(Number); if (a<22||(a===22&&b<13)) { console.error("Precisa de Node >= 22.13 (node:sqlite). Atual: "+process.version); process.exit(1); }'
 

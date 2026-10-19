@@ -1,14 +1,19 @@
-// Dados iniciais importados do Notion "Planner de Viagem - Japão".
+// Roteiro de exemplo, importado do Notion "Planner de Viagem - Japão".
 // Horários já convertidos para o horário local (Japão) exibido no Notion.
 // Coordenadas são aproximadas: dá pra ajustar arrastando os marcadores no app.
 
 export const TRIP = {
   name: 'Japão 2026',
   subtitle: 'トラベルプランナー',
+  emoji: '🗾',
   start: '2026-11-06',
   end: '2026-11-29',
-  brl_rate: '0.035', // 1 JPY em BRL — edite no app
+  currency: 'JPY',
+  home_currency: 'BRL',
+  rate: 0.035, // 1 JPY em BRL — edite no app
 };
+
+export const EXAMPLE = { key: 'japao', title: 'Japão 2026 (roteiro de exemplo)', description: '24 dias entre Tóquio, Kyoto, Osaka e arredores, com horários, hotéis e custos.' };
 
 export const CITIES = [
   { key: 'toquio', name: 'Tóquio', emoji: '🗼', color: '#8e44ad', lat: 35.6762, lng: 139.6503 },

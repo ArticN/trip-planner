@@ -1,9 +1,9 @@
 {
-  "name": "japan-planner",
+  "name": "trip-planner",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Planner de viagem: mapa, rota dia a dia, timeline e orçamento",
+  "description": "Planner de viagens: mapa, rota dia a dia, timeline e orçamento",
   "scripts": {
     "dev": "npm run dev:server & npm run dev:web; wait",
     "dev:server": "node --watch server/index.js",

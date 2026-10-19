@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, yen, brl,
+  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween,
 } from './util.js';
 
 function Gap({ a, b }) {
@@ -13,13 +13,13 @@ function Gap({ a, b }) {
 
 export default function DayPanel({
   day, dayIndex, items, cityMap, stay, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
-  onReorder, onSortTime, kinds, onToggleKind, brlRate, onPrev, onNext, hasPrev, hasNext,
+  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext,
 }) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
 
   const cities = [...new Set(items.map((a) => a.city).filter((c) => c && c !== 'transito'))];
-  const cost = items.reduce((s, a) => s + (a.cost_jpy || 0), 0);
+  const cost = items.reduce((s, a) => s + (a.cost || 0), 0);
   const geo = items.filter((a) => hasCoords(a) && a.kind !== 'flight');
   let dist = 0;
   for (let i = 0; i < geo.length - 1; i++) dist += haversine(geo[i], geo[i + 1]);
@@ -54,7 +54,7 @@ export default function DayPanel({
         {stay && <div className="stay-line">🏨 {stay.name}</div>}
         <div className="stats">
           <div><b>{items.length}</b><span>atividades</span></div>
-          <div><b>{cost ? yen(cost) : '—'}</b><span>{cost ? brl(cost * brlRate) : 'sem custos'}</span></div>
+          <div><b>{cost ? fx.fmt(cost) : '—'}</b><span>{cost ? (fx.fmtHome(cost) || 'custo do dia') : 'sem custos'}</span></div>
           <div><b>{dist ? fmtKm(dist) : '—'}</b><span>em linha reta</span></div>
           <div><b>{doneCount}/{items.length}</b><span>feitas</span></div>
         </div>
@@ -125,7 +125,7 @@ export default function DayPanel({
                     <span className="tag" style={{ '--c': k.color }}>{k.icon} {k.label}</span>
                     {dur != null && <span className="tag">⏱ {fmtDuration(dur)}</span>}
                     {a.transport && <span className="tag">{a.transport}</span>}
-                    {a.cost_jpy > 0 && <span className="tag cost">{yen(a.cost_jpy)}</span>}
+                    {a.cost > 0 && <span className="tag cost">{fx.fmt(a.cost)}</span>}
                     {!hasCoords(a) && a.kind !== 'free' && <span className="tag warn">sem local</span>}
                     {conflicts.has(a.id) && <span className="tag warn">⚠️ sobreposto</span>}
                   </div>

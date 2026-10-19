@@ -264,3 +264,43 @@ input, select, textarea {
   .print-only section { break-inside: avoid; }
   .pt { font-variant-numeric: tabular-nums; color: #555; }
 }
+
+/* ── tela inicial (lista de viagens) */
+.home { height: 100%; overflow-y: auto; }
+.home-top { position: sticky; top: 0; z-index: 10; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: var(--card); border-bottom: 1px solid var(--line); }
+.home-main { max-width: 980px; margin: 0 auto; padding: 24px 20px 60px; }
+.home-h { font-family: 'Shippori Mincho', Georgia, serif; font-size: 24px; margin: 0 0 16px; }
+.trip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.trip-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 16px; border-radius: var(--radius); box-shadow: var(--shadow); }
+.trip-card:hover:not(:disabled) { background: var(--card); border-color: var(--accent); transform: translateY(-1px); }
+.tc-emoji { font-size: 34px; line-height: 1.1; }
+.tc-name { font-family: 'Shippori Mincho', Georgia, serif; font-weight: 700; font-size: 19px; }
+.tc-sub { color: var(--muted); font-size: 12.5px; }
+.tc-dates { color: var(--muted); font-size: 12.5px; }
+.tc-foot { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px; }
+.tc-status { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.tc-status.now { background: #dcfce7; color: var(--ok); }
+.tc-status.past { background: #eee; color: var(--muted); }
+.home-empty { text-align: center; padding: 70px 10px 40px; }
+.home-empty h1 { font-family: 'Shippori Mincho', Georgia, serif; font-size: 34px; margin: 0 0 8px; }
+.home-empty p { color: var(--muted); max-width: 440px; margin: 0 auto 22px; }
+button.big { padding: 12px 22px; font-size: 16px; }
+.home-examples { margin-top: 36px; padding-top: 18px; border-top: 1px dashed var(--line); }
+.home-examples h3 { margin: 0 0 10px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.example { display: flex; justify-content: space-between; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+
+/* ── novos controles */
+.link-btn { border: 0; background: none; padding: 0; color: var(--blue); font-size: 12.5px; cursor: pointer; }
+.link-btn:hover:not(:disabled) { background: none; text-decoration: underline; }
+.link-btn.danger-txt { color: #b91c1c; float: right; }
+.empty { color: var(--muted); background: var(--card); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; margin: 8px 0; text-align: center; }
+.empty.small { margin: 4px 16px; }
+.emoji-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.emoji-row button { padding: 4px 8px; font-size: 18px; }
+.emoji-row button.on { border-color: var(--accent); background: var(--accent-soft); }
+.add-city { display: flex; gap: 8px; margin-bottom: 10px; }
+.add-city input { flex: 1; }
+.city-row { display: grid; grid-template-columns: 52px 1fr 44px 96px 96px 36px; gap: 6px; margin-bottom: 6px; align-items: center; }
+.city-row .emo { text-align: center; }
+.city-row input[type='color'] { padding: 2px; height: 34px; }
+@media (max-width: 640px) { .city-row { grid-template-columns: 48px 1fr 40px 36px; } .city-row input[type='number'] { grid-column: span 2; } }

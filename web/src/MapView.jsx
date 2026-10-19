@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { KINDS, esc, hasCoords, haversine, fmtKm } from './util.js';
 
-const JAPAN_CENTER = [36.2, 137.9];
+const WORLD_CENTER = [20, 0];
 
 function bearing(a, b) {
   const rad = (d) => (d * Math.PI) / 180;
@@ -59,7 +59,7 @@ export default function MapView({
 
   // ── cria o mapa uma vez
   useEffect(() => {
-    const map = L.map(elRef.current, { zoomControl: false, preferCanvas: false }).setView(JAPAN_CENTER, 6);
+    const map = L.map(elRef.current, { zoomControl: false, preferCanvas: false }).setView(WORLD_CENTER, 2);
     const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
     const voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20, subdomains: 'abcd', attribution: '© OpenStreetMap, © CARTO' });
     const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
@@ -158,7 +158,7 @@ export default function MapView({
       // ── visão geral da viagem
       const stayCities = [];
       stays.forEach((s) => { if (!stayCities.length || stayCities[stayCities.length - 1] !== s.city) stayCities.push(s.city); });
-      const routePts = stayCities.map((k) => cityMap[k]).filter(Boolean).map((c) => [c.lat, c.lng]);
+      const routePts = stayCities.map((k) => cityMap[k]).filter(hasCoords).map((c) => [c.lat, c.lng]);
       if (routePts.length > 1) {
         L.polyline(routePts, { color: '#c0392b', weight: 4, opacity: 0.8 }).addTo(group);
         for (let i = 0; i < routePts.length - 1; i++) {
@@ -180,9 +180,9 @@ export default function MapView({
         seen.add(key);
         const from = cityMap[stay.city];
         const to = cityMap[a.city];
-        if (from && to) L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: '#2874a6', weight: 3, opacity: 0.7, dashArray: '6 8' }).addTo(group);
+        if (hasCoords(from) && hasCoords(to)) L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: '#2874a6', weight: 3, opacity: 0.7, dashArray: '6 8' }).addTo(group);
       });
-      cities.filter((c) => c.key !== 'transito').forEach((c) => {
+      cities.filter((c) => c.key !== 'transito' && hasCoords(c)).forEach((c) => {
         const n = items.filter((a) => a.city === c.key && a.kind === 'sight').length;
         const m = L.marker([c.lat, c.lng], {
           icon: labelIcon(`<span class="city-dot" style="--c:${c.color}">${c.emoji}</span><span class="city-name">${esc(c.name)}${n ? ` <b>${n}</b>` : ''}</span>`, 'city-lbl'),
