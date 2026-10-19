@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { KINDS, esc, hasCoords, haversine, fmtKm } from './util.js';
-import { getTheme } from './theme.js';
 
 const WORLD_CENTER = [20, 0];
 
@@ -62,18 +61,10 @@ export default function MapView({
   useEffect(() => {
     const map = L.map(elRef.current, { zoomControl: false, preferCanvas: false }).setView(WORLD_CENTER, 2);
     const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap', className: 'osm-tiles' });
-    const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20, subdomains: 'abcd', attribution: '© OpenStreetMap, © CARTO' });
-    const voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20, subdomains: 'abcd', attribution: '© OpenStreetMap, © CARTO' });
     const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
     const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' });
-    (getTheme() === 'light' ? voyager : dark).addTo(map);
-    // ao trocar o tema, troca o mapa-base padrão (se o usuário estiver num dos dois da Carto)
-    const onTheme = (e) => {
-      const [on, off] = e.detail === 'light' ? [voyager, dark] : [dark, voyager];
-      if (map.hasLayer(off)) { map.removeLayer(off); on.addTo(map); }
-    };
-    window.addEventListener('themechange', onTheme);
-    L.control.layers({ 'Escuro (Carto)': dark, 'Claro (Carto)': voyager, 'Ruas (OSM)': osm, 'Relevo': topo, 'Satélite': sat }, null, { position: 'topright' }).addTo(map);
+    osm.addTo(map); // no tema escuro o CSS inverte os tiles (.osm-tiles)
+    L.control.layers({ 'Mapa': osm, 'Relevo': topo, 'Satélite': sat }, null, { position: 'topright' }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
@@ -82,7 +73,7 @@ export default function MapView({
     setTimeout(() => map.invalidateSize(), 50);
     const ro = new ResizeObserver(() => map.invalidateSize());
     ro.observe(elRef.current);
-    return () => { window.removeEventListener('themechange', onTheme); ro.disconnect(); map.remove(); mapRef.current = null; };
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null; };
   }, []);
 
   useEffect(() => {
