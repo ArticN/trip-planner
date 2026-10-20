@@ -177,8 +177,8 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
             pending={draft._pending || []} onPending={isNew ? (p) => set({ _pending: p }) : undefined}
           />
         )}
-        <label>Local (texto)
-          <input value={draft.location || ''} onChange={(e) => set({ location: e.target.value })} placeholder="Bairro / endereço" />
+        <label>Endereço
+          <input value={draft.location || ''} onChange={(e) => set({ location: e.target.value })} placeholder="Rua, número, bairro (vale só o texto, sem precisar de mapa)" />
         </label>
         <label className="full">Detalhes
           <textarea rows={3} value={draft.details || ''} onChange={(e) => set({ details: e.target.value })} />
@@ -227,15 +227,22 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
         <div className="full fieldset">
           <div className="legend">Posição no mapa {hasCoords(draft) ? <span className="ok">● definida</span> : <span className="muted">○ sem posição</span>}</div>
           <GeocodeBox
-            initial={draft.title}
-            onPick={(lat, lng, name) => set({ lat, lng, location: draft.location || name.split(',').slice(0, 2).join(',') })}
+            key={draft.location || draft.title}
+            initial={draft.location || draft.title}
+            placeholder="Buscar pelo endereço ou nome do lugar"
+            onPick={(lat, lng, name) => set({ lat, lng, location: draft.location || name.split(',').slice(0, 3).join(',').trim() })}
           />
           <div className="row">
-            <label>Lat<input type="number" step="0.0001" value={draft.lat ?? ''} onChange={(e) => set({ lat: num(e.target.value) })} /></label>
-            <label>Lng<input type="number" step="0.0001" value={draft.lng ?? ''} onChange={(e) => set({ lng: num(e.target.value) })} /></label>
             <button type="button" onClick={onPickMap}>Marcar no mapa</button>
-            {hasCoords(draft) && <button type="button" onClick={() => set({ lat: null, lng: null })}>Limpar</button>}
+            {hasCoords(draft) && <button type="button" onClick={() => set({ lat: null, lng: null })}>Limpar posição</button>}
           </div>
+          <details className="coords">
+            <summary>Digitar latitude e longitude</summary>
+            <div className="row">
+              <label>Lat<input type="number" step="0.0001" value={draft.lat ?? ''} onChange={(e) => set({ lat: num(e.target.value) })} /></label>
+              <label>Lng<input type="number" step="0.0001" value={draft.lng ?? ''} onChange={(e) => set({ lng: num(e.target.value) })} /></label>
+            </div>
+          </details>
         </div>
       </div>
     </Modal>

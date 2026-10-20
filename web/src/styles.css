@@ -998,3 +998,7 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .item.ticket::before { content: ''; position: absolute; left: var(--cut); top: 10px; bottom: 10px; border-left: 2px dashed var(--line); }
 .item.ticket .leg { font-size: 13px; color: var(--muted); }
 .item.ticket .leg b { font-size: 18px; font-family: var(--serif); font-weight: 400; letter-spacing: 0.04em; color: var(--ink); }
+
+.coords { margin-top: 6px; }
+.coords summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.coords .row { margin-top: 6px; }

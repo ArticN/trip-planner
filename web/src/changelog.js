@@ -1,6 +1,15 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.18',
+    date: '2026-10-20',
+    title: 'Endereço em vez de coordenadas',
+    items: [
+      'Na atividade, o campo agora se chama Endereço e vale sozinho: dá para guardar só o texto (rua, número, bairro), sem posição no mapa. Ele aparece no cartão da atividade.',
+      'A busca de posição já vem preenchida com o endereço. Um clique em Buscar acha o lugar e marca o pino, e latitude e longitude ficaram escondidas em “Digitar latitude e longitude”, para quem precisar.',
+    ],
+  },
+  {
     version: '1.17',
     date: '2026-10-19',
     title: 'O dia como tempo',
