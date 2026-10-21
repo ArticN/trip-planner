@@ -55,6 +55,7 @@ scripts/           setup.sh e sync-to-shared.sh
 - **Cidades e locais** e **Hospedagens**: cadastro por viagem (a cidade nova já busca a posição no mapa).
 - **Alertas**: horários sobrepostos e atividades sem local no mapa.
 - **Checklist** por viagem (documentos, reservas, mala, outros), com progresso.
+- **Compras**: itens que você vai trazer (loja, preço, grupo, dia, comprado ou previsto), convertidos para dólar e para a sua moeda, com barra da cota de isenção da Receita (US$ 1.000 por padrão, editável) e estimativa do imposto sobre o excedente.
 - **Estatísticas**: gasto total e por dia, distância por dia (sem voos), noites, atividades e gasto por cidade e por tipo.
 - **Calendário** do roteiro em grade semanal; clicar num dia abre o roteiro dele.
 - **Notas e links** em cada atividade (código de reserva, ingresso, comprovante no Drive). Arquivos não são enviados ao app: guarde o link.

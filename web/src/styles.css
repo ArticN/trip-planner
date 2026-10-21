@@ -1014,3 +1014,47 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .slot-h.vazio { padding-top: 8px; padding-bottom: 2px; opacity: 0.7; }
 .slot-h.share { margin: 10px 0 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .slot-h.share::after { display: none; }
+
+/* ── compras e cota da Receita */
+.quota { padding-bottom: 16px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+.quota-top { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
+.quota-top b { display: block; font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.quota-top span { font-size: 13px; color: var(--muted); }
+.quota-left { text-align: right; }
+.quota-left b { font-size: 22px; }
+.quota.over .quota-left b { color: var(--danger); }
+.quota-bar { position: relative; height: 12px; margin: 12px 0 8px; border-radius: var(--r-pill); background: var(--raised); overflow: hidden; }
+.quota-bar i { position: absolute; top: 0; bottom: 0; left: 0; }
+.quota-bar i.b { background: var(--accent); }
+.quota-bar i.p { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.quota-bar em { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); }
+.quota.over .quota-bar i.b { background: var(--danger); }
+.quota-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.quota-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.quota-legend i.b { background: var(--accent); }
+.quota-legend i.p { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.quota-warn { margin: 10px 0 0; padding: 8px 12px; border-radius: var(--r-box); background: var(--danger-bg); color: var(--danger); font-size: 13px; }
+.buy-form { margin-bottom: 6px; }
+.buy-form label { align-content: start; }
+.buy-form small { font-weight: 400; font-variant-numeric: tabular-nums; }
+.buy-flags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.buy-flags .check-line { color: var(--ink-2); font-weight: 400; display: flex; }
+.buy-list li { gap: 10px; }
+.buy-main { flex: 1; min-width: 0; display: grid; text-align: left; border: 0; border-radius: var(--r-sm); padding: 2px 6px; }
+.buy-t { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.buy-s { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.buy-v { display: grid; text-align: right; font-variant-numeric: tabular-nums; }
+.buy-v b { font-weight: 500; font-size: 14px; }
+.buy-v small { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.buy-list li.editing { background: var(--raised); border-radius: var(--r-sm); }
+.buy-list li:not(.got) .buy-t { color: var(--ink-2); }
+.buy-settings { display: flex; flex-wrap: wrap; align-items: start; gap: 12px 24px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.buy-settings .rate-box label:first-child { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.buy-settings .rate-box input:not([type='checkbox']) { width: 100px; }
+.quota-in { display: grid; gap: 4px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.quota-in input { width: 120px; }
+.buy-note { margin: 12px 0 0; line-height: 1.5; }
+@media (max-width: 600px) {
+  .quota-top b { font-size: 24px; }
+  .buy-v small { display: none; }
+}

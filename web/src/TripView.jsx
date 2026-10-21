@@ -11,6 +11,7 @@ import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
 import { fetchRate, roundRate } from './fx.js';
+import { ShoppingModal } from './Shopping.jsx';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal, RemindersModal } from './Modals.jsx';
 import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
@@ -389,6 +390,19 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     } catch { /* fica a cotação anterior */ }
   }, [data?.trip?.id, data?.trip?.rate_auto, data?.trip?.currency, data?.trip?.home_currency]);
   useEffect(() => { refreshRate(false); }, [refreshRate]);
+  // cotação em dólar para a cota de compras ('manual' em usd_rate_at = digitada, não atualiza)
+  const refreshUsd = useCallback(async (force) => {
+    const t = data?.trip;
+    if (!t || t.currency === 'USD' || t.home_currency === 'USD' || t.usd_rate_at === 'manual' || !navigator.onLine) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (!force && t.usd_rate_at === today && t.usd_rate) return;
+    try {
+      const r = roundRate((await fetchRate(t.currency, 'USD')).rate);
+      setData((d) => ({ ...d, trip: { ...d.trip, usd_rate: r, usd_rate_at: today } }));
+      await api.saveTrip(tripId, { usd_rate: r, usd_rate_at: today });
+    } catch { /* fica a cotação anterior */ }
+  }, [data?.trip?.id, data?.trip?.usd_rate_at, data?.trip?.currency, data?.trip?.home_currency]);
+  useEffect(() => { if (modal === 'shopping') refreshUsd(false); }, [modal, refreshUsd]);
 
   const createStay = async (s) => {
     const created = await api.createStay(tripId, s);
@@ -411,6 +425,19 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const deleteCheck = (id) => {
     const item = data.checklist.find((x) => x.id === id);
     if (item) softDelete(`Item removido: ${item.text}`, 'checklist', item, () => api.deleteCheck(id));
+  };
+
+  const createPurchase = async (x) => {
+    const created = await api.createPurchase(tripId, x);
+    setData((d) => ({ ...d, purchases: [...(d.purchases || []), created] }));
+  };
+  const updatePurchase = async (id, patch) => {
+    setData((d) => ({ ...d, purchases: d.purchases.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+    try { await api.updatePurchase(id, patch); } catch { say('Erro ao salvar'); reload(); }
+  };
+  const deletePurchase = (id) => {
+    const item = data.purchases.find((x) => x.id === id);
+    if (item) softDelete(`Compra removida: ${item.title}`, 'purchases', item, () => api.deletePurchase(id));
   };
 
   const createCity = async (c) => {
@@ -491,12 +518,14 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <button className="ghost hide-sm" onClick={() => setModal('stays')}>Hospedagens</button>
         <button className="ghost hide-sm" onClick={() => setModal('budget')}>Orçamento</button>
         <button className="ghost hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
+        <button className="ghost hide-sm" onClick={() => setModal('shopping')}>Compras</button>
         <details className="menu">
           <summary aria-label="Mais opções" title="Mais opções"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></summary>
           <div className="menu-pop" onClick={(e) => e.currentTarget.parentElement.removeAttribute('open')}>
             <button className="only-sm" onClick={() => setModal('stays')}>Hospedagens</button>
             <button className="only-sm" onClick={() => setModal('budget')}>Orçamento</button>
             <button className="only-sm" onClick={() => setModal('checklist')}>Checklist</button>
+            <button className="only-sm" onClick={() => setModal('shopping')}>Compras</button>
             <button onClick={() => setModal('look')}>Aparência</button>
             <button onClick={() => setModal('trip')}>Editar viagem</button>
             <button onClick={() => setModal('cities')}>Cidades e locais</button>
@@ -641,6 +670,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'cities' && <CitiesModal cities={data.cities} onCreate={createCity} onSave={saveCity} onDelete={deleteCity} onClose={() => setModal(null)} />}
       {modal === 'trip' && <TripModal trip={trip} onSave={saveTrip} onDelete={deleteTrip} onDuplicate={duplicateTrip} onClose={() => setModal(null)} />}
       {modal === 'checklist' && <ChecklistModal items={data.checklist} onCreate={createCheck} onUpdate={updateCheck} onDelete={deleteCheck} onClose={() => setModal(null)} />}
+      {modal === 'shopping' && <ShoppingModal trip={trip} items={data.purchases || []} days={days} fx={fx} onCreate={createPurchase} onUpdate={updatePurchase} onDelete={deletePurchase} onTrip={patchTrip} onRefreshUsd={() => refreshUsd(true)} onClose={() => setModal(null)} />}
       {modal === 'stats' && <StatsModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onClose={() => setModal(null)} />}
       {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} initialDay={sel === 'trip' ? days[0] : sel} onPick={(d, aid) => { setModal(null); go(d); if (aid) setSelectedId(aid); }} onClose={() => setModal(null)} />}
       {modal === 'search' && <SearchModal data={data} cityMap={cityMap} onPick={onSearchPick} onClose={() => setModal(null)} />}

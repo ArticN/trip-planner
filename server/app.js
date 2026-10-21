@@ -13,7 +13,8 @@ const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent'];
+const BUY_FIELDS = ['title', 'store', 'city', 'day', 'price', 'grp', 'bought', 'exempt', 'notes', 'sort'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd'];
 
 const clean = (v) => (v === '' || v === undefined ? null : v);
 const pick = (body, fields) => fields.map((f) => (f in body ? clean(body[f]) : null));
@@ -26,6 +27,7 @@ const insStay = (tripId, row) => [`INSERT INTO stays (trip_id,${STAY_FIELDS.join
 const insCheck = (tripId, row) => [`INSERT INTO checklist (trip_id,${CHECK_FIELDS.join(',')}) VALUES (?,${marks(CHECK_FIELDS)})`, [tripId, ...pick({ ...row, done: row.done ? 1 : 0 }, CHECK_FIELDS)]];
 const insIdea = (tripId, row) => [`INSERT INTO ideas (trip_id,${IDEA_FIELDS.join(',')}) VALUES (?,${marks(IDEA_FIELDS)})`, [tripId, ...pick({ kind: 'sight', ...row }, IDEA_FIELDS)]];
 const insCity = (tripId, row) => [`INSERT OR REPLACE INTO cities (trip_id,${CITY_FIELDS.join(',')}) VALUES (?,${marks(CITY_FIELDS)})`, [tripId, ...pick(row, CITY_FIELDS)]];
+const insBuy = (tripId, row) => [`INSERT INTO purchases (trip_id,${BUY_FIELDS.join(',')}) VALUES (?,${marks(BUY_FIELDS)})`, [tripId, ...pick({ ...row, bought: row.bought ? 1 : 0, exempt: row.exempt ? 1 : 0 }, BUY_FIELDS)]];
 const insDay = (tripId, row) => [`INSERT OR REPLACE INTO days (trip_id,${DAY_FIELDS.join(',')}) VALUES (?,${marks(DAY_FIELDS)})`, [tripId, ...pick(row, DAY_FIELDS)]];
 const run1 = ([sql, args]) => db.run(sql, args);
 
@@ -80,6 +82,12 @@ async function migrate() {
       day TEXT NOT NULL, title TEXT, notes TEXT,
       UNIQUE (trip_id, day)
     );
+    CREATE TABLE IF NOT EXISTS purchases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      title TEXT NOT NULL, store TEXT, city TEXT, day TEXT, price REAL, grp TEXT,
+      bought INTEGER DEFAULT 0, exempt INTEGER DEFAULT 0, notes TEXT, sort INTEGER DEFAULT 0
+    );
     CREATE TABLE IF NOT EXISTS files (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
@@ -100,7 +108,7 @@ async function migrate() {
   };
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT'], ['slot', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL']]);
   await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
 
   if (legacy) {
@@ -160,6 +168,7 @@ async function createTripFull(b) {
   (b.stays || []).forEach((s) => list.push(insStay(id, s)));
   (b.checklist || []).forEach((c, i) => list.push(insCheck(id, { sort: i, ...c })));
   (b.ideas || []).forEach((x, i) => list.push(insIdea(id, { sort: i, ...x })));
+  (b.purchases || []).forEach((x, i) => list.push(insBuy(id, { sort: i, ...x })));
   (b.days || []).filter((d) => d.day && (d.title || d.notes)).forEach((d) => list.push(insDay(id, d)));
   const byDay = new Map();
   (b.activities || []).forEach((x) => {
@@ -182,12 +191,12 @@ async function createTripFull(b) {
 }
 
 // apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
-const deleteTrip = (id) => db.batch(['files', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
+const deleteTrip = (id) => db.batch(['files', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
 
 async function getTrip(id) {
   const trip = await db.get('SELECT * FROM trips WHERE id = ?', [id]);
   if (!trip) return null;
-  const [cities, stays, activities, checklist, ideas, days, files] = await Promise.all([
+  const [cities, stays, activities, checklist, ideas, days, files, purchases] = await Promise.all([
     db.all('SELECT * FROM cities WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id', [id]),
     db.all('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id', [id]),
@@ -195,8 +204,9 @@ async function getTrip(id) {
     db.all('SELECT * FROM ideas WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT * FROM days WHERE trip_id = ? ORDER BY day', [id]),
     db.all('SELECT id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE trip_id = ? ORDER BY id', [id]),
+    db.all('SELECT * FROM purchases WHERE trip_id = ? ORDER BY sort, id', [id]),
   ]);
-  return { trip, cities, stays, activities, checklist, ideas, days, files };
+  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases };
 }
 
 const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MAX(sort), -1) AS m FROM ${table} WHERE ${where}`, args)).m + 1;
@@ -336,7 +346,7 @@ app.delete('/api/trips/:id', needTrip, h(async (req, res) => {
 
 app.post('/api/trips/:id/duplicate', needTrip, h(async (req, res) => {
   const d = await getTrip(req.tripId);
-  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null, rating: null, review: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })) });
+  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null, rating: null, review: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })), purchases: d.purchases.map((x) => ({ ...x, bought: 0 })) });
   res.status(201).json(await getTrip(id));
 }));
 
@@ -391,6 +401,28 @@ app.put('/api/checklist/:cid', h(async (req, res) => {
 }));
 app.delete('/api/checklist/:cid', h(async (req, res) => {
   await db.run('DELETE FROM checklist WHERE id = ?', [Number(req.params.cid)]);
+  res.status(204).end();
+}));
+
+// ── compras para trazer (cota da Receita)
+app.post('/api/trips/:id/purchases', needTrip, h(async (req, res) => {
+  const b = req.body || {};
+  if (!b.title?.trim()) return res.status(400).json({ error: 'title é obrigatório' });
+  const r = await run1(insBuy(req.tripId, { ...b, sort: await nextSort('purchases', 'trip_id = ?', [req.tripId]) }));
+  res.status(201).json(await db.get('SELECT * FROM purchases WHERE id = ?', [r.lastInsertRowid]));
+}));
+app.put('/api/purchases/:pid', h(async (req, res) => {
+  const cur = await db.get('SELECT * FROM purchases WHERE id = ?', [Number(req.params.pid)]);
+  if (!cur) return res.status(404).json({ error: 'não encontrada' });
+  const row = { ...cur, ...req.body };
+  row.bought = row.bought ? 1 : 0;
+  row.exempt = row.exempt ? 1 : 0;
+  if (!String(row.title || '').trim()) return res.status(400).json({ error: 'title é obrigatório' });
+  await db.run(`UPDATE purchases SET ${setList(BUY_FIELDS)} WHERE id = ?`, [...pick(row, BUY_FIELDS), cur.id]);
+  res.json(await db.get('SELECT * FROM purchases WHERE id = ?', [cur.id]));
+}));
+app.delete('/api/purchases/:pid', h(async (req, res) => {
+  await db.run('DELETE FROM purchases WHERE id = ?', [Number(req.params.pid)]);
   res.status(204).end();
 }));
 

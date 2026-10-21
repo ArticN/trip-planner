@@ -1,6 +1,16 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.21',
+    date: '2026-10-21',
+    title: 'Compras e a cota da Receita',
+    items: [
+      'Novo painel Compras (no topo, ao lado do Checklist): anote cada item que vai trazer com loja, preço na moeda da viagem, grupo (café e cozinha, figures, roupas, eletrônicos…) e dia. O preço já aparece convertido em dólar e em reais.',
+      'A barra mostra quanto da cota de US$ 1.000 da Receita já foi comprado e, num tom mais claro, quanto o previsto ainda vai ocupar. Se o previsto passar da cota, o app avisa quanto passa e estima o imposto de 50% sobre o excedente.',
+      'Marque “Já comprei” quando comprar. Itens de uso pessoal podem ficar fora da cota. A cotação do dólar se atualiza sozinha (ou pode ser digitada), e o valor da cota é editável.',
+    ],
+  },
+  {
     version: '1.20',
     date: '2026-10-21',
     title: 'Atividades como ingressos que se encaixam',
