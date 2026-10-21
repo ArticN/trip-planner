@@ -2,7 +2,7 @@ import { Star } from './Stars.jsx';
 import { useEffect, useState } from 'react';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { AttachmentsField } from './Attachments.jsx';
-import { KINDS, KIND_KEYS, TRANSPORTS, CURRENCIES, TIMEZONES, localTz, hasCoords, fmtDay } from './util.js';
+import { KINDS, KIND_KEYS, SLOTS, TRANSPORTS, CURRENCIES, TIMEZONES, localTz, hasCoords, fmtDay } from './util.js';
 
 export function Modal({ title, onClose, children, wide, footer }) {
   useEffect(() => {
@@ -141,6 +141,14 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
             {days.map((d) => <option key={d} value={d}>{fmtDay(d)}</option>)}
           </select>
         </label>}
+        {!isIdea && (
+          <label>Bloco do dia
+            <select value={draft.slot || ''} onChange={(e) => set({ slot: e.target.value || null })}>
+              <option value="">Automático (pelo horário)</option>
+              {SLOTS.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+            </select>
+          </label>
+        )}
         <label>Tipo
           <select value={draft.kind || 'sight'} onChange={(e) => set({ kind: e.target.value })}>
             {KIND_KEYS.map((k) => <option key={k} value={k}>{KINDS[k].label}</option>)}

@@ -1,6 +1,16 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.19',
+    date: '2026-10-21',
+    title: 'O dia em blocos',
+    items: [
+      'O roteiro de cada dia agora segue uma escala: Manhã, Café da manhã, Depois do café, Almoço, Depois do almoço, Jantar e Depois do jantar. Cada bloco aceita uma ou mais atividades, e o botão + do bloco já abre a atividade ali (nas refeições, com o tipo Comida).',
+      'Dentro do bloco, a atividade pode ter horário (um ingresso do Aquário, do Museu Ghibli ou da Universal) ou ficar sem hora. No editor há o campo “Bloco do dia”; em Automático, o app usa o título (café, almoço, jantar) e o horário para escolher o bloco.',
+      'Arraste uma atividade para outro bloco, ou para o título de um bloco, para mudá-la de lugar. “Ordenar por horário” ordena dentro de cada bloco. O link compartilhado mostra os mesmos blocos.',
+    ],
+  },
+  {
     version: '1.18',
     date: '2026-10-20',
     title: 'Endereço em vez de coordenadas',

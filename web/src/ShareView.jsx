@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { api } from './api.js';
 import MapView from './MapView.jsx';
 import Mark from './Mark.jsx';
@@ -6,7 +6,7 @@ import { setTripAccent } from './theme.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import PinPanel from './PinPanel.jsx';
 import Metro from './Metro.jsx';
-import { KINDS, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
+import { KINDS, SLOTS, orderBySlots, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
 
 const noop = () => {};
 
@@ -32,7 +32,7 @@ export default function ShareView({ token }) {
   const byDay = useMemo(() => {
     const m = {};
     (data?.activities || []).forEach((a) => { (m[a.day] ||= []).push(a); });
-    Object.values(m).forEach((l) => l.sort((x, y) => x.sort - y.sort || x.id - y.id));
+    Object.keys(m).forEach((d) => { m[d] = orderBySlots(m[d]); });
     return m;
   }, [data]);
   const mainCity = (d) => {
@@ -113,12 +113,15 @@ export default function ShareView({ token }) {
                 {stayFor(sel) && <p className="muted small">Hospedagem · {stayFor(sel).name}</p>}
                 <div className="ag-day">
                   {items.length === 0 && <div className="muted small">Nada planejado.</div>}
-                  {items.map((a) => (
-                    <button key={a.id} className={`ag-item${a.id === selectedId ? ' sel' : ''}`} onClick={() => pick(a)}>
+                  {items.map((a, i) => (
+                    <Fragment key={a.id}>
+                    {a.slotKey && a.slotKey !== items[i - 1]?.slotKey && <div className="slot-h share">{SLOTS.find((x) => x.key === a.slotKey)?.label}</div>}
+                    <button className={`ag-item${a.id === selectedId ? ' sel' : ''}`} onClick={() => pick(a)}>
                       <span className="ag-time">{a.start || '—'}{a.end ? <small>{a.end}</small> : null}</span>
                       <span className="ag-dot" style={{ '--k': (KINDS[a.kind] || KINDS.sight).color }} />
                       <span className="ag-title">{a.title}{a.location ? <small>{a.location}</small> : null}{a.details ? <small className="wrap">{a.details}</small> : null}</span>
                     </button>
+                    </Fragment>
                   ))}
                 </div>
               </>

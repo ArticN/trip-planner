@@ -1,12 +1,12 @@
 import { Stars } from './Stars.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { api } from './api.js';
 import { Icon } from './icons.jsx';
 import WeatherLine from './WeatherLine.jsx';
 import { travelTime, slack, gmapsDirections } from './travel.js';
 import {
-  KINDS, KIND_KEYS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone, nowIn,
+  KINDS, KIND_KEYS, SLOTS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone, nowIn,
 } from './util.js';
 
 const MODE_LABEL = { foot: 'a pé', car: 'de carro', transit: 'de transporte' };
@@ -80,7 +80,7 @@ function DayInfo({ info, onSave }) {
 }
 
 export default function DayPanel({
-  day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd,
+  day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd, onMoveSlot,
   onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo, doneFilter = 'all', onDoneFilter, files = [],
 }) {
   // atividade escolhida (no mapa ou na busca) fica visível na lista
@@ -110,10 +110,24 @@ export default function DayPanel({
 
   const drop = (targetId) => {
     if (dragId == null || dragId === targetId) return;
+    const target = items.find((a) => a.id === targetId);
+    const dragged = items.find((a) => a.id === dragId);
+    if (target && dragged && target.slotKey !== dragged.slotKey) onMoveSlot?.(dragId, target.slotKey);
     const ids = items.map((a) => a.id).filter((id) => id !== dragId);
     const at = ids.indexOf(targetId);
     ids.splice(at, 0, dragId);
     onReorder(ids);
+  };
+
+  // soltar sobre o título de um bloco leva a atividade para o fim dele
+  const dropOnSlot = (slotKey) => {
+    if (dragId == null) return;
+    const dragged = items.find((a) => a.id === dragId);
+    if (dragged && dragged.slotKey !== slotKey) onMoveSlot?.(dragId, slotKey);
+    const rank = SLOTS.findIndex((x) => x.key === slotKey);
+    const ids = items.filter((a) => a.id !== dragId && SLOTS.findIndex((x) => x.key === a.slotKey) <= rank).map((a) => a.id);
+    const rest = items.filter((a) => a.id !== dragId && SLOTS.findIndex((x) => x.key === a.slotKey) > rank).map((a) => a.id);
+    onReorder([...ids, dragId, ...rest]);
   };
 
   return (
@@ -230,7 +244,20 @@ export default function DayPanel({
       })()}
 
       <ol className="timeline">
-        {visible.map((a) => {
+        {SLOTS.map((slot) => {
+          const here = visible.filter((a) => a.slotKey === slot.key);
+          return (
+          <Fragment key={slot.key}>
+          <li
+            className={`slot-h${here.length ? '' : ' empty'}${slot.meal ? ' meal' : ''}`}
+            onDragOver={(e) => { if (dragId != null) e.preventDefault(); }}
+            onDrop={(e) => { e.preventDefault(); dropOnSlot(slot.key); setDragId(null); setOverId(null); }}
+          >
+            <span className="slot-name">{slot.label}</span>
+            <span className="slot-n">{here.length ? `${here.length}` : 'livre'}</span>
+            <button type="button" className="slot-add" onClick={() => onAdd(slot.key)} title={`Adicionar em: ${slot.label}`} aria-label={`Adicionar em: ${slot.label}`}>+</button>
+          </li>
+        {here.map((a) => {
           const k = KINDS[a.kind] || KINDS.sight;
           const idx = items.indexOf(a);
           const prev = idx > 0 ? items[idx - 1] : null;
@@ -311,6 +338,9 @@ export default function DayPanel({
                 </div>
               </div>
             </li>
+          );
+        })}
+          </Fragment>
           );
         })}
       </ol>

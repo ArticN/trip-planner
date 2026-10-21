@@ -190,3 +190,45 @@ export function sunTimes(day, lat, lng, tz) {
 // filtro "mostrar": todas, só as que faltam ou só as feitas
 export const DONE_FILTERS = [['all', 'Todas'], ['todo', 'A fazer'], ['done', 'Feitas']];
 export const passDone = (a, f) => f === 'all' || (f === 'done' ? !!a.done : !a.done);
+
+// blocos do dia, na ordem da escala: manhã, café, depois do café, almoço, depois do almoço, jantar, depois do jantar
+export const SLOTS = [
+  { key: 'manha', label: 'Manhã', hint: 'antes do café', meal: false },
+  { key: 'cafe', label: 'Café da manhã', hint: '', meal: true },
+  { key: 'pos_cafe', label: 'Depois do café', hint: '', meal: false },
+  { key: 'almoco', label: 'Almoço', hint: '', meal: true },
+  { key: 'pos_almoco', label: 'Depois do almoço', hint: '', meal: false },
+  { key: 'jantar', label: 'Jantar', hint: '', meal: true },
+  { key: 'pos_jantar', label: 'Depois do jantar', hint: '', meal: false },
+];
+const SLOT_RANK = Object.fromEntries(SLOTS.map((x, i) => [x.key, i]));
+const AFTER = { cafe: 'pos_cafe', almoco: 'pos_almoco', jantar: 'pos_jantar' };
+
+// refeição reconhecida pelo título (dados antigos não têm bloco gravado)
+function mealOf(a) {
+  if (a.kind !== 'food') return null;
+  const t = a.title || '';
+  if (/caf[eé] da manh|breakfast|desjejum/i.test(t)) return 'cafe';
+  if (/almo[cç]o|lunch/i.test(t)) return 'almoco';
+  if (/jantar|dinner/i.test(t)) return 'jantar';
+  return null;
+}
+
+// ordena o dia pelos blocos: o bloco escolhido vale; sem ele vem da refeição, do horário ou do item anterior
+export function orderBySlots(list) {
+  const base = list.slice().sort((x, y) => x.sort - y.sort || x.id - y.id);
+  const valid = (k) => (k && k in SLOT_RANK ? k : null);
+  const meals = base.filter((a) => a.start && (valid(a.slot) ? SLOTS[SLOT_RANK[a.slot]].meal : mealOf(a))).map((a) => ({ at: a.start, key: valid(a.slot) || mealOf(a) }));
+  let prev = 'manha';
+  const out = base.map((a) => {
+    let key = valid(a.slot) || mealOf(a);
+    if (!key && a.start) {
+      const before = meals.filter((m) => m.at <= a.start).sort((x, y) => x.at.localeCompare(y.at)).pop();
+      if (before) key = AFTER[before.key];
+      else key = a.start < '08:00' ? 'manha' : a.start < '12:00' ? 'pos_cafe' : a.start < '19:00' ? 'pos_almoco' : 'pos_jantar';
+    }
+    prev = key || prev;
+    return { ...a, slotKey: prev };
+  });
+  return out.sort((x, y) => SLOT_RANK[x.slotKey] - SLOT_RANK[y.slotKey]);
+}

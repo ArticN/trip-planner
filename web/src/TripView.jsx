@@ -15,7 +15,7 @@ import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal,
 import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import {
-  KIND_KEYS, KINDS, findConflicts, sortByTime, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
+  KIND_KEYS, KINDS, findConflicts, sortByTime, orderBySlots, SLOTS, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
 } from './util.js';
 
 
@@ -99,7 +99,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const byDay = useMemo(() => {
     const m = {};
     (data?.activities || []).forEach((a) => { (m[a.day] ||= []).push(a); });
-    Object.values(m).forEach((l) => l.sort((x, y) => x.sort - y.sort || x.id - y.id));
+    Object.keys(m).forEach((d) => { m[d] = orderBySlots(m[d]); });
     return m;
   }, [data]);
 
@@ -183,10 +183,12 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     if (a) setEditing({ draft: { ...a }, isNew: false });
   };
 
-  const openNew = () => {
+  const openNew = (slot) => {
+    const slotKey = typeof slot === 'string' ? slot : null;
+    const meal = SLOTS.find((x) => x.key === slotKey && x.meal);
     const day = sel === 'trip' ? days.find((d) => (byDay[d] || []).length) || days[0] : sel;
     const city = daysInfo.find((d) => d.day === day)?.cities[0] || '';
-    setEditing({ draft: { day, city, kind: 'sight', title: '', start: null, end: null, location: '', details: '', transport: '', cost: null, lat: null, lng: null, done: 0 }, isNew: true });
+    setEditing({ draft: { day, city, kind: meal ? 'food' : 'sight', slot: slotKey, title: meal ? meal.label : '', start: null, end: null, location: '', details: '', transport: '', cost: null, lat: null, lng: null, done: 0 }, isNew: true });
   };
 
   const openIdea = (idea) => setEditing({ draft: idea ? { ...idea } : { kind: 'sight', title: '', city: '', location: '', details: '', cost: null, lat: null, lng: null }, isNew: !idea, idea: true });
@@ -292,9 +294,11 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     try { await api.reorderDay(tripId, sel, ids); } catch { say('Erro ao reordenar'); reload(); }
   };
 
+  const moveSlot = (id, slot) => updateActivity(id, { slot });
+
   const sortTime = () => {
-    const sorted = sortByTime(dayItems);
-    reorder(sorted.map((a) => a.id));
+    // cada bloco se ordena por dentro; os blocos já seguem a escala do dia
+    reorder(SLOTS.flatMap((x) => sortByTime(dayItems.filter((a) => a.slotKey === x.key))).map((a) => a.id));
     say('Ordenado por horário');
   };
 
@@ -544,7 +548,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
               <DayPanel
                 day={sel} dayIndex={dayIndex} items={dayItems} cityMap={cityMap} stay={stayFor(sel)} checkout={sel === 'trip' ? null : (data.stays || []).find((s) => s.check_out === sel && s !== stayFor(sel)) || null}
                 conflicts={dayConflicts} selectedId={selectedId} onSelect={selectFromList} onEdit={openEdit}
-                onToggleDone={toggleDone} onAdd={openNew} onReorder={reorder} onSortTime={sortTime}
+                onToggleDone={toggleDone} onAdd={openNew} onMoveSlot={moveSlot} onReorder={reorder} onSortTime={sortTime}
                 kinds={kinds} onToggleKind={toggleKind} doneFilter={doneFilter} onDoneFilter={setDoneFilter} fx={fx} tripTz={trip.tz} now={sel === today ? now.min : null}
                 onPrev={() => step(-1)} onNext={() => step(1)} hasPrev={dayIndex > 0} hasNext={dayIndex < days.length - 1}
                 dayInfo={(data.days || []).find((d) => d.day === sel) || null} onSaveDayInfo={saveDayInfo} files={data.files || []}

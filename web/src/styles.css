@@ -1002,3 +1002,15 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .coords { margin-top: 6px; }
 .coords summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 .coords .row { margin-top: 6px; }
+
+/* blocos do dia: a escala manhã, café, almoço e jantar */
+.timeline .slot-h { display: flex; align-items: center; gap: 8px; padding: 14px 4px 6px; margin: 0; list-style: none; }
+.slot-name { font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.slot-h.meal .slot-name { color: var(--accent); }
+.slot-n { font-size: 12px; color: var(--muted); }
+.slot-h::after { content: ''; order: 2; flex: 1; border-top: 1px solid var(--line); }
+.slot-add { order: 3; width: 26px; height: 26px; padding: 0; border-radius: var(--r-pill); border-color: transparent; background: none; color: var(--muted); font-size: 18px; line-height: 1; }
+.slot-add:hover:not(:disabled) { background: var(--raised); color: var(--ink); }
+.slot-h.empty { padding-top: 8px; padding-bottom: 2px; opacity: 0.7; }
+.slot-h.share { margin: 10px 0 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.slot-h.share::after { display: none; }
