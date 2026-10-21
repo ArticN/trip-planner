@@ -216,6 +216,10 @@ input, select, textarea {
 .gap-axis i { position: absolute; left: -2px; top: 0; width: 2px; border-radius: 1px; background: var(--accent); }
 .gap.tight .gap-axis i { background: var(--warn); }
 .gap-free { color: var(--ink-2); }
+.gap .ride { white-space: nowrap; color: var(--ink-2); }
+.gap .ride i { display: inline-block; font-style: normal; font-weight: 600; font-size: 11px; line-height: 1; padding: 3px 6px; border-radius: 4px; background: var(--c); }
+.gap-from, .gap-total { color: var(--ink-2); font-weight: 500; }
+.leaflet-tooltip.station-tip { padding: 1px 6px; font-size: 11px; font-weight: 600; border-radius: 4px; box-shadow: none; }
 .item {
   display: grid; grid-template-columns: 52px 26px 1fr auto; gap: 8px; align-items: start; padding: 12px;
   background: var(--card); border: 1px solid var(--edge); border-radius: var(--radius); cursor: pointer; position: relative;
@@ -316,6 +320,11 @@ input, select, textarea {
 .fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 8px; }
 .legend { font-size: 14px; font-weight: 500; color: var(--ink-2); }
 .legend .ok { color: var(--ok); margin-left: 6px; }
+.route-field > summary { cursor: pointer; }
+.route-field[open] > summary { margin-bottom: 4px; }
+.ride-edit { display: grid; gap: 8px; padding: 10px 0 0; border-top: 1px solid var(--line); }
+.station-in { display: grid; gap: 6px; }
+.legend.small { font-size: 13px; }
 .row { display: flex; gap: 8px; align-items: end; }
 .row label { flex: 1; }
 .row button { flex: none; white-space: nowrap; }
@@ -459,6 +468,7 @@ button.big { padding: 12px 22px; font-size: 16px; }
 .leaflet-control-scale-line { background: var(--glass); color: var(--ink); border-color: var(--muted); text-shadow: none; }
 .leaflet-tooltip { background: var(--card); color: var(--ink); border-color: var(--line); }
 .leaflet-tooltip-top:before { border-top-color: var(--line); }
+.leaflet-tooltip.station-tip:before { display: none; }
 :root:not([data-theme='light']) .leaflet-tile-pane .osm-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9); }
 
 @media print {

@@ -1,6 +1,17 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.22',
+    date: '2026-10-21',
+    title: 'Caminho a pé e linhas de trem no mapa',
+    items: [
+      'No mapa do dia, o trajeto entre as atividades agora segue as ruas: o caminho a pé aparece pontilhado e o de carro em linha cheia, no lugar da linha reta.',
+      'Cada atividade ganhou a seção “Trem ou metrô até aqui” no editor. Cadastre a linha (nome, sigla e cor), a estação de embarque e a de desembarque, o sentido, os minutos e o valor. O mapa desenha a linha na cor dela, com as estações marcadas, e o caminho a pé até a estação e da estação até a atividade.',
+      'Dá para fazer baldeação: com mais de um trecho, a troca de linha é feita a pé entre as estações. Na primeira atividade do dia, o trajeto parte da hospedagem.',
+      'A linha entre as atividades mostra cada parte, por exemplo “7min a pé · G Ginza, Ginza → Asakusa 18min · 7min a pé”, e o total. O exemplo do Japão traz o metrô Ginza → Asakusa no dia 9/11.',
+    ],
+  },
+  {
     version: '1.21',
     date: '2026-10-21',
     title: 'Compras e a cota da Receita',

@@ -60,7 +60,20 @@ export const ACTIVITIES = [
 
   // ── 09/11
   a('2026-11-09', null, null, 'toquio', 'Café da Manhã', 'food', 'Ginza, Tokyo', 'Café da manhã tranquilo em Ginza antes de seguir pra Asakusa.', '', null, 35.6717, 139.7640),
-  a('2026-11-09', null, null, 'toquio', '⛩️ Passeio contemplativo em Asakusa', 'sight', 'Asakusa, Tokyo', 'Senso-ji, Nakamise-dori e Kappabashi (maneki-neko que mexe a pata, pra sua avó).', '🚇 Metrô', null, 35.7148, 139.7967),
+  a('2026-11-09', null, null, 'toquio', '⛩️ Passeio contemplativo em Asakusa', 'sight', 'Asakusa, Tokyo', 'Senso-ji, Nakamise-dori e Kappabashi (maneki-neko que mexe a pata, pra sua avó).', '🚇 Metrô', null, 35.7148, 139.7967, {
+    route: { rides: [{
+      mode: 'metro', line: 'Ginza', code: 'G', color: '#FF9500', dir: 'sentido Asakusa', min: 18, cost: 210,
+      from: { name: 'Ginza', lat: 35.6717, lng: 139.7650 },
+      to: { name: 'Asakusa', lat: 35.7111, lng: 139.7964 },
+      stops: [
+        { name: 'Kyobashi', lat: 35.6766, lng: 139.7701 }, { name: 'Nihombashi', lat: 35.6820, lng: 139.7740 },
+        { name: 'Mitsukoshimae', lat: 35.6872, lng: 139.7735 }, { name: 'Kanda', lat: 35.6939, lng: 139.7709 },
+        { name: 'Suehirocho', lat: 35.7027, lng: 139.7718 }, { name: 'Ueno-hirokoji', lat: 35.7077, lng: 139.7727 },
+        { name: 'Ueno', lat: 35.7114, lng: 139.7768 }, { name: 'Inaricho', lat: 35.7111, lng: 139.7826 },
+        { name: 'Tawaramachi', lat: 35.7108, lng: 139.7905 },
+      ],
+    }] },
+  }),
   a('2026-11-09', null, null, 'toquio', 'Almoço', 'food', 'Asakusa, Tokyo', 'Almoço tradicional em Asakusa, sem pressa.', '', null, 35.7135, 139.7965),
   a('2026-11-09', null, null, 'toquio', '🌸 Passeio contemplativo em Yanaka', 'sight', 'Yanaka, Tokyo', 'Bairro antigo e tranquilo, ruas estreitas que sobreviveram à guerra.', '🚇 Metrô', null, 35.7270, 139.7660),
   a('2026-11-09', null, null, 'toquio', 'Jantar', 'food', 'Yanaka, Tokyo', 'Jantar tranquilo pra fechar o dia contemplativo.', '', null, 35.7265, 139.7665),
