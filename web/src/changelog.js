@@ -1,6 +1,15 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.23',
+    date: '2026-10-21',
+    title: 'Correção na tela de Hospedagens',
+    items: [
+      'Na tela de Hospedagens, o emoji e o nome da cidade e o botão Excluir não ficam mais por cima do campo Nome: agora ficam numa linha própria no topo de cada hospedagem, com o Excluir à direita.',
+      'No celular, os campos de cada hospedagem ficam em uma coluna só e cabem na tela, sem rolar para o lado.',
+    ],
+  },
+  {
     version: '1.22',
     date: '2026-10-21',
     title: 'Caminho a pé e linhas de trem no mapa',

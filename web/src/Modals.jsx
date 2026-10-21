@@ -378,8 +378,8 @@ export function StaysModal({ stays, cities, trip, onSave, onCreate, onDelete, on
       <div className="stays">
         {rows.length === 0 && <div className="empty">Nenhuma hospedagem ainda. Cadastre onde você vai dormir para ver a rota entre cidades no mapa.</div>}
         {rows.map((s) => (
-          <div className="stay-card" key={s.id} style={{ '--c': cityMap[s.city]?.color }}>
-            <div className="stay-city">{cityMap[s.city]?.emoji} {cityMap[s.city]?.name || 'Sem cidade'} <button className="link-btn danger-txt" onClick={() => del(s)}>Excluir</button></div>
+          <div className="stay-edit" key={s.id} style={{ '--c': cityMap[s.city]?.color }}>
+            <div className="stay-edit-city">{cityMap[s.city]?.emoji} {cityMap[s.city]?.name || 'Sem cidade'} <button className="link-btn danger-txt" onClick={() => del(s)}>Excluir</button></div>
             <div className="form">
               <label className="full">Nome<input value={s.name || ''} onChange={(e) => upd(s.id, { name: e.target.value })} /></label>
               <label>Cidade
