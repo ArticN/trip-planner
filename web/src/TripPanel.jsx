@@ -122,6 +122,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
         <button className="ghost" onClick={onOpenStays}>Hospedagens</button>
         <button className="ghost" onClick={onOpenBudget}>Orçamento</button>
         <button className="ghost" onClick={() => onOpen('checklist')}>Checklist{checklist.length ? ` ${checklist.filter((c) => c.done).length}/${checklist.length}` : ''}</button>
+        <button className="ghost" onClick={() => onOpen('shopping')}>Compras</button>
         <button className="ghost" onClick={() => onOpen('stats')}>Estatísticas</button>
         <button className="ghost" onClick={() => onOpen('calendar')}>Calendário</button>
       </div>

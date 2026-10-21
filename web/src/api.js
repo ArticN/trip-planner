@@ -59,6 +59,10 @@ export const api = {
   createCheck: (tripId, c) => req('POST', `/api/trips/${tripId}/checklist`, c),
   updateCheck: (id, patch) => req('PUT', `/api/checklist/${id}`, patch),
   deleteCheck: (id) => req('DELETE', `/api/checklist/${id}`),
+  // compras
+  createPurchase: (tripId, x) => req('POST', `/api/trips/${tripId}/purchases`, x),
+  updatePurchase: (id, patch) => req('PUT', `/api/purchases/${id}`, patch),
+  deletePurchase: (id) => req('DELETE', `/api/purchases/${id}`),
   // ideias
   createIdea: (tripId, x) => req('POST', `/api/trips/${tripId}/ideas`, x),
   updateIdea: (id, patch) => req('PUT', `/api/ideas/${id}`, patch),
