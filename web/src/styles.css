@@ -212,7 +212,7 @@ input, select, textarea {
 
 .timeline { list-style: none; margin: 0; padding: 0 12px; }
 .gap { position: relative; display: flex; align-items: center; min-height: var(--h, 20px); margin: 0; padding-left: 78px; font-size: 12.5px; color: var(--muted); }
-.gap-axis { position: absolute; left: 30px; top: 0; bottom: 0; width: 0; border-left: 2px dotted var(--hover-line); }
+.gap-axis { position: absolute; left: calc(68px - 1px); top: 0; bottom: 0; width: 0; border-left: 2px dotted var(--hover-line); }
 .gap-axis i { position: absolute; left: -2px; top: 0; width: 2px; border-radius: 1px; background: var(--accent); }
 .gap.tight .gap-axis i { background: var(--warn); }
 .gap-free { color: var(--ink-2); }
@@ -248,7 +248,7 @@ input, select, textarea {
 .day-foot button { white-space: nowrap; }
 .item + .gap, li + li { margin-top: 0; }
 .timeline li { margin-bottom: 0; }
-.timeline li:not(:has(> .gap)) { margin-top: 6px; }
+.timeline li:not(:has(> .gap)) { margin-top: 3px; }
 
 /* ── painel da viagem */
 .section-title { padding: 18px 16px 8px; font-size: 14px; font-weight: 500; color: var(--muted); }
@@ -991,11 +991,11 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .stay-card.out { background: none; border-style: dashed; }
 .stay-card.out b { color: var(--ink-2); font-weight: 400; }
 
-/* voo e trem com cara de bilhete: picote entre a hora e o trecho */
-.item.ticket { --cut: 68px;
-  -webkit-mask: radial-gradient(circle 7px at var(--cut) 0, transparent 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at var(--cut) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat; /* taste-skill-ignore: recorta os semicírculos do picote */
-  mask: radial-gradient(circle 7px at var(--cut) 0, transparent 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at var(--cut) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat; /* taste-skill-ignore: recorta os semicírculos do picote */ }
-.item.ticket::before { content: ''; position: absolute; left: var(--cut); top: 10px; bottom: 10px; border-left: 2px dashed var(--line); }
+/* toda atividade é um ingresso: o picote separa a hora do resto e os ingressos se encaixam, um embaixo do outro */
+.item { --cut: 68px;
+  -webkit-mask: radial-gradient(circle 9px at var(--cut) 0, transparent 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 9px at var(--cut) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat; /* taste-skill-ignore: recorta os semicírculos do picote */
+  mask: radial-gradient(circle 9px at var(--cut) 0, transparent 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 9px at var(--cut) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat; /* taste-skill-ignore: recorta os semicírculos do picote */ }
+.item::before { content: ''; position: absolute; left: calc(var(--cut) - 1px); top: 10px; bottom: 10px; border-left: 2px dashed var(--hover-line); pointer-events: none; }
 .item.ticket .leg { font-size: 13px; color: var(--muted); }
 .item.ticket .leg b { font-size: 18px; font-family: var(--serif); font-weight: 400; letter-spacing: 0.04em; color: var(--ink); }
 
@@ -1004,13 +1004,13 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .coords .row { margin-top: 6px; }
 
 /* blocos do dia: a escala manhã, café, almoço e jantar */
-.timeline .slot-h { display: flex; align-items: center; gap: 8px; padding: 14px 4px 6px; margin: 0; list-style: none; }
+.timeline .slot-h { display: flex; align-items: center; gap: 8px; padding: 16px 4px 6px 4px; margin: 0; list-style: none; }
 .slot-name { font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
 .slot-h.meal .slot-name { color: var(--accent); }
 .slot-n { font-size: 12px; color: var(--muted); }
 .slot-h::after { content: ''; order: 2; flex: 1; border-top: 1px solid var(--line); }
 .slot-add { order: 3; width: 26px; height: 26px; padding: 0; border-radius: var(--r-pill); border-color: transparent; background: none; color: var(--muted); font-size: 18px; line-height: 1; }
 .slot-add:hover:not(:disabled) { background: var(--raised); color: var(--ink); }
-.slot-h.empty { padding-top: 8px; padding-bottom: 2px; opacity: 0.7; }
+.slot-h.vazio { padding-top: 8px; padding-bottom: 2px; opacity: 0.7; }
 .slot-h.share { margin: 10px 0 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .slot-h.share::after { display: none; }

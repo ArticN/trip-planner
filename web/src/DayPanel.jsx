@@ -249,7 +249,7 @@ export default function DayPanel({
           return (
           <Fragment key={slot.key}>
           <li
-            className={`slot-h${here.length ? '' : ' empty'}${slot.meal ? ' meal' : ''}`}
+            className={`slot-h${here.length ? '' : ' vazio'}${slot.meal ? ' meal' : ''}`}
             onDragOver={(e) => { if (dragId != null) e.preventDefault(); }}
             onDrop={(e) => { e.preventDefault(); dropOnSlot(slot.key); setDragId(null); setOverId(null); }}
           >

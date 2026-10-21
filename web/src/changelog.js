@@ -1,6 +1,16 @@
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.20',
+    date: '2026-10-21',
+    title: 'Atividades como ingressos que se encaixam',
+    items: [
+      'Todas as atividades agora têm cara de ingresso: o horário fica no canhoto, separado do resto por um picote com entalhes no topo e na base.',
+      'Os ingressos se encaixam uns nos outros. O picote continua pela linha entre as atividades, que mostra o deslocamento e o tempo livre, e atravessa o dia inteiro como uma fita de ingressos.',
+      'Os blocos vazios do dia (Manhã, Café, Almoço…) ficaram como cabeçalhos leves, sem caixa, para não competir com as atividades.',
+    ],
+  },
+  {
     version: '1.19',
     date: '2026-10-21',
     title: 'O dia em blocos',
