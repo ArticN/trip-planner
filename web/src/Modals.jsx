@@ -2,6 +2,7 @@ import { Star } from './Stars.jsx';
 import { useEffect, useState } from 'react';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { AttachmentsField } from './Attachments.jsx';
+import { RIDE_MODES } from './travel.js';
 import { KINDS, KIND_KEYS, SLOTS, TRANSPORTS, CURRENCIES, TIMEZONES, localTz, hasCoords, fmtDay } from './util.js';
 
 export function Modal({ title, onClose, children, wide, footer }) {
@@ -63,6 +64,96 @@ function GeocodeBox({ initial, onPick, placeholder }) {
         </ul>
       )}
     </div>
+  );
+}
+
+// estação de embarque ou desembarque: nome + busca da posição no mapa
+function StationInput({ label, value, onChange }) {
+  const v = value || {};
+  const [res, setRes] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const placed = v.lat != null && v.lng != null && v.lat !== '' && v.lng !== '';
+  const search = async () => {
+    const q = (v.name || '').trim();
+    if (!q) return;
+    setBusy(true); setErr(''); setRes(null);
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=pt-BR&q=${encodeURIComponent(/station|esta|駅/i.test(q) ? q : `${q} station`)}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setRes(await r.json());
+    } catch (e) { setErr(`Não consegui buscar (${e.message}). Digite lat/lng abaixo.`); } finally { setBusy(false); }
+  };
+  return (
+    <div className="station-in">
+      <div className="legend small">{label} {placed ? <span className="ok">● no mapa</span> : <span className="muted">○ sem posição</span>}</div>
+      <div className="row">
+        <input value={v.name || ''} onChange={(e) => onChange({ ...v, name: e.target.value })} placeholder="Nome da estação (ex: Shiodome)" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); search(); } }} />
+        <button type="button" onClick={search} disabled={busy}>{busy ? '…' : 'Buscar'}</button>
+      </div>
+      {err && <div className="warn soft pad">{err}</div>}
+      {res && res.length === 0 && <div className="muted small pad">Nada encontrado. Tente o nome em inglês, com a cidade.</div>}
+      {res && res.length > 0 && (
+        <ul className="geo-res">
+          {res.map((r) => (
+            <li key={r.place_id} onClick={() => { onChange({ ...v, name: v.name || r.name, lat: +parseFloat(r.lat).toFixed(5), lng: +parseFloat(r.lon).toFixed(5) }); setRes(null); }}>
+              <b>{r.name || r.display_name.split(',')[0]}</b>
+              <span>{r.display_name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <details className="coords">
+        <summary>Digitar latitude e longitude</summary>
+        <div className="row">
+          <label>Lat<input type="number" step="0.0001" value={v.lat ?? ''} onChange={(e) => onChange({ ...v, lat: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+          <label>Lng<input type="number" step="0.0001" value={v.lng ?? ''} onChange={(e) => onChange({ ...v, lng: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+// trechos de trem/metrô para chegar à atividade (guardados como JSON no campo route).
+// os trechos a pé entre a atividade anterior, as estações e esta são calculados sozinhos
+function RouteField({ value, onChange, fxCur }) {
+  let raw = value;
+  if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = null; } }
+  const rides = Array.isArray(raw?.rides) ? raw.rides : [];
+  const put = (list) => onChange(list.length ? { ...raw, rides: list } : null);
+  const upd = (i, patch) => put(rides.map((r, k) => (k === i ? { ...r, ...patch } : r)));
+  const add = () => {
+    const last = rides[rides.length - 1];
+    // baldeação: o novo trecho começa na estação onde o anterior termina
+    put([...rides, { mode: last?.mode || 'metro', line: '', from: last?.to ? { ...last.to } : { name: '' }, to: { name: '' } }]);
+  };
+  return (
+    <details className="full fieldset route-field" open={rides.length > 0}>
+      <summary className="legend">Trem ou metrô até aqui {rides.length > 0 && <span className="ok">● {rides.length} {rides.length > 1 ? 'trechos' : 'trecho'}</span>}</summary>
+      <div className="muted small">Cadastre as estações de embarque e desembarque. O mapa desenha a linha entre elas e o caminho a pé desde a atividade anterior (ou da hospedagem, na primeira do dia) até a estação, e da estação até aqui. Com mais de um trecho, a troca de linha é a pé entre as estações.</div>
+      {rides.map((r, i) => (
+        <div key={i} className="ride-edit">
+          <div className="form">
+            <label>Tipo
+              <select value={r.mode || 'metro'} onChange={(e) => upd(i, { mode: e.target.value })}>
+                {Object.entries(RIDE_MODES).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}
+              </select>
+            </label>
+            <label>Linha<input value={r.line || ''} onChange={(e) => upd(i, { line: e.target.value })} placeholder="Ex: Toei Oedo, JR Yamanote" /></label>
+            <label>Sigla<input value={r.code || ''} onChange={(e) => upd(i, { code: e.target.value })} placeholder="Ex: E, JY" maxLength={6} /></label>
+            <label>Cor da linha<input type="color" value={/^#[0-9a-f]{6}$/i.test(r.color || '') ? r.color : (RIDE_MODES[r.mode] || RIDE_MODES.metro).color} onChange={(e) => upd(i, { color: e.target.value })} /></label>
+            <div className="full"><StationInput label="Embarque" value={r.from} onChange={(from) => upd(i, { from })} /></div>
+            <div className="full"><StationInput label="Desembarque" value={r.to} onChange={(to) => upd(i, { to })} /></div>
+            <label>Sentido<input value={r.dir || ''} onChange={(e) => upd(i, { dir: e.target.value })} placeholder="Ex: sentido Tochomae" /></label>
+            <label>Minutos no trem<input type="number" min="0" value={r.min ?? ''} onChange={(e) => upd(i, { min: e.target.value === '' ? null : Number(e.target.value) })} placeholder="estimado se vazio" /></label>
+            <label>Valor ({fxCur})<input type="number" min="0" step="any" value={r.cost ?? ''} onChange={(e) => upd(i, { cost: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+          </div>
+          {r.stops?.length > 0 && <div className="muted small">{r.stops.length} {r.stops.length > 1 ? 'estações intermediárias' : 'estação intermediária'} no traçado</div>}
+          <div className="row"><button type="button" className="mini" onClick={() => put(rides.filter((_, k) => k !== i))}>Remover trecho</button></div>
+        </div>
+      ))}
+      <div className="row"><button type="button" onClick={add}>{rides.length ? '+ Baldeação (outro trecho)' : '+ Trecho de trem ou metrô'}</button></div>
+    </details>
   );
 }
 
@@ -191,6 +282,7 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
         <label className="full">Detalhes
           <textarea rows={3} value={draft.details || ''} onChange={(e) => set({ details: e.target.value })} />
         </label>
+        {!isIdea && !['flight', 'move'].includes(draft.kind) && <RouteField value={draft.route} onChange={(route) => set({ route })} fxCur={fxCur} />}
         {!isIdea && (draft.kind === 'flight' || draft.kind === 'move' || draft.from_code || draft.ref) && (
           <div className="full fieldset">
             <div className="legend">Trecho (voo, trem, ônibus)</div>

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { KINDS, esc, hasCoords, haversine, fmtKm } from './util.js';
+import { KINDS, esc, hasCoords, haversine, fmtKm, fmtDuration } from './util.js';
 import { translatedBasemap, osmLayer } from './basemap.js';
 import { accentColor } from './theme.js';
 import { iconSvg } from './icons.jsx';
+import { travelLegs, parseRoute, rideColor, rideLabel } from './travel.js';
 
 const WORLD_CENTER = [20, 0];
 const BASE_KEY = 'trip-planner-basemap';
@@ -105,6 +106,56 @@ function jitterMap(items) {
   return off;
 }
 
+// ponto e direção no meio de um caminho, para a seta
+function midOf(path) {
+  const i = Math.max(0, Math.floor((path.length - 1) / 2));
+  const a = { lat: path[i][0], lng: path[i][1] };
+  const b = { lat: path[Math.min(path.length - 1, i + 1)][0], lng: path[Math.min(path.length - 1, i + 1)][1] };
+  return path.length === 2 ? { at: { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 }, deg: bearing(a, b) } : { at: a, deg: bearing(a, b) };
+}
+
+function arrow(group, path) {
+  const { at, deg } = midOf(path);
+  L.marker([at.lat, at.lng], {
+    interactive: false, keyboard: false,
+    icon: L.divIcon({ className: 'arrow-wrap', html: `<div class="arrow" style="transform:rotate(${deg}deg)">▲</div>`, iconSize: [14, 14], iconAnchor: [7, 7] }),
+  }).addTo(group);
+}
+
+function station(group, s, color, main) {
+  const m = L.circleMarker([s.lat, s.lng], {
+    radius: main ? 6 : 3.5, color, weight: main ? 3 : 2, fillColor: '#fff', fillOpacity: 1, bubblingMouseEvents: false,
+  }).addTo(group);
+  if (s.name) m.bindTooltip(esc(s.name), main ? { permanent: true, direction: 'right', offset: [8, 0], className: 'station-tip' } : { direction: 'top' });
+}
+
+// um trecho do deslocamento: a pé (pontilhado pelas ruas), de carro (linha cheia), trem/metrô (linha na cor dela, com as estações)
+function drawLeg(group, l, accent) {
+  const path = l.path || [[l.from.lat, l.from.lng], [l.to.lat, l.to.lng]];
+  if (l.mode === 'ride') {
+    const r = l.ride;
+    const c = rideColor(r);
+    const tip = `${esc(rideLabel(r))}${r.dir ? ` · ${esc(r.dir)}` : ''}<br>${esc(r.from.name || 'embarque')} → ${esc(r.to.name || 'desembarque')} · ${l.estimate ? '~' : ''}${fmtDuration(l.min)}`;
+    L.polyline(path, { color: '#fff', weight: 9, opacity: 0.9, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(group);
+    L.polyline(path, { color: c, weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }).bindTooltip(tip, { sticky: true }).addTo(group);
+    r.stops.forEach((s) => station(group, s, c, false));
+    station(group, r.from, c, true);
+    station(group, r.to, c, true);
+    return;
+  }
+  if (l.mode === 'transit') {
+    L.polyline(path, { color: '#b4b1ab', weight: 3, opacity: 0.85, dashArray: '6 8', lineCap: 'round' })
+      .bindTooltip(`${fmtKm(l.km)} de transporte, ~${fmtDuration(l.min)}<br>Cadastre as estações na atividade para ver a linha`, { sticky: true }).addTo(group);
+    if (l.km > 0.15) arrow(group, path);
+    return;
+  }
+  const foot = l.mode === 'foot';
+  L.polyline(path, {
+    color: accent, weight: foot ? 4 : 3.5, opacity: 0.9, lineCap: 'round', lineJoin: 'round', dashArray: foot ? '0.1 7' : null,
+  }).bindTooltip(`${l.estimate ? '~' : ''}${fmtDuration(l.min)} ${foot ? 'a pé' : 'de carro'} · ${fmtKm(l.km)}${l.path ? '' : ' (linha reta)'}`, { sticky: true }).addTo(group);
+  if (l.km > 0.15) arrow(group, path);
+}
+
 export default function MapView({
   mode, items, stays, cities, stayByDay, selectedId, onSelect, onEdit, editPositions, onMove,
   picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
@@ -117,6 +168,7 @@ export default function MapView({
   cb.current = { onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground };
   const lastFit = useRef(null);
   const declutterRef = useRef(null);
+  const drawGen = useRef(0);
   // tipo de mapa: botão próprio (o controle do Leaflet ficava atrás da barra da rota)
   const basesRef = useRef({});
   const [baseKey, setBaseKey] = useState(() => { try { return localStorage.getItem(BASE_KEY) || 'map'; } catch { return 'map'; } });
@@ -209,30 +261,35 @@ export default function MapView({
         markersRef.current.set(a.id, m);
         bounds.push([a.lat, a.lng]);
       });
-      // trajeto
-      for (let i = 0; i < pts.length - 1; i++) {
-        const p = pts[i];
-        const q = pts[i + 1];
-        const isTransit = p.kind === 'move' || q.kind === 'move' || p.kind === 'flight' || q.kind === 'flight';
-        const km = haversine(p, q);
-        if (km < 0.03) continue;
-        L.polyline([[p.lat, p.lng], [q.lat, q.lng]], {
-          color: isTransit ? '#b4b1ab' : route, weight: isTransit ? 2.5 : 3.5, opacity: 0.85,
-          dashArray: isTransit ? '2 8' : null, lineCap: 'round',
-        }).bindTooltip(`${fmtKm(km)} em linha reta`, { sticky: true }).addTo(group);
-        if (km > 0.15) {
-          const mid = { lat: (p.lat + q.lat) / 2, lng: (p.lng + q.lng) / 2 };
-          L.marker([mid.lat, mid.lng], {
-            interactive: false, keyboard: false,
-            icon: L.divIcon({ className: 'arrow-wrap', html: `<div class="arrow" style="transform:rotate(${bearing(p, q)}deg)">▲</div>`, iconSize: [14, 14], iconAnchor: [7, 7] }),
-          }).addTo(group);
-        }
-      }
       // hospedagem do dia
       const st = showStays && stayByDay ? stayByDay : null;
       if (st && hasCoords(st)) {
         L.marker([st.lat, st.lng], { icon: labelIcon('H', 'stay-lbl') }).bindTooltip(st.name).addTo(group);
         bounds.push([st.lat, st.lng]);
+      }
+      // trajeto: primeiro a linha reta e, assim que chega, o caminho pelas ruas e as linhas de trem/metrô.
+      // a primeira atividade com estações parte da hospedagem do dia
+      const gen = ++drawGen.current;
+      const home = stayByDay && hasCoords(stayByDay) && pts[0] && parseRoute(pts[0]) ? stayByDay : null;
+      const chain = home ? [home, ...pts] : pts;
+      for (let i = 0; i < chain.length - 1; i++) {
+        const p = chain[i];
+        const q = chain[i + 1];
+        const isTransit = p.kind === 'move' || q.kind === 'move' || p.kind === 'flight' || q.kind === 'flight';
+        const km = haversine(p, q);
+        if (km < 0.03) continue;
+        if (isTransit) {
+          L.polyline([[p.lat, p.lng], [q.lat, q.lng]], { color: '#b4b1ab', weight: 2.5, opacity: 0.85, dashArray: '2 8', lineCap: 'round' })
+            .bindTooltip(`${fmtKm(km)} em linha reta`, { sticky: true }).addTo(group);
+          continue;
+        }
+        parseRoute(q)?.rides.forEach((r) => bounds.push([r.from.lat, r.from.lng], [r.to.lat, r.to.lng]));
+        const draft = L.polyline([[p.lat, p.lng], [q.lat, q.lng]], { color: route, weight: 2, opacity: 0.35, dashArray: '2 8', interactive: false }).addTo(group);
+        travelLegs(p, q).then((legs) => {
+          if (drawGen.current !== gen) return; // o mapa já foi redesenhado
+          group.removeLayer(draft);
+          legs.forEach((l) => drawLeg(group, l, route));
+        }).catch(() => {});
       }
       if (declutterRef.current) { map.off('zoomend', declutterRef.current); declutterRef.current = null; }
     } else {

@@ -50,7 +50,7 @@ scripts/           setup.sh e sync-to-shared.sh
 - **Nova viagem**: nome, datas, ícone, moeda da viagem e sua moeda (com câmbio editável).
 - **Tema escuro** por padrão (alternável no menu ⋯ ou na tela inicial; a escolha fica salva no navegador), com mapa-base escuro.
 - **Visão geral**: barra "Rota da viagem" no topo do mapa (cidades coloridas na ordem de visita), pins em gota por cidade, rota entre hospedagens, bate-voltas (tracejado), cidades com contagem de pontos turísticos, lista de dias, camadas por tipo.
-- **Dia a dia**: timeline com horário, duração, custo, distância em linha reta entre paradas, trajeto numerado no mapa com setas.
+- **Dia a dia**: timeline com horário, duração, custo e deslocamento entre paradas; no mapa, o caminho a pé pelas ruas (OSRM) e, quando a atividade tem estações cadastradas, a linha de trem/metrô na cor dela, com embarque, desembarque e baldeações.
 - **Edição**: criar/editar/excluir atividades, marcar como feito, arrastar para reordenar, "Ordenar por horário", arrastar marcadores no mapa (✋ Mover pontos), buscar local (OpenStreetMap) ou clicar no mapa.
 - **Cidades e locais** e **Hospedagens**: cadastro por viagem (a cidade nova já busca a posição no mapa).
 - **Alertas**: horários sobrepostos e atividades sem local no mapa.
@@ -66,6 +66,21 @@ scripts/           setup.sh e sync-to-shared.sh
 - **Modo hoje**: durante a viagem o app abre no dia atual (no fuso do destino), destaca a atividade de agora ou a próxima e mostra "Como chegar" (Google Maps).
 - **Exportar**: imprimir ou salvar PDF (inclui checklist, notas e links) e arquivo `.ics` para Google Agenda / Apple Calendário (horários sem fuso, no horário local).
 - **Orçamento** por item, cidade e dia. Imprimir roteiro. Atalhos: ← → trocam de dia. Links: `#/t/<viagem>/<aaaa-mm-dd>`.
+
+## Trem e metrô entre atividades (campo `route`)
+
+Cada atividade pode guardar como se chega a ela a partir da anterior do dia (na primeira do dia, a partir da hospedagem). No editor é a seção "Trem ou metrô até aqui"; no backup JSON vai como objeto (ou texto JSON):
+
+```json
+"route": { "rides": [{
+  "mode": "metro", "line": "Ginza", "code": "G", "color": "#FF9500", "dir": "sentido Asakusa", "min": 18, "cost": 210,
+  "from": { "name": "Ginza", "lat": 35.6717, "lng": 139.7650 },
+  "to": { "name": "Asakusa", "lat": 35.7111, "lng": 139.7964 },
+  "stops": [{ "name": "Ueno", "lat": 35.7114, "lng": 139.7768 }]
+}] }
+```
+
+`mode`: metro, train, shinkansen, bus, tram ou ferry. Obrigatórios: `from` e `to` com `lat`/`lng`. Opcionais: `line`, `code`, `color` (hex), `dir`, `stops` (estações intermediárias, para a linha seguir o traçado), `min` (minutos no trem; sem ele, estimado pela distância) e `cost`. Vários trechos são baldeações. Os trechos a pé (anterior → embarque, desembarque → próximo embarque, último desembarque → atividade) são calculados pelas ruas.
 
 ## Viagem de exemplo
 

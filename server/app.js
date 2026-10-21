@@ -7,7 +7,7 @@ import { buildIcs } from '../web/src/ics.js';
 // viagens de exemplo que o usuário pode carregar na tela inicial
 const EXAMPLES = { japao: japan };
 
-const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code', 'spent', 'rating', 'review', 'slot'];
+const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code', 'spent', 'rating', 'review', 'slot', 'route'];
 const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
 const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
@@ -16,7 +16,8 @@ const DAY_FIELDS = ['day', 'title', 'notes'];
 const BUY_FIELDS = ['title', 'store', 'city', 'day', 'price', 'grp', 'bought', 'exempt', 'notes', 'sort'];
 const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd'];
 
-const clean = (v) => (v === '' || v === undefined ? null : v);
+// objetos (ex.: route com as estações) vão para o banco como JSON
+const clean = (v) => (v === '' || v === undefined ? null : v && typeof v === 'object' ? JSON.stringify(v) : v);
 const pick = (body, fields) => fields.map((f) => (f in body ? clean(body[f]) : null));
 const marks = (fields) => fields.map(() => '?').join(',');
 const setList = (fields) => fields.map((f) => `${f} = ?`).join(', ');
@@ -106,7 +107,7 @@ async function migrate() {
     const have = await cols(table);
     for (const [c, type] of list) if (!have.includes(c)) await db.exec(`ALTER TABLE ${table} ADD COLUMN ${c} ${type}`);
   };
-  await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT'], ['slot', 'TEXT']]);
+  await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT'], ['slot', 'TEXT'], ['route', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
   await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL']]);
   await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
@@ -267,7 +268,7 @@ app.get('/api/cal/:token', h(async (req, res) => {
   res.send(buildIcs(d.trip, d.activities, cityMap, { alarm: d.trip.remind_min ?? 30, flightAlarm: d.trip.remind_flight_min ?? 180, feed: true }));
 }));
 
-const SHARE_ACT = ['id', 'day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'lat', 'lng', 'sort', 'start_tz', 'end_tz', 'from_code', 'to_code', 'slot'];
+const SHARE_ACT = ['id', 'day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'lat', 'lng', 'sort', 'start_tz', 'end_tz', 'from_code', 'to_code', 'slot', 'route'];
 const only = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k] ?? null]));
 app.get('/api/share/:token', h(async (req, res) => {
   const t = String(req.params.token || '');

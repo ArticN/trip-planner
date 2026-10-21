@@ -4,18 +4,35 @@ import { Fragment, useEffect, useState } from 'react';
 import { api } from './api.js';
 import { Icon } from './icons.jsx';
 import WeatherLine from './WeatherLine.jsx';
-import { travelTime, slack, gmapsDirections } from './travel.js';
+import { travelTime, slack, gmapsDirections, parseRoute, rideColor, rideLabel, inkOn } from './travel.js';
 import {
   KINDS, KIND_KEYS, SLOTS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone, nowIn,
 } from './util.js';
 
 const MODE_LABEL = { foot: 'a pé', car: 'de carro', transit: 'de transporte' };
 
+// deslocamento com estações: a pé, linha (na cor dela) de uma estação a outra, a pé…
+function Legs({ t }) {
+  return (
+    <>
+      {t.legs.map((l, i) => (
+        <Fragment key={i}>
+          {i > 0 && ' · '}
+          {l.mode === 'ride'
+            ? <span className="ride" title={l.ride.dir || undefined}><i style={{ '--c': rideColor(l.ride), color: inkOn(rideColor(l.ride)) }}>{rideLabel(l.ride)}</i> {l.ride.from.name || 'embarque'} → {l.ride.to.name || 'desembarque'} {l.estimate ? '~' : ''}{fmtDuration(l.min)}</span>
+            : <>{l.estimate ? '~' : ''}{fmtDuration(l.min)} a pé</>}
+        </Fragment>
+      ))}
+      {t.legs.length > 1 && <b className="gap-total"> · {t.estimate ? '~' : ''}{fmtDuration(t.min)} no total</b>}
+    </>
+  );
+}
+
 // o intervalo entre duas atividades desenhado como tempo: a altura acompanha os minutos livres,
 // e o trecho cheio do eixo é o deslocamento estimado
 const PX_PER_MIN = 0.5;
 
-function Gap({ a, b }) {
+function Gap({ a, b, fromStay = false }) {
   const [t, setT] = useState(null);
   const ok = hasCoords(a) && hasCoords(b) && haversine(a, b) >= 0.05;
   const isMove = ['move', 'flight'].includes(a.kind) || ['move', 'flight'].includes(b.kind);
@@ -23,7 +40,7 @@ function Gap({ a, b }) {
     let live = true;
     if (ok && !isMove) travelTime(a, b).then((v) => live && setT(v)).catch(() => {});
     return () => { live = false; };
-  }, [a.lat, a.lng, b.lat, b.lng, b.transport, ok, isMove]);
+  }, [a.lat, a.lng, b.lat, b.lng, b.transport, b.route, ok, isMove]);
   const free = slack(a, b);
   const move = ok && !isMove && t ? t.min : 0;
   const rest = free != null ? free - move : null;
@@ -35,9 +52,10 @@ function Gap({ a, b }) {
     <div className={`gap${tight ? ' tight' : ''}`} style={{ '--h': `${h}px` }}>
       <span className="gap-axis" aria-hidden="true"><i style={{ height: `${fill}%` }} /></span>
       <span className="gap-txt">
+        {fromStay && <span className="gap-from">Da hospedagem · </span>}
         {ok && (isMove || !t
           ? <>{fmtKm(haversine(a, b))} em linha reta</>
-          : <>{fmtKm(t.km)} {MODE_LABEL[t.mode]} · {t.estimate ? '~' : ''}{fmtDuration(t.min)}</>)}
+          : t.mode === 'route' ? <Legs t={t} /> : <>{fmtKm(t.km)} {MODE_LABEL[t.mode]} · {t.estimate ? '~' : ''}{fmtDuration(t.min)}</>)}
         {tight && <b> · {free < 0 ? 'horários se sobrepõem' : free === 0 ? 'sem tempo para chegar' : `só ${free} min entre as duas`}</b>}
         {!tight && rest >= 30 && <span className="gap-free">{ok ? ' · ' : ''}{fmtDuration(rest)} livre</span>}
         {ok && !isMove && t && <>{' · '}<a href={gmapsDirections(a, b, t.mode)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>rota</a></>}
@@ -269,6 +287,7 @@ export default function DayPanel({
           return (
             <li key={a.id}>
               {prev && visible.includes(prev) && <Gap a={prev} b={a} />}
+              {!prev && hasCoords(stay) && parseRoute(a) && <Gap a={stay} b={a} fromStay />}
               <div
                 className={cls}
                 draggable
