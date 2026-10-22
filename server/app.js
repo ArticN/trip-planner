@@ -96,6 +96,7 @@ async function migrate() {
       name TEXT, type TEXT, size INTEGER, data BLOB, kind TEXT DEFAULT 'doc',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
     CREATE INDEX IF NOT EXISTS idx_files_trip ON files(trip_id);
     CREATE INDEX IF NOT EXISTS idx_act_trip_day ON activities(trip_id, day, sort);
     CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
@@ -384,6 +385,18 @@ app.get('/api/places', h(async (_req, res) => {
     SELECT c.trip_id, c.key, c.name, c.lat, c.lng, t.name AS trip, t.start, t.end
     FROM cities c JOIN trips t ON t.id = c.trip_id
     WHERE c.lat IS NOT NULL AND c.lng IS NOT NULL AND c.key != 'transito'`));
+}));
+
+// preferências gerais do app (ex.: país onde mora e visão do "Meu mapa"), iguais em todos os aparelhos
+const SETTINGS = ['home_country', 'map_view'];
+app.get('/api/settings', h(async (_req, res) => {
+  res.json(Object.fromEntries((await db.all('SELECT key, value FROM settings')).filter((r) => SETTINGS.includes(r.key)).map((r) => [r.key, r.value])));
+}));
+app.put('/api/settings', h(async (req, res) => {
+  const b = req.body || {};
+  const keys = SETTINGS.filter((k) => k in b);
+  if (keys.length) await db.batch(keys.map((k) => (b[k] == null || b[k] === '' ? ['DELETE FROM settings WHERE key = ?', [k]] : ['INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [k, String(b[k]).slice(0, 40)]])));
+  res.json(Object.fromEntries((await db.all('SELECT key, value FROM settings')).filter((r) => SETTINGS.includes(r.key)).map((r) => [r.key, r.value])));
 }));
 
 // ── checklist
