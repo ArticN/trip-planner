@@ -30,6 +30,8 @@ export const api = {
   unshare: (id) => req('DELETE', `/api/trips/${id}/share`),
   shared: (token) => req('GET', `/api/share/${encodeURIComponent(token)}`),
   places: () => req('GET', '/api/places'),
+  settings: () => req('GET', '/api/settings'),
+  saveSettings: (patch) => req('PUT', '/api/settings', patch),
   calendar: (id) => req('POST', `/api/trips/${id}/calendar`),
   uncalendar: (id) => req('DELETE', `/api/trips/${id}/calendar`),
   // atividades

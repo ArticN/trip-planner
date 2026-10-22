@@ -1,5 +1,30 @@
+// Ideias para o futuro: o que ainda não existe no app, mostrado na Home abaixo das Novidades.
+// Quando uma ideia virar versão, sai daqui e entra no CHANGELOG.
+export const IDEAS = [
+  {
+    title: 'Viagem nacional ou internacional',
+    text: 'Cada viagem teria um tipo, Nacional ou Internacional. A internacional mantém a cota da Receita (US$ 1.000, imposto sobre o excedente) e o checklist de passaporte e seguro; a nacional tira a cota das Compras e ajusta limites, documentos e moeda.',
+  },
+  { title: 'Divisão de gastos', text: 'Registrar quem pagou cada coisa e ver no fim quem deve a quem, como no Splitwise.' },
+  { title: 'Prazos de cancelamento', text: 'Reservas com “cancelamento grátis até…” e aviso perto da data.' },
+  { title: 'Modelos de checklist', text: 'Listas prontas por tipo de viagem (frio, praia, internacional) e a sua salva para reusar.' },
+  { title: 'Diário com fotos', text: 'Fotos e texto em cada dia, virando um álbum da viagem no fim.' },
+  { title: 'Retrospectiva', text: 'Resumo da viagem com km andados, lugares, gastos por categoria e as atividades mais bem avaliadas.' },
+];
+
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
+  {
+    version: '1.24',
+    date: '2026-10-22',
+    title: 'Meu mapa no seu país',
+    items: [
+      'No “Meu mapa” da Home, escolha em “Onde moro” o país em que você vive. O mapa ganha a opção Mundo ou só o seu país, e lembra a escolha em todos os aparelhos.',
+      'Na visão do país aparecem os estados (ou províncias) com as cidades das suas viagens: o estado fica pintado quando você já foi e contornado quando a viagem ainda vai acontecer. A lista abaixo agrupa as cidades por estado.',
+      'Ilhas e territórios distantes ficam fora do quadro para o mapa não encolher, a não ser que alguma viagem passe por lá.',
+      'Novo bloco “Ideias para o futuro” abaixo das Novidades, começando por separar viagens nacionais e internacionais (cota da Receita, limites e documentos diferentes).',
+    ],
+  },
   {
     version: '1.23',
     date: '2026-10-21',

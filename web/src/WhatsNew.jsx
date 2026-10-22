@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CHANGELOG, latestVersion, markSeen, seenVersion } from './changelog.js';
+import { CHANGELOG, IDEAS, latestVersion, markSeen, seenVersion } from './changelog.js';
 import { fmtDay } from './util.js';
 
 // "Novidades": a versão mais recente aberta; as anteriores ficam no histórico
@@ -25,6 +25,12 @@ export default function WhatsNew() {
       ))}
       {CHANGELOG.length > 1 && (
         <button className="wn-more" onClick={() => setAll((x) => !x)}>{all ? 'Mostrar só a última versão' : `Ver histórico (${CHANGELOG.length - 1} versões anteriores)`}</button>
+      )}
+      {IDEAS.length > 0 && (
+        <details className="wn-ideas">
+          <summary>Ideias para o futuro ({IDEAS.length})</summary>
+          <ul>{IDEAS.map((i) => <li key={i.title}><b>{i.title}.</b> {i.text}</li>)}</ul>
+        </details>
       )}
     </section>
   );
