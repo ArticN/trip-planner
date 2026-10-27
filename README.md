@@ -3,14 +3,6 @@
 Um planner de viagens pessoal: mapa, roteiro dia a dia com horários, hospedagens, orçamento na moeda da viagem e checklist,
 tudo num app web que você hospeda de graça e abre no celular como se fosse um app.
 
-> **Projeto pessoal e "vibecoded".** Fiz este app para planejar uma viagem minha, conversando em português com o
-> [Claude](https://claude.ai) (pelo Claude Code): eu descrevia o que queria, o Claude escrevia o código, e eu testava e pedia
-> ajustes. Quase nenhuma linha foi digitada à mão. Ele funciona bem para mim, mas não é um produto: não tem testes
-> automatizados, suporte nem garantia de que vai continuar evoluindo. Use, copie e adapte à vontade.
->
-> Este repositório tem **só o código**. Os dados de qualquer viagem ficam no banco de cada instalação, nunca no git, e o
-> exemplo que vem junto é inventado.
-
 <p align="center">
   <img src="docs/screens/viagem-geral.png" alt="Visão geral da viagem: rota entre as hospedagens no mapa, diagrama de linha de metrô com as cidades e a lista de dias" width="900">
 </p>
