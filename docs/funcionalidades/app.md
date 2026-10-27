@@ -13,17 +13,42 @@ Mais detalhes no [guia de hospedagem](../GUIA.md#4-use-no-celular).
 
 ## Sem internet
 
-Na versão publicada (ou com `npm run build && npm start`; o `npm run dev` não liga essa parte), o app guarda uma cópia
-do que você já viu:
+Na versão publicada (ou com `npm run build && npm start`; o `npm run dev` não liga essa parte), o app guarda no
+aparelho uma cópia do que você já abriu com internet. Sem conexão, nada chega à Vercel nem ao Turso: tudo vem dessa
+cópia, que é de cada aparelho (o celular e o computador têm cada um a sua).
 
-- **Abre sem internet** com a última versão das viagens e do roteiro. Uma faixa "Sem internet" avisa no topo.
-- **Edições feitas sem internet não são salvas.** Espere a conexão voltar para mudar algo.
+O que funciona sem internet:
+
+- **Abrir o app**, a lista de viagens e **cada viagem que você já abriu com internet**, na versão da última vez que
+  ela foi aberta. A viagem em destaque na tela inicial também fica guardada. Uma faixa "Sem internet" avisa no topo.
+- **Anexos** (ingressos, passagens): ao abrir uma viagem com internet, o app baixa todos os anexos dela para o aparelho.
 - **Mapa**: os trechos que você já viu ficam guardados (até cerca de 3 mil). Para ter uma região inteira, use o
   [mapa offline](mapa.md#mapa-offline).
-- **Anexos**: baixados para o aparelho ao abrir a viagem com internet.
 - **Mapa-múndi dos voos**: sempre funciona, porque os aeroportos e os países vêm dentro do app.
-- O que depende de serviços externos não atualiza sem internet: tempo, câmbio, rotas a pé novas, busca de lugares,
-  "Perto daqui" e Wikipédia.
+- **Tempo de deslocamento** entre atividades: as rotas a pé já consultadas ficam guardadas; as novas aparecem como
+  estimativa (com "~").
+
+O que não funciona:
+
+- **Viagem que nunca foi aberta neste aparelho**: mostra "Não consegui abrir esta viagem".
+- **Editar**: sem internet, criar, mudar, excluir ou anexar dá erro e a tela volta para a versão salva. As edições
+  não ficam guardadas para depois: espere a conexão voltar.
+- O que depende de serviços externos: previsão do tempo, câmbio, busca de lugares, "Perto daqui" e Wikipédia.
+- **Sair** da conta apaga a cópia guardada (dados e anexos; os mapas baixados ficam).
+
+### Antes de viajar
+
+Com Wi-Fi, no aparelho que vai usar na viagem:
+
+1. Instale o app ([como](#instalar-no-celular)) e use sempre pelo ícone. No iPhone, o app instalado guarda os dados
+   separado do Safari, então o que você abriu no Safari não vale para o ícone (e o Safari pode apagar dados de sites
+   que você não abre há alguns dias).
+2. Abra cada viagem que vai querer consultar. Se mudar algo no computador depois, abra de novo no celular para
+   atualizar a cópia.
+3. Baixe o [mapa offline](mapa.md#mapa-offline) das cidades.
+
+Para testar: ponha o celular em modo avião, feche o app de vez e abra de novo pelo ícone. A faixa "Sem internet"
+aparece, a viagem abre e os anexos abrem com um toque.
 
 ## Celular e computador
 

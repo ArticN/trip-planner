@@ -79,7 +79,9 @@ Abra o link no celular, entre com a senha e:
 - **iPhone (Safari):** botão Compartilhar → **Adicionar à Tela de Início**.
 - **Android (Chrome):** menu ⋮ → **Instalar app** (ou "Adicionar à tela inicial").
 
-O planner abre em tela cheia, com ícone próprio, e continua abrindo sem internet com o que já estava carregado.
+O planner abre em tela cheia, com ícone próprio, e continua abrindo sem internet com as viagens que você já abriu
+nele com internet (só para consultar: editar precisa de conexão). Antes de viajar, veja
+[o que fazer para usar sem internet](funcionalidades/app.md#antes-de-viajar).
 
 ## 5. Comece a sua viagem
 
