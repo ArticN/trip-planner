@@ -14,8 +14,8 @@ export default function Login({ onDone }) {
     try {
       await api.login(pw);
       onDone();
-    } catch {
-      setErr('Senha incorreta.');
+    } catch (e) {
+      setErr(/→ 429/.test(e.message) ? 'Muitas tentativas erradas. Espere 15 minutos.' : 'Senha incorreta.');
       setBusy(false);
     }
   };
