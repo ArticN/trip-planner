@@ -1,7 +1,10 @@
 # 🧳 Trip Planner
 
-Um planner de viagens pessoal: mapa, roteiro dia a dia com horários, hospedagens, orçamento na moeda da viagem e checklist,
-tudo num app web que você hospeda de graça e abre no celular como se fosse um app.
+O **Trip Planner** é um planner de viagens que cabe num só lugar: o mapa, o roteiro de cada dia, as hospedagens, o orçamento e o que falta reservar ou levar. Ele nasceu para organizar uma viagem de 24 dias pelo Japão e foi crescendo até servir para qualquer destino.
+
+Você monta o roteiro dia a dia, em blocos como manhã, almoço e jantar, com horário, custo e o deslocamento entre um ponto e outro. O caminho aparece no mapa, a pé pelas ruas e de trem ou metrô com a cor de cada linha. Voos e trens respeitam o fuso de cada ponta, e a visão geral mostra a rota entre as cidades como um diagrama de linha de metrô. O orçamento é somado na moeda da viagem e convertido para a sua, e o checklist, as compras (com a cota de isenção da Receita) e as ideias sem data ajudam a não esquecer nada.
+
+O app é seu: você hospeda de graça (Vercel e Turso), protege com uma senha e abre no celular como se fosse um app, inclusive sem internet. Os dados de cada viagem ficam no seu banco, nunca no repositório.
 
 <p align="center">
   <img src="docs/screens/viagem-geral.png" alt="Visão geral da viagem: rota entre as hospedagens no mapa, diagrama de linha de metrô com as cidades e a lista de dias" width="900">
