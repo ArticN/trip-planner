@@ -38,26 +38,9 @@ Para criar outro exemplo, faça um arquivo parecido em `server/examples/` e regi
 ## Formato do backup
 
 O backup (`GET /api/trips/:id/export`) é um JSON com `trip`, `cities`, `stays`, `activities`, `checklist`, `ideas`, `days`,
-`files` e `purchases`. Ao importar, os `id` são ignorados e a viagem é criada de novo.
-
-- **Opções no mesmo horário**: atividades do mesmo dia com o mesmo texto no campo `alt` viram um carrossel; a primeira é a principal.
-- **Bloco do dia**: o campo `slot` (`manha`, `cafe`, `pos_cafe`, `almoco`, `pos_almoco`, `jantar`, `pos_jantar`) fixa o bloco; sem ele, o app decide pelo título e pelo horário.
-- **Trechos com fuso**: `end_day`, `start_tz`, `end_tz`, `from_code` e `to_code` em voos e trens.
-
-### Trem e metrô entre atividades (campo `route`)
-
-Cada atividade pode guardar como se chega a ela a partir da anterior do dia (na primeira do dia, a partir da hospedagem). No editor é a seção "Trem ou metrô até aqui"; no backup JSON vai como objeto (ou texto JSON):
-
-```json
-"route": { "rides": [{
-  "mode": "metro", "line": "Ginza", "code": "G", "color": "#FF9500", "dir": "sentido Asakusa", "min": 18, "cost": 210,
-  "from": { "name": "Ginza", "lat": 35.6717, "lng": 139.7650 },
-  "to": { "name": "Asakusa", "lat": 35.7111, "lng": 139.7964 },
-  "stops": [{ "name": "Ueno", "lat": 35.7114, "lng": 139.7768 }]
-}] }
-```
-
-`mode`: metro, train, shinkansen, bus, tram ou ferry. Obrigatórios: `from` e `to` com `lat`/`lng`. Opcionais: `line`, `code`, `color` (hex), `dir`, `stops` (estações intermediárias, para a linha seguir o traçado), `min` (minutos no trem; sem ele, estimado pela distância) e `cost`. Vários trechos são baldeações. Os trechos a pé (anterior → embarque, desembarque → próximo embarque, último desembarque → atividade) são calculados pelas ruas.
+`files` e `purchases`. Ao importar (`POST /api/trips/import`), os `id` são ignorados e a viagem é criada de novo; os anexos
+não vão no backup. A referência de todos os campos, incluindo `alt` (opções no mesmo horário), `slot` (bloco do dia),
+`via` (escalas) e `route` (trem e metrô), está em [Compartilhar e backup](funcionalidades/compartilhar-e-backup.md#formato-do-json).
 
 ## Serviços externos
 

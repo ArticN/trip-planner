@@ -16,7 +16,8 @@ export const IDEAS = [
   { title: 'Retrospectiva', text: 'Resumo da viagem com km andados, lugares, gastos por categoria e as atividades mais bem avaliadas.' },
 ];
 
-// Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
+// Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui
+// e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
     version: '1.28',

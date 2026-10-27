@@ -59,6 +59,14 @@ Requer **Node 22.13+**. Localmente os dados ficam em `data/planner.db`, que est�
 
 A seção "Novidades" da tela inicial (arquivo `web/src/changelog.js`) conta a história de cada versão.
 
+## Documentação
+
+- **[Funcionalidades](docs/funcionalidades/README.md)**: tudo o que o app faz e como usar cada coisa, passo a passo, com dicas,
+  limitações e como funcionam por baixo as partes menos óbvias (como o reconhecimento das escalas do voo). Cada versão
+  nova no changelog atualiza a página da área que mudou.
+- **[Guia de hospedagem](docs/GUIA.md)**: do fork ao link no celular, com Turso e Vercel.
+- **[Detalhes técnicos](docs/TECNICO.md)**: variáveis de ambiente, scripts e API.
+
 ## Stack
 
 | Parte | O que usa |
@@ -80,11 +88,12 @@ server/db.js           conexão: arquivo SQLite local ou Turso
 server/examples/       viagem de exemplo fictícia (carregável pela API)
 examples/              a mesma viagem de exemplo como backup JSON, para importar na tela inicial
 web/src/               front-end React (Home, TripView, DayPanel, MapView, Modals…)
-docs/                  guia de instalação, detalhes técnicos e capturas
+docs/                  guia de instalação, funcionalidades, detalhes técnicos e capturas
 .claude/skills/        skills de design usadas pelo Claude durante o desenvolvimento
 ```
 
-Detalhes da API e do formato do backup (incluindo o campo `route` de trem/metrô) estão em [docs/TECNICO.md](docs/TECNICO.md).
+Detalhes da API estão em [docs/TECNICO.md](docs/TECNICO.md); o formato do backup (incluindo os campos `alt` e `route`), em
+[Compartilhar e backup](docs/funcionalidades/compartilhar-e-backup.md#formato-do-json).
 
 ## Como foi feito
 
