@@ -37,7 +37,7 @@ const a = (day, start, end, city, title, kind, location = '', details = '', tran
 
 export const ACTIVITIES = [
   // ── ida
-  a('2027-04-03', '23:00', '06:00', 'transito', 'Voo de ida São Paulo → Tóquio', 'flight', 'Guarulhos (GRU) → Haneda (HND)', 'Voo fictício com uma escala. Cada ponta usa o fuso local.', '✈️ Avião', null, -23.4356, -46.4731, { end_day: '2027-04-05', start_tz: 'America/Sao_Paulo', end_tz: 'Asia/Tokyo', from_code: 'GRU', to_code: 'HND' }),
+  a('2027-04-03', '23:00', '06:00', 'transito', 'Voo de ida São Paulo → Tóquio', 'flight', 'Guarulhos (GRU) → Haneda (HND)', 'Voo fictício com uma escala. Cada ponta usa o fuso local.', '✈️ Avião', null, -23.4356, -46.4731, { end_day: '2027-04-05', start_tz: 'America/Sao_Paulo', end_tz: 'Asia/Tokyo', from_code: 'GRU', via: 'DXB', to_code: 'HND' }),
 
   // ── 05/04 Tóquio: chegada e Shinjuku
   a('2027-04-05', '07:00', '08:00', 'toquio', 'Chegada e trem até o hotel', 'move', 'Haneda → Shinjuku', 'Deixar as malas no hotel até o check-in.', '🚃 Trem', 600, 35.5494, 139.7798),
@@ -107,7 +107,7 @@ export const ACTIVITIES = [
   a('2027-04-10', '10:00', '11:00', 'kyoto', 'Kinkaku-ji (Pavilhão Dourado)', 'sight', 'Kita-ku, Kyoto', '', '🚌 Ônibus', 500, 35.0394, 135.7292),
   a('2027-04-10', '12:00', '13:00', 'kyoto', 'Almoço e lembrancinhas no Nishiki Market', 'food', 'Nishiki Market, Kyoto', '', '', 2000, 35.0050, 135.7649),
   a('2027-04-10', '14:00', '16:30', 'kyoto', 'Trem até o aeroporto de Kansai', 'move', 'Kyoto → Kansai (KIX)', 'Trem expresso, cerca de 1h20.', '🚃 Trem', 3600, 34.4320, 135.2304),
-  a('2027-04-10', '19:00', '08:00', 'transito', 'Voo de volta Osaka → São Paulo', 'flight', 'Kansai (KIX) → Guarulhos (GRU)', 'Voo fictício com uma escala.', '✈️ Avião', null, 34.4320, 135.2304, { end_day: '2027-04-11', start_tz: 'Asia/Tokyo', end_tz: 'America/Sao_Paulo', from_code: 'KIX', to_code: 'GRU' }),
+  a('2027-04-10', '19:00', '08:00', 'transito', 'Voo de volta Osaka → São Paulo', 'flight', 'Kansai (KIX) → Guarulhos (GRU)', 'Voo fictício com uma escala.', '✈️ Avião', null, 34.4320, 135.2304, { end_day: '2027-04-11', start_tz: 'Asia/Tokyo', end_tz: 'America/Sao_Paulo', from_code: 'KIX', via: 'DOH', to_code: 'GRU' }),
 ];
 
 export const CHECKLIST = [

@@ -92,6 +92,7 @@
    "start_tz": "America/Sao_Paulo",
    "end_tz": "Asia/Tokyo",
    "from_code": "GRU",
+   "via": "DXB",
    "to_code": "HND"
   },
   {
@@ -661,6 +662,7 @@
    "start_tz": "Asia/Tokyo",
    "end_tz": "America/Sao_Paulo",
    "from_code": "KIX",
+   "via": "DOH",
    "to_code": "GRU"
   }
  ],

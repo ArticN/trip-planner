@@ -9,11 +9,24 @@ export const IDEAS = [
   { title: 'Prazos de cancelamento', text: 'Reservas com “cancelamento grátis até…” e aviso perto da data.' },
   { title: 'Modelos de checklist', text: 'Listas prontas por tipo de viagem (frio, praia, internacional) e a sua salva para reusar.' },
   { title: 'Diário com fotos', text: 'Fotos e texto em cada dia, virando um álbum da viagem no fim.' },
+  {
+    title: 'Trajeto real do voo',
+    text: 'Depois que o voo pousa, buscar a rota que o avião fez de verdade (pelo número do voo e a data) e desenhar no mapa no lugar do arco ilustrativo. Depende de um serviço de dados de voo com chave, como o FlightAware.',
+  },
   { title: 'Retrospectiva', text: 'Resumo da viagem com km andados, lugares, gastos por categoria e as atividades mais bem avaliadas.' },
 ];
 
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
+  {
+    version: '1.27',
+    date: '2026-10-27',
+    title: 'Trajeto do voo no mapa-múndi',
+    items: [
+      'Cada voo ganhou um mapa-múndi com o trajeto: saída, escalas e chegada ligadas por arcos, com um aviãozinho percorrendo a rota, a lista das cidades e a distância em linha reta. É um trajeto ilustrativo (o caminho mais curto entre os aeroportos), não a rota real do avião.',
+      'Novo campo “Escalas” no voo: digite os códigos dos aeroportos na ordem, como ZRH ou ICN, ADD. Mais de 3 mil aeroportos com voos regulares vêm embutidos no app, então o mapa funciona offline.',
+    ],
+  },
   {
     version: '1.26',
     date: '2026-10-27',
