@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { KINDS, esc, hasCoords, haversine, fmtKm, fmtDuration } from './util.js';
 import { translatedBasemap, osmLayer } from './basemap.js';
 import { accentColor } from './theme.js';
-import { iconSvg } from './icons.jsx';
+import { Icon, iconSvg } from './icons.jsx';
 import { travelLegs, parseRoute, rideColor, rideLabel } from './travel.js';
 
 const WORLD_CENTER = [20, 0];
@@ -167,6 +167,8 @@ export default function MapView({
   const cb = useRef({});
   cb.current = { onAltPick, onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground };
   const lastFit = useRef(null);
+  // atividades do dia fora da área da viagem (ex.: voo saindo de Guarulhos): não entram no mapa, só num aviso
+  const [far, setFar] = useState([]);
   const declutterRef = useRef(null);
   const drawGen = useRef(0);
   // tipo de mapa: botão próprio (o controle do Leaflet ficava atrás da barra da rota)
@@ -244,8 +246,17 @@ export default function MapView({
     const cityMap = Object.fromEntries(cities.map((c) => [c.key, c]));
     const route = accentColor();
 
+    // a área navegável é recortada em volta da região da viagem (setMaxBounds acima): um ponto fora dela,
+    // como o aeroporto de origem de um voo, levava o enquadramento para a borda do recorte e o mapa ficava vazio
+    const region = regionOf(cities, stays, cities.length ? [] : items);
+    const area = region?.pad(1.2);
+    const inArea = (p) => !area || area.contains([p.lat, p.lng]);
+    let farNow = [];
+
     if (mode === 'day') {
-      const pts = items.filter(hasCoords);
+      const all = items.filter(hasCoords);
+      const pts = all.filter(inArea);
+      farNow = all.filter((a) => !inArea(a));
       const jit = editPositions ? new Map() : jitterMap(pts);
       pts.forEach((a) => {
         const kcolor = (KINDS[a.kind] || KINDS.sight).color;
@@ -262,7 +273,7 @@ export default function MapView({
         bounds.push([a.lat, a.lng]);
       });
       // as outras opções do mesmo horário: pino apagado com o mesmo número; clicar mostra essa opção
-      alts.forEach((x) => {
+      alts.filter(inArea).forEach((x) => {
         const m = L.marker([x.lat, x.lng], {
           icon: pinIcon(labelNumbers ? esc(x.n) : iconSvg(KINDS[x.kind] ? x.kind : 'sight', 15, 2.2), (KINDS[x.kind] || KINDS.sight).color, false, KINDS[x.kind]?.label, true),
           zIndexOffset: -500,
@@ -273,7 +284,7 @@ export default function MapView({
       });
       // hospedagem do dia
       const st = showStays && stayByDay ? stayByDay : null;
-      if (st && hasCoords(st)) {
+      if (st && hasCoords(st) && inArea(st)) {
         L.marker([st.lat, st.lng], { icon: labelIcon('H', 'stay-lbl') }).bindTooltip(st.name).addTo(group);
         bounds.push([st.lat, st.lng]);
       }
@@ -302,6 +313,8 @@ export default function MapView({
         }).catch(() => {});
       }
       if (declutterRef.current) { map.off('zoomend', declutterRef.current); declutterRef.current = null; }
+      // dia só com pontos fora da área (dia de voo): mostra a região da viagem inteira
+      if (!bounds.length && farNow.length && region) bounds.push([region.getSouth(), region.getWest()], [region.getNorth(), region.getEast()]);
     } else {
       // ── visão geral da viagem
       const stayCities = [];
@@ -397,9 +410,13 @@ export default function MapView({
       lastFit.current = key;
     }
 
+    const farKey = farNow.map((a) => a.id).join('|');
+    setFar((cur) => (cur.map((a) => a.id).join('|') === farKey ? cur : farNow));
   }, [mode, items, alts, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look]);
 
   useEffect(() => {
+    const mb = mapRef.current?.options.maxBounds;
+    if (flyTarget && mb && !mb.contains([flyTarget.lat, flyTarget.lng])) return; // fora do recorte: não dá para voar até lá
     if (flyTarget && mapRef.current) {
       mapRef.current.flyTo([flyTarget.lat, flyTarget.lng], Math.max(mapRef.current.getZoom(), 15), { duration: 0.7 });
     }
@@ -412,6 +429,15 @@ export default function MapView({
   return (
     <>
       <div ref={elRef} className="map" />
+      {far.length > 0 && (
+        <div className="map-far" role="status">
+          <Icon name={far.every((a) => a.kind === 'flight') ? 'flight' : 'sight'} />
+          <span>
+            {far.length === 1 ? <b>{far[0].title}</b> : <b>{far.length} atividades</b>}
+            {far.length === 1 ? ' fica' : ' ficam'} fora da área do mapa da viagem e não {far.length === 1 ? 'aparece' : 'aparecem'} aqui.
+          </span>
+        </div>
+      )}
       <BasePicker value={baseKey} onPick={pickBase} />
     </>
   );

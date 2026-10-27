@@ -15,6 +15,15 @@ export const IDEAS = [
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.26',
+    date: '2026-10-27',
+    title: 'Ida e volta no roteiro',
+    items: [
+      'O primeiro voo da viagem (ida) e o último (volta) saíram dos blocos do dia, como “Depois do jantar”, e ganharam um cartão de viagem próprio: a ida abre o dia em que a viagem começa e a volta fecha o dia em que ela termina. Num dia só de voo, os blocos vazios nem aparecem.',
+      'No dia de um voo que sai de fora da região da viagem (como o voo de Guarulhos para Tóquio), o mapa ficava preso num canto vazio, e clicar no voo afastava ainda mais. Agora o dia mostra a região da viagem inteira e um aviso explica que o voo começa fora da área do mapa.',
+    ],
+  },
+  {
     version: '1.25',
     date: '2026-10-27',
     title: 'Opções no mesmo horário',
