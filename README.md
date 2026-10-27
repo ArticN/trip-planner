@@ -12,15 +12,15 @@ tudo num app web que você hospeda de graça e abre no celular como se fosse um 
 > exemplo que vem junto é inventado.
 
 <p align="center">
-  <img src="docs/screens/dia.png" alt="Dia do roteiro: timeline por blocos à esquerda e, no mapa, a linha de metrô Ginza até Asakusa com as estações" width="900">
+  <img src="docs/screens/viagem-geral.png" alt="Visão geral da viagem: rota entre as hospedagens no mapa, diagrama de linha de metrô com as cidades e a lista de dias" width="900">
 </p>
 
 <p align="center">
-  <img src="docs/screens/visao-geral.png" alt="Visão geral da viagem com a rota entre cidades e o diagrama de linha de metrô" width="440">
-  <img src="docs/screens/home.png" alt="Tela inicial com contagem regressiva e o mapa dos países" width="440">
+  <img src="docs/screens/viagem-dia.png" alt="Dia do roteiro: atividades por blocos à esquerda e, no mapa, o caminho a pé e as linhas de trem e metrô" width="440">
+  <img src="docs/screens/viagem-voo.png" alt="Dia do voo: cartão do voo com escala e arco da rota no mapa-múndi" width="440">
 </p>
 
-<sub>Capturas com a viagem de exemplo fictícia. O mapa-base (ruas) não aparece nelas porque foram tiradas sem acesso ao servidor de mapas; no app ele aparece normalmente.</sub>
+<sub>Capturas do app com a viagem real do autor (Japão, novembro de 2026). O mapa-base (ruas) pode aparecer escurecido ou sem detalhes conforme a captura.</sub>
 
 ## Quero o meu
 
