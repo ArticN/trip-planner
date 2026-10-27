@@ -99,7 +99,7 @@ function DayInfo({ info, onSave }) {
 
 export default function DayPanel({
   day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd, onMoveSlot,
-  onReorder, onSortTime, onAltStep, onAltAdd, onAltMain, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo, doneFilter = 'all', onDoneFilter, files = [],
+  onReorder, onSortTime, onAltStep, onAltAdd, onAltMain, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo, doneFilter = 'all', onDoneFilter, files = [], travel = {},
 }) {
   // atividade escolhida (no mapa ou na busca) fica visível na lista
   useEffect(() => {
@@ -159,6 +159,116 @@ export default function DayPanel({
     const rest = items.filter((a) => a.id !== dragId && SLOTS.findIndex((x) => x.key === a.slotKey) > rank).map((a) => a.id);
     onReorder([...ids, dragId, ...rest]);
   };
+
+  const renderItem = (a) => {
+          const k = KINDS[a.kind] || KINDS.sight;
+          const idx = items.indexOf(a);
+          const prev = idx > 0 ? items[idx - 1] : null;
+          const dur = duration(a, tripTz);
+          const endDay = endDayOf(a);
+          const endPlus = a.end && endDay !== a.day ? ` (+${daysBetween(a.day, endDay)}d)` : '';
+          const leg = a.from_code || a.to_code || a.ref;
+          const cls = ['item', ['flight', 'move'].includes(a.kind) ? 'ticket' : '', a.alts ? 'has-alts' : '', a.id === nowId ? 'now' : '', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
+          return (
+            <li key={a.id}>
+              {prev && visible.includes(prev) && prev.kind !== 'flight' && a.kind !== 'flight' && <Gap a={prev} b={a} />}
+              {!prev && hasCoords(stay) && parseRoute(a) && <Gap a={stay} b={a} fromStay />}
+              <div
+                className={cls}
+                draggable={a.kind !== 'flight'}
+                onDragStart={(e) => { setDragId(a.id); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => { e.preventDefault(); if (overId !== a.id) setOverId(a.id); }}
+                onDragLeave={() => setOverId((o) => (o === a.id ? null : o))}
+                onDrop={(e) => { e.preventDefault(); drop(a.id); setDragId(null); setOverId(null); }}
+                onDragEnd={() => { setDragId(null); setOverId(null); }}
+                onClick={() => onSelect(a.id)}
+                {...swipe(a)}
+              >
+                <div className="time">
+                  {a.start ? (
+                    <>
+                      <b>{a.start}</b>
+                      {a.end && <span>{a.end}{endPlus}</span>}
+                    </>
+                  ) : (
+                    <span className="notime">—</span>
+                  )}
+                </div>
+                <div className="pin-mini" style={{ '--c': k.color }} title={k.label}>{idx + 1}</div>
+                <div className="body" key={a.id}>
+                  {a.alts && <AltBar a={a} onStep={onAltStep} onMain={onAltMain} />}
+                  <div className="title-row">
+                    <span className="title">{a.title}</span>
+                    {a.id === nowId && <span className="now-badge">{nowLabel(a)}</span>}
+                  </div>
+                  {leg && (
+                    <div className="leg">
+                      {a.from_code && <b>{a.from_code}</b>} {a.start}
+                      {(a.to_code || a.end) && <> → {a.to_code && <b>{a.to_code}</b>} {a.end}{endPlus}</>}
+                      {a.ref && <span className="muted"> · {a.ref}</span>}
+                      {a.start_tz && a.end_tz && a.start_tz !== a.end_tz && <span className="muted"> · horários locais</span>}
+                    </div>
+                  )}
+                  {a.location && <div className="loc">{a.location}</div>}
+                  {a.details && <div className="det">{a.details}</div>}
+                  {a.notes && <div className="note">{a.notes}</div>}
+                  {(a.rating || a.review) && (
+                    <div className="review">
+                      {a.rating ? <Stars value={a.rating} /> : null}
+                      {a.review && <span>{a.review}</span>}
+                    </div>
+                  )}
+                  {(parseLinks(a.links).length > 0 || hasCoords(a) || files.some((f) => f.activity_id === a.id && (f.kind || 'doc') === 'doc')) && (
+                    <div className="links">
+                      {hasCoords(a) && <a href={directionsUrl(a)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Como chegar</a>}
+                      {parseLinks(a.links).map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{linkLabel(l)}</a>)}
+                      {files.filter((f) => f.activity_id === a.id && (f.kind || 'doc') === 'doc').map((f) => (
+                        <a key={`f${f.id}`} className="file-link" href={api.fileUrl(f.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={f.name}>
+                          <Clip />{f.name}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <div className="tags">
+                    <span className="tag" style={{ '--c': k.color }}><Icon name={a.kind in KINDS ? a.kind : 'sight'} size={13} /> {k.label}</span>
+                    {dur != null && <span className="tag">⏱ {fmtDuration(dur)}</span>}
+                    {a.transport && <span className="tag">{a.transport}</span>}
+                    {a.cost > 0 && <span className="tag cost">{fx.fmt(a.cost)}</span>}
+                    {!hasCoords(a) && a.kind !== 'free' && <span className="tag warn">sem local</span>}
+                    {conflicts.has(a.id) && <span className="tag warn">sobreposto</span>}
+                  </div>
+                </div>
+                <div className="actions">
+                  <button className={`check${a.done ? ' on' : ''}`} title="Marcar como feito" onClick={(e) => { e.stopPropagation(); onToggleDone(a); }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5" /></svg></button>
+                  {onAltAdd && !['flight', 'move'].includes(a.kind) && (
+                    <button className="icon-btn sm alt-add" title="Outra opção para este horário" aria-label="Adicionar outra opção para este horário" onClick={(e) => { e.stopPropagation(); onAltAdd(a); }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="1.5" y="4" width="10" height="10" rx="1.5" /><path d="M4.5 1.5H13A1.5 1.5 0 0114.5 3v8.5M6.5 6.5v5M4 9h5" /></svg>
+                    </button>
+                  )}
+                  <button className="icon-btn sm" title="Editar" onClick={(e) => { e.stopPropagation(); onEdit(a.id); }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 13.5l.7-3L11 2.7a1.4 1.4 0 012 2L5.5 12.8z" /></svg></button>
+                </div>
+              </div>
+            </li>
+          );
+  };
+
+  // o primeiro voo da viagem (ida) e o último (volta) saem dos blocos do dia (manhã, jantar…)
+  // e ganham um cartão de viagem próprio: a ida no topo do dia, a volta no fim
+  const ida = visible.find((a) => a.id === travel.ida);
+  const volta = visible.find((a) => a.id === travel.volta && a.id !== travel.ida);
+  const inSlots = visible.filter((a) => a !== ida && a !== volta);
+  const travelBox = (a, isVolta) => a && (
+    <section className={`travel-box${isVolta ? ' volta' : ''}`} aria-label={isVolta ? 'Volta' : 'Ida'}>
+      <div className="travel-h">
+        <Icon name="flight" size={16} />
+        <b>{isVolta ? 'Volta' : 'Ida'}</b>
+        <span>{isVolta ? 'fim da viagem' : 'começo da viagem'}</span>
+      </div>
+      <ol className="timeline">{renderItem(a)}</ol>
+    </section>
+  );
+  // dia só de ida ou volta: os blocos vazios ficam escondidos
+  const onlyTravel = (ida || volta) && inSlots.length === 0;
 
   return (
     <div className="daypanel">
@@ -273,9 +383,11 @@ export default function DayPanel({
         );
       })()}
 
+      {travelBox(ida, false)}
+      {!onlyTravel && (
       <ol className="timeline">
         {SLOTS.map((slot) => {
-          const here = visible.filter((a) => a.slotKey === slot.key);
+          const here = inSlots.filter((a) => a.slotKey === slot.key);
           return (
           <Fragment key={slot.key}>
           <li
@@ -287,101 +399,13 @@ export default function DayPanel({
             <span className="slot-n">{here.length ? `${here.length}` : 'livre'}</span>
             <button type="button" className="slot-add" onClick={() => onAdd(slot.key)} title={`Adicionar em: ${slot.label}`} aria-label={`Adicionar em: ${slot.label}`}>+</button>
           </li>
-        {here.map((a) => {
-          const k = KINDS[a.kind] || KINDS.sight;
-          const idx = items.indexOf(a);
-          const prev = idx > 0 ? items[idx - 1] : null;
-          const dur = duration(a, tripTz);
-          const endDay = endDayOf(a);
-          const endPlus = a.end && endDay !== a.day ? ` (+${daysBetween(a.day, endDay)}d)` : '';
-          const leg = a.from_code || a.to_code || a.ref;
-          const cls = ['item', ['flight', 'move'].includes(a.kind) ? 'ticket' : '', a.alts ? 'has-alts' : '', a.id === nowId ? 'now' : '', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
-          return (
-            <li key={a.id}>
-              {prev && visible.includes(prev) && <Gap a={prev} b={a} />}
-              {!prev && hasCoords(stay) && parseRoute(a) && <Gap a={stay} b={a} fromStay />}
-              <div
-                className={cls}
-                draggable
-                onDragStart={(e) => { setDragId(a.id); e.dataTransfer.effectAllowed = 'move'; }}
-                onDragOver={(e) => { e.preventDefault(); if (overId !== a.id) setOverId(a.id); }}
-                onDragLeave={() => setOverId((o) => (o === a.id ? null : o))}
-                onDrop={(e) => { e.preventDefault(); drop(a.id); setDragId(null); setOverId(null); }}
-                onDragEnd={() => { setDragId(null); setOverId(null); }}
-                onClick={() => onSelect(a.id)}
-                {...swipe(a)}
-              >
-                <div className="time">
-                  {a.start ? (
-                    <>
-                      <b>{a.start}</b>
-                      {a.end && <span>{a.end}{endPlus}</span>}
-                    </>
-                  ) : (
-                    <span className="notime">—</span>
-                  )}
-                </div>
-                <div className="pin-mini" style={{ '--c': k.color }} title={k.label}>{idx + 1}</div>
-                <div className="body" key={a.id}>
-                  {a.alts && <AltBar a={a} onStep={onAltStep} onMain={onAltMain} />}
-                  <div className="title-row">
-                    <span className="title">{a.title}</span>
-                    {a.id === nowId && <span className="now-badge">{nowLabel(a)}</span>}
-                  </div>
-                  {leg && (
-                    <div className="leg">
-                      {a.from_code && <b>{a.from_code}</b>} {a.start}
-                      {(a.to_code || a.end) && <> → {a.to_code && <b>{a.to_code}</b>} {a.end}{endPlus}</>}
-                      {a.ref && <span className="muted"> · {a.ref}</span>}
-                      {a.start_tz && a.end_tz && a.start_tz !== a.end_tz && <span className="muted"> · horários locais</span>}
-                    </div>
-                  )}
-                  {a.location && <div className="loc">{a.location}</div>}
-                  {a.details && <div className="det">{a.details}</div>}
-                  {a.notes && <div className="note">{a.notes}</div>}
-                  {(a.rating || a.review) && (
-                    <div className="review">
-                      {a.rating ? <Stars value={a.rating} /> : null}
-                      {a.review && <span>{a.review}</span>}
-                    </div>
-                  )}
-                  {(parseLinks(a.links).length > 0 || hasCoords(a) || files.some((f) => f.activity_id === a.id && (f.kind || 'doc') === 'doc')) && (
-                    <div className="links">
-                      {hasCoords(a) && <a href={directionsUrl(a)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Como chegar</a>}
-                      {parseLinks(a.links).map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{linkLabel(l)}</a>)}
-                      {files.filter((f) => f.activity_id === a.id && (f.kind || 'doc') === 'doc').map((f) => (
-                        <a key={`f${f.id}`} className="file-link" href={api.fileUrl(f.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={f.name}>
-                          <Clip />{f.name}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  <div className="tags">
-                    <span className="tag" style={{ '--c': k.color }}><Icon name={a.kind in KINDS ? a.kind : 'sight'} size={13} /> {k.label}</span>
-                    {dur != null && <span className="tag">⏱ {fmtDuration(dur)}</span>}
-                    {a.transport && <span className="tag">{a.transport}</span>}
-                    {a.cost > 0 && <span className="tag cost">{fx.fmt(a.cost)}</span>}
-                    {!hasCoords(a) && a.kind !== 'free' && <span className="tag warn">sem local</span>}
-                    {conflicts.has(a.id) && <span className="tag warn">sobreposto</span>}
-                  </div>
-                </div>
-                <div className="actions">
-                  <button className={`check${a.done ? ' on' : ''}`} title="Marcar como feito" onClick={(e) => { e.stopPropagation(); onToggleDone(a); }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5" /></svg></button>
-                  {onAltAdd && !['flight', 'move'].includes(a.kind) && (
-                    <button className="icon-btn sm alt-add" title="Outra opção para este horário" aria-label="Adicionar outra opção para este horário" onClick={(e) => { e.stopPropagation(); onAltAdd(a); }}>
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="1.5" y="4" width="10" height="10" rx="1.5" /><path d="M4.5 1.5H13A1.5 1.5 0 0114.5 3v8.5M6.5 6.5v5M4 9h5" /></svg>
-                    </button>
-                  )}
-                  <button className="icon-btn sm" title="Editar" onClick={(e) => { e.stopPropagation(); onEdit(a.id); }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 13.5l.7-3L11 2.7a1.4 1.4 0 012 2L5.5 12.8z" /></svg></button>
-                </div>
-              </div>
-            </li>
-          );
-        })}
+        {here.map(renderItem)}
           </Fragment>
           );
         })}
       </ol>
+      )}
+      {travelBox(volta, true)}
 
       <div className="day-foot">
         <button className="primary" onClick={onAdd}>＋ Atividade</button>

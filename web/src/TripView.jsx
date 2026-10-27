@@ -70,6 +70,11 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
   // das opções no mesmo horário, só a principal conta no orçamento, nas estatísticas, na agenda e no PDF
   const acts = useMemo(() => principals(data?.activities || []), [data]);
+  // ida e volta: primeiro e último voo da viagem (o dia mostra cada um num cartão de viagem)
+  const travel = useMemo(() => {
+    const fl = acts.filter((a) => a.kind === 'flight').sort((x, y) => (x.day + (x.start || '')).localeCompare(y.day + (y.start || '')));
+    return { ida: fl[0]?.id, volta: fl.length > 1 ? fl[fl.length - 1].id : null };
+  }, [acts]);
   useReminders(data?.trip, data?.activities, notify);
 
   // anexos ficam guardados no aparelho (o service worker guarda cada um na primeira vez que é pedido)
@@ -639,7 +644,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 onAltStep={stepAlt} onAltAdd={addAlt} onAltMain={makePrincipal}
                 kinds={kinds} onToggleKind={toggleKind} doneFilter={doneFilter} onDoneFilter={setDoneFilter} fx={fx} tripTz={trip.tz} now={sel === today ? now.min : null}
                 onPrev={() => step(-1)} onNext={() => step(1)} hasPrev={dayIndex > 0} hasNext={dayIndex < days.length - 1}
-                dayInfo={(data.days || []).find((d) => d.day === sel) || null} onSaveDayInfo={saveDayInfo} files={data.files || []}
+                dayInfo={(data.days || []).find((d) => d.day === sel) || null} onSaveDayInfo={saveDayInfo} files={data.files || []} travel={travel}
               />
             )}
           </div>

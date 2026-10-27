@@ -1114,3 +1114,11 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .map-far .ic { flex: none; margin-top: 1px; color: var(--muted); }
 .map-far b { font-weight: 500; color: var(--ink); }
 @media (max-width: 900px) { .map-far { top: 56px; } }
+
+/* ida e volta: o voo fica num cartão de viagem próprio, fora dos blocos do dia */
+.travel-box { margin: 14px 12px 4px; padding: 8px 0 2px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--raised); }
+.travel-box.volta { margin-top: 18px; }
+.travel-box .timeline { padding: 0 8px 4px; }
+.travel-h { display: flex; align-items: center; gap: 8px; padding: 2px 14px 6px; color: var(--accent); }
+.travel-h b { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.travel-h span { font-size: 12.5px; color: var(--muted); }
