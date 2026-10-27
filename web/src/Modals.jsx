@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { parseLinks, linkLabel } from './Extras.jsx';
 import { AttachmentsField } from './Attachments.jsx';
 import { RIDE_MODES } from './travel.js';
+import { SCOPES } from './geo.js';
 import { KINDS, KIND_KEYS, SLOTS, TRANSPORTS, CURRENCIES, TIMEZONES, localTz, hasCoords, fmtDay } from './util.js';
 
 export function Modal({ title, onClose, children, wide, footer }) {
@@ -540,12 +541,14 @@ function CoverField({ value, onChange }) {
   );
 }
 
-export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
+export function TripModal({ trip, place, onSave, onDelete, onDuplicate, onClose }) {
   const isNew = !trip.id;
   const [d, setD] = useState(trip);
   const set = (p) => setD((x) => ({ ...x, ...p }));
   const valid = d.name?.trim() && d.start && d.end && d.end >= d.start;
-  const sameCur = d.currency === d.home_currency;
+  // nacional: uma moeda só (a de casa), sem câmbio
+  const domestic = (d.scope || place?.auto) === 'domestic';
+  const sameCur = domestic || d.currency === d.home_currency;
   return (
     <Modal
       title={isNew ? 'Nova viagem' : 'Editar viagem'}
@@ -556,7 +559,7 @@ export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
           {!isNew && <button onClick={onDuplicate}>Duplicar</button>}
           <span className="spacer" />
           <button onClick={onClose}>Cancelar</button>
-          <button className="primary" disabled={!valid} onClick={() => { const rate = sameCur ? 1 : Number(String(d.rate).replace(',', '.')) || 1; onSave({ ...d, name: d.name.trim(), rate, ...(trip.id && rate !== Number(trip.rate) ? { rate_auto: 0 } : {}) }); }}>{isNew ? 'Criar viagem' : 'Salvar'}</button>
+          <button className="primary" disabled={!valid} onClick={() => { const rate = sameCur ? 1 : Number(String(d.rate).replace(',', '.')) || 1; onSave({ ...d, name: d.name.trim(), rate, ...(domestic ? { currency: d.home_currency } : {}), ...(trip.id && rate !== Number(trip.rate) ? { rate_auto: 0 } : {}) }); }}>{isNew ? 'Criar viagem' : 'Salvar'}</button>
         </>
       }
     >
@@ -572,16 +575,37 @@ export function TripModal({ trip, onSave, onDelete, onDuplicate, onClose }) {
         </div>
         <label>Início<input type="date" value={d.start || ''} onChange={(e) => set({ start: e.target.value, end: d.end && d.end >= e.target.value ? d.end : e.target.value })} /></label>
         <label>Fim<input type="date" min={d.start || undefined} value={d.end || ''} onChange={(e) => set({ end: e.target.value })} /></label>
-        <label>Moeda da viagem
-          <select value={d.currency} onChange={(e) => set({ currency: e.target.value })}>
-            {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+        <label className="full">Tipo de viagem
+          <select value={d.scope || ''} onChange={(e) => set({ scope: e.target.value || null })}>
+            <option value="">Automático{place?.auto ? ` (${SCOPES[place.auto].toLowerCase()})` : ''}</option>
+            <option value="domestic">Nacional</option>
+            <option value="international">Internacional</option>
           </select>
+          <small className="muted">{d.scope
+            ? (d.scope === 'domestic' ? 'Sem cota da Receita nem câmbio: tudo na sua moeda.' : 'Com cota da Receita nas Compras e câmbio entre as moedas.')
+            : place?.auto ? `Pelas cidades da viagem e o país onde você mora${place.regions.length ? ` (${place.regions.slice(0, 3).join(', ')})` : ''}.`
+              : 'Nacional quando todas as cidades ficam no país de “Onde moro” (no Meu mapa da tela inicial); até lá, conta como internacional.'}</small>
         </label>
-        <label>Sua moeda
-          <select value={d.home_currency} onChange={(e) => set({ home_currency: e.target.value })}>
-            {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
-          </select>
-        </label>
+        {domestic ? (
+          <label>Moeda
+            <select value={d.home_currency} onChange={(e) => set({ home_currency: e.target.value, currency: e.target.value })}>
+              {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </label>
+        ) : (
+          <>
+            <label>Moeda da viagem
+              <select value={d.currency} onChange={(e) => set({ currency: e.target.value })}>
+                {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+            <label>Sua moeda
+              <select value={d.home_currency} onChange={(e) => set({ home_currency: e.target.value })}>
+                {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+          </>
+        )}
         {!sameCur && (
           <label className="full">Câmbio: 1 {d.currency} = quantos {d.home_currency}?
             <input inputMode="decimal" value={d.rate ?? ''} onChange={(e) => set({ rate: e.target.value })} />

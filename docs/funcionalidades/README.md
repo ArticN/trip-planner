@@ -11,7 +11,7 @@ de exemplo") ou importando [`examples/viagem-exemplo.json`](../../examples/viage
 
 | Área | O que tem |
 | --- | --- |
-| [Viagens, cidades e hospedagens](viagens.md) | Criar, editar, duplicar e excluir viagens · moeda, câmbio e fuso · foto de capa · cidades e locais · hospedagens · tela inicial |
+| [Viagens, cidades e hospedagens](viagens.md) | Criar, editar, duplicar e excluir viagens · nacional ou internacional · moeda, câmbio e fuso · foto de capa · cidades e locais · hospedagens · tela inicial |
 | [Roteiro do dia](roteiro.md) | Atividades e seus campos · blocos do dia · tempo livre e deslocamento · opções no mesmo horário (carrossel) · ideias sem data · tema do dia, tempo e sol · avaliações · busca · modo hoje |
 | [Mapa](mapa.md) | Visão geral e mapa do dia · tipos de mapa · adicionar pelo mapa · "Perto daqui" · caminho a pé e linhas de trem/metrô · Wikipédia · mapa offline · Meu mapa |
 | [Voos e trechos](voos.md) | Voos e trens com fuso · cartões de Ida e Volta · mapa-múndi do voo · escalas reconhecidas sozinhas (e como isso funciona) |

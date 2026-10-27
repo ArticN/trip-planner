@@ -806,6 +806,7 @@ div.ms-pop { padding: 10px 12px; }
 .world-map path { fill: var(--raised); stroke: var(--card); stroke-width: 0.6; }
 .world-map path.been { fill: var(--accent); }
 .world-map path.plan { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 0.8; }
+.world-map path.home { stroke: var(--ink); stroke-width: 0.8; }
 .world-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 20px; }
 .world-list li { display: grid; grid-template-columns: 10px 1fr; column-gap: 10px; align-items: baseline; font-size: 14px; }
 .world-list li span { grid-column: 2; color: var(--muted); font-size: 13px; }
@@ -935,6 +936,7 @@ div.ms-pop { padding: 10px 12px; }
 /* dias na visão geral */
 .trip-when { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 2px; }
 .trip-when .link-btn { font-size: 13px; color: var(--muted); }
+.trip-scope { margin-top: 2px; }
 .days-list .d-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--c); }
 .days-list li.empty .d-cities, .days-list li.empty .d-date b { color: var(--muted); font-weight: 400; }
 .days-list li.past { opacity: 0.6; }

@@ -1,50 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from './api.js';
 import { nowIn } from './util.js';
-import countriesUrl from './countries.json?url';
+import { polys, featureAt, countryAt, countryName, ADMIN1, loadCountries, loadStates } from './geo.js';
 
 // mapa-múndi dos países das suas viagens: o país de cada cidade sai das coordenadas
-// (polígonos do Natural Earth 1:50m embutidos no app, sem serviço externo)
-
-const polys = (g) => (g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []);
-const inRing = (x, y, r) => {
-  let c = false;
-  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
-    const [xi, yi] = r[i];
-    const [xj, yj] = r[j];
-    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
-  }
-  return c;
-};
-const inside = (x, y, g) => polys(g).some((p) => inRing(x, y, p[0]) && !p.slice(1).some((h) => inRing(x, y, h)));
-// distância aproximada (km) de um ponto a um segmento, para cidades no litoral que caem "no mar" no mapa simplificado
-const segKm = (x, y, [ax, ay], [bx, by]) => {
-  const k = Math.cos((y * Math.PI) / 180);
-  const dx = (bx - ax) * k;
-  const dy = by - ay;
-  const t = Math.max(0, Math.min(1, (((x - ax) * k) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
-  return Math.hypot((ax - x) * k + t * dx, ay - y + t * dy) * 111;
-};
-// feature que contém o ponto; se nenhuma contém (cidade no litoral que cai "no mar" no mapa simplificado),
-// a mais próxima até `maxKm`
-export function featureAt(features, lat, lng, maxKm = 60) {
-  const hit = features.find((f) => inside(lng, lat, f.geometry));
-  if (hit) return hit;
-  let best = null;
-  let bd = maxKm;
-  for (const f of features) {
-    for (const p of polys(f.geometry)) {
-      for (const r of p) {
-        for (let i = 1; i < r.length; i++) {
-          const d = segKm(lng, lat, r[i - 1], r[i]);
-          if (d < bd) { bd = d; best = f; }
-        }
-      }
-    }
-  }
-  return best;
-}
-export const countryAt = (features, lat, lng) => featureAt(features, lat, lng)?.properties.a || null;
 
 // projeção equirretangular cortada nos polos; anéis que cruzam 180° são "desenrolados"
 const TOP = 84;
@@ -70,13 +29,7 @@ function pathOf(g) {
   return d;
 }
 
-// visão "Meu país": estados/províncias de cada país em arquivos separados (Natural Earth 1:10m,
-// gerados por scripts/admin1.sh), carregados só para o país onde a pessoa mora
-const ADMIN1 = Object.fromEntries(Object.entries(import.meta.glob('./admin1/*.json', { query: '?url', import: 'default' }))
-  .map(([k, load]) => [k.slice(-7, -5), load]));
-
-const names = (() => { try { return new Intl.DisplayNames(['pt-BR'], { type: 'region' }); } catch { return null; } })();
-const countryName = (a) => (a && names ? names.of(a) : a) || a;
+// visão "Meu país": estados/províncias carregados só para o país onde a pessoa mora
 const COUNTRIES = Object.keys(ADMIN1).map((a) => ({ a, name: countryName(a) })).sort((x, y) => x.name.localeCompare(y.name, 'pt-BR'));
 // palpite pelo idioma do aparelho (pt-BR → Brasil), só para sugerir
 const guessCountry = () => {
@@ -144,19 +97,11 @@ export default function WorldMap({ version }) {
   useEffect(() => { api.settings().then(setPrefs).catch(() => {}); }, []);
   useEffect(() => {
     if (!places?.length || features) return;
-    Promise.all([fetch(countriesUrl).then((r) => r.json()), import('topojson-client')])
-      .then(([topo, { feature }]) => setFeatures(feature(topo, topo.objects.countries).features))
-      .catch(() => {});
+    loadCountries().then(setFeatures).catch(() => {});
   }, [places, features]);
 
   const home = prefs.home_country && ADMIN1[prefs.home_country] ? prefs.home_country : null;
   const view = home && prefs.map_view === 'country' ? 'country' : 'world';
-  useEffect(() => {
-    if (view !== 'country' || states[home]) return;
-    Promise.all([ADMIN1[home]().then((u) => fetch(u)).then((r) => r.json()), import('topojson-client')])
-      .then(([topo, { feature }]) => setStates((m) => ({ ...m, [home]: feature(topo, topo.objects.states).features })))
-      .catch(() => setStates((m) => ({ ...m, [home]: [] })));
-  }, [view, home, states]);
 
   const save = (patch) => {
     setPrefs((p) => ({ ...p, ...patch }));
@@ -172,6 +117,13 @@ export default function WorldMap({ version }) {
     return places.map((p) => ({ ...p, a: countryAt(features, p.lat, p.lng), been: today >= p.start })).filter((p) => p.a);
   }, [features, places]);
 
+  // o país onde mora também carrega os estados na visão Mundo: viagem nacional aparece por estado (ex.: Amazonas)
+  const homeVisited = !!home && !!located?.some((p) => p.a === home);
+  useEffect(() => {
+    if ((view !== 'country' && !homeVisited) || states[home]) return;
+    loadStates(home).then((f) => setStates((m) => ({ ...m, [home]: f })));
+  }, [view, home, states, homeVisited]);
+
   const summary = useMemo(() => {
     if (!located) return null;
     const by = {};
@@ -181,8 +133,14 @@ export default function WorldMap({ version }) {
       c.cities.add(p.name);
       c.trips.add(p.trip);
     }
-    return Object.values(by).sort((x, y) => Number(y.been) - Number(x.been) || x.name.localeCompare(y.name, 'pt-BR'));
-  }, [located]);
+    // viagens dentro do país onde mora: o país não conta como destino estrangeiro e a lista mostra os estados
+    if (home && by[home]) {
+      const st = states[home]?.length ? states[home] : null;
+      by[home].home = true;
+      by[home].states = st ? [...new Set(located.filter((p) => p.a === home).map((p) => featureAt(st, p.lat, p.lng, 40)?.properties.n).filter(Boolean))] : [];
+    }
+    return Object.values(by).sort((x, y) => Number(!!y.home) - Number(!!x.home) || Number(y.been) - Number(x.been) || x.name.localeCompare(y.name, 'pt-BR'));
+  }, [located, home, states]);
 
   // visão do país: estados com cidades e os pontos das cidades
   const country = useMemo(() => {
@@ -223,8 +181,10 @@ export default function WorldMap({ version }) {
 
   if (!places?.length || !summary?.length) return null;
   const status = Object.fromEntries(summary.map((c) => [c.a, c.been ? 'been' : 'plan']));
-  const been = summary.filter((c) => c.been);
-  const plan = summary.filter((c) => !c.been);
+  const abroad = summary.filter((c) => !c.home);
+  const been = abroad.filter((c) => c.been);
+  const plan = abroad.filter((c) => !c.been);
+  const national = summary.find((c) => c.home);
   const cities = new Set(places.map((p) => `${p.name}`)).size;
   const homeName = home ? countryName(home) : null;
 
@@ -245,6 +205,7 @@ export default function WorldMap({ version }) {
       <>
         <span><b>{been.length}</b> {been.length === 1 ? 'país visitado' : 'países visitados'}</span>
         {plan.length > 0 && <span><b>{plan.length}</b> {plan.length === 1 ? 'planejado' : 'planejados'}</span>}
+        {national && <span><b>{national.trips.size}</b> {national.trips.size === 1 ? 'viagem nacional' : 'viagens nacionais'}</span>}
         <span><b>{cities}</b> {cities === 1 ? 'cidade' : 'cidades'}</span>
       </>
     );
@@ -277,7 +238,7 @@ export default function WorldMap({ version }) {
         ) : <div className="world-map country-map world-loading" aria-busy="true" />
       ) : (
         <svg className="world-map" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Mapa-múndi com ${summary.map((c) => c.name).join(', ')}`}>
-          {paths.map((p, i) => <path key={i} d={p.d} className={status[p.a] || ''} />)}
+          {paths.map((p, i) => <path key={i} d={p.d} className={`${status[p.a] || ''}${p.a === home ? ' home' : ''}`} />)}
         </svg>
       )}
 
@@ -298,8 +259,10 @@ export default function WorldMap({ version }) {
           {summary.map((c) => (
             <li key={c.a} className={c.been ? 'been' : 'plan'} title={[...c.trips].join(', ')}>
               <i />
-              <b>{c.name}</b>
-              <span>{[...c.cities].slice(0, 4).join(', ')}{c.cities.size > 4 ? ` e mais ${c.cities.size - 4}` : ''}</span>
+              <b>{c.name}{c.home && <small className="muted"> · onde você mora</small>}</b>
+              {c.home && c.states.length
+                ? <span>{c.states.slice(0, 4).join(', ')}{c.states.length > 4 ? ` e mais ${c.states.length - 4}` : ''}</span>
+                : <span>{[...c.cities].slice(0, 4).join(', ')}{c.cities.size > 4 ? ` e mais ${c.cities.size - 4}` : ''}</span>}
             </li>
           ))}
         </ul>

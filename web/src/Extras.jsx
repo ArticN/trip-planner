@@ -37,7 +37,7 @@ export function LinkText({ text }) {
 // ── checklist
 const DEFAULT_GROUPS = ['Documentos', 'Reservas', 'Mala', 'Outros'];
 
-export function ChecklistModal({ items, onCreate, onUpdate, onDelete, onClose }) {
+export function ChecklistModal({ domestic = false, items, onCreate, onUpdate, onDelete, onClose }) {
   const groups = useMemo(() => {
     const g = [...DEFAULT_GROUPS];
     items.forEach((i) => { if (i.grp && !g.includes(i.grp)) g.push(i.grp); });
@@ -57,7 +57,7 @@ export function ChecklistModal({ items, onCreate, onUpdate, onDelete, onClose })
   return (
     <Modal title="Checklist" onClose={onClose} footer={<><span className="muted">{done} de {items.length} feitos</span><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
       <form className="row check-add" onSubmit={add}>
-        <label>Novo item<input value={text} onChange={(e) => setText(e.target.value)} placeholder="Ex: passaporte válido, seguro viagem, adaptador de tomada" autoFocus /></label>
+        <label>Novo item<input value={text} onChange={(e) => setText(e.target.value)} placeholder={domestic ? 'Ex: documento com foto, carregador, protetor solar' : 'Ex: passaporte válido, seguro viagem, adaptador de tomada'} autoFocus /></label>
         <label className="grp-sel">Grupo
           <select value={grp} onChange={(e) => setGrp(e.target.value)}>{groups.map((g) => <option key={g}>{g}</option>)}</select>
         </label>

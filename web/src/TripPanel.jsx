@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { DoneFilter } from './DayPanel.jsx';
 import { Icon } from './icons.jsx';
 import Metro from './Metro.jsx';
+import { SCOPES } from './geo.js';
 import { KINDS, KIND_KEYS, fmtDay, daysBetween, hasCoords, nowIn } from './util.js';
 
-export default function TripPanel({ trip, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, doneFilter = 'all', onDoneFilter, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo, checklist = [], onOpen, ideas = [], days = [], onIdea, onSchedule }) {
+export default function TripPanel({ trip, place, cities, cityMap, stays, activities, conflictsTotal, kinds, onToggleKind, doneFilter = 'all', onDoneFilter, fx, onCity, onOpenStays, onOpenBudget, onOpenCities, onEditTrip, onPickDay, daysInfo, checklist = [], onOpen, ideas = [], days = [], onIdea, onSchedule }) {
   const total = activities.reduce((s, a) => s + (a.cost || 0), 0);
   const sights = activities.filter((a) => a.kind === 'sight').length;
   const noCoords = activities.filter((a) => !hasCoords(a) && a.kind !== 'free').length;
@@ -20,6 +21,7 @@ export default function TripPanel({ trip, cities, cityMap, stays, activities, co
           {fmtDay(trip.start)} → {fmtDay(trip.end)} · {daysBetween(trip.start, trip.end) + 1} dias
           <button className="link-btn" onClick={onEditTrip}>Editar</button>
         </div>
+        {place && <div className="muted small trip-scope">Viagem {SCOPES[place.scope].toLowerCase()}{place.regions.length ? ` · ${place.regions.slice(0, 4).join(', ')}${place.regions.length > 4 ? ` e mais ${place.regions.length - 4}` : ''}` : ''}</div>}
         <div className="stats">
           <div><b>{activities.length}</b><span>atividades</span></div>
           <div><b>{sights}</b><span>pontos turísticos</span></div>

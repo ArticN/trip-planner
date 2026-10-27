@@ -71,5 +71,9 @@ convertido para a sua moeda.
 
 > Regra usada (Receita Federal): até US$ 1.000 por pessoa em compras trazidas na bagagem de viagem aérea ou marítima;
 > o excedente paga 50% e precisa ser declarado (e-DBV). O free shop da chegada tem cota própria e não entra nessa conta.
-> Confira as regras atuais antes de viajar. A cota vale para qualquer viagem por enquanto; separar viagens nacionais e
-> internacionais está nas "Ideias para o futuro".
+> Confira as regras atuais antes de viajar.
+
+**Viagem nacional:** a cota só vale para viagens [internacionais](viagens.md#nacional-ou-internacional). Numa viagem
+nacional, Compras mostra só o total comprado e o total com o previsto, na sua moeda, sem barra da cota, cotação em
+dólar, imposto, caixa "Fora da cota" nem a nota da Receita. Itens marcados "fora da cota" antes continuam na lista e
+entram no total.

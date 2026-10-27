@@ -10,8 +10,10 @@ Uma instalação guarda quantas viagens você quiser. Cada uma tem as próprias 
 
 - **Nome** e **subtítulo** (opcional), e um emoji da lista.
 - **Início** e **Fim**: definem os dias do roteiro (um por data, inclusive as duas pontas).
+- **Tipo de viagem**: **Automático** (padrão), **Nacional** ou **Internacional**. Veja [Nacional ou internacional](#nacional-ou-internacional).
 - **Moeda da viagem** e **Sua moeda**: os custos são digitados na moeda da viagem e convertidos para a sua. Com moedas
   diferentes aparece o campo **Câmbio** (quanto 1 unidade da moeda da viagem vale na sua). Veja [câmbio automático](dinheiro.md#câmbio-automático).
+  Numa viagem nacional fica um campo só, **Moeda**, sem câmbio.
 - **Foto de capa** (opcional): escolha do aparelho ou cole um link. A foto escolhida é reduzida no próprio aparelho
   (cerca de 100 KB) antes de ser salva. Aparece no cartão da tela inicial.
 - **Fuso horário do destino** (ex.: `Asia/Tokyo`): importante. Com ele o app sabe que dia e hora são "agora" no destino
@@ -22,6 +24,29 @@ Uma instalação guarda quantas viagens você quiser. Cada uma tem as próprias 
 - **Duplicar** cria "(cópia)" com tudo, mas zera o que é de quem já viajou: atividades feitas, gasto real, avaliações,
   itens do checklist marcados e compras marcadas como compradas. Bom para reaproveitar um roteiro.
 - **Excluir** apaga a viagem e tudo dela, sem desfazer. Exporte um [backup](compartilhar-e-backup.md#backup) antes, se quiser guardar.
+
+## Nacional ou internacional
+
+Cada viagem é **nacional** (dentro do país onde você mora, como uma ida ao Amazonas para quem mora no Brasil) ou
+**internacional**. O tipo aparece na visão geral, embaixo das datas, junto com os estados (nacional) ou os países
+(internacional) por onde a viagem passa: "Viagem nacional · Amazonas", "Viagem internacional · Japão".
+
+**Automático (padrão):** a viagem é nacional quando todas as cidades com posição ficam no país escolhido em
+**Onde moro**, no [Meu mapa](mapa.md#meu-mapa) da tela inicial. Sem "Onde moro" ou sem cidades com posição, ela conta
+como internacional, que era como o app tratava todas as viagens antes. O tipo acompanha as cidades: adicionar uma cidade
+fora do país transforma a viagem em internacional.
+
+**Escolher à mão:** em **Editar viagem › Tipo de viagem**, escolha Nacional ou Internacional para fixar o tipo
+(por exemplo, numa viagem que ainda não tem cidades). Volte para Automático para o app decidir de novo.
+
+O que muda numa viagem nacional:
+
+- **Moeda**: uma só, a sua, sem câmbio nem conversão. Ao salvar, a moeda da viagem passa a ser a sua moeda.
+- **Compras**: viram uma lista com o total comprado e o previsto, sem cota da Receita, dólar, imposto nem free shop
+  (veja [Compras](dinheiro.md#compras-e-a-cota-da-receita)).
+- **Checklist**: a sugestão do campo troca passaporte e seguro viagem por documento com foto.
+
+Voos, escalas, o mapa do dia e o resto do roteiro funcionam igual nos dois tipos.
 
 ## Tela inicial
 

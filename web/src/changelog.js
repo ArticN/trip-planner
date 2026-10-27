@@ -1,10 +1,6 @@
 // Ideias para o futuro: o que ainda não existe no app, mostrado na Home abaixo das Novidades.
 // Quando uma ideia virar versão, sai daqui e entra no CHANGELOG.
 export const IDEAS = [
-  {
-    title: 'Viagem nacional ou internacional',
-    text: 'Cada viagem teria um tipo, Nacional ou Internacional. A internacional mantém a cota da Receita (US$ 1.000, imposto sobre o excedente) e o checklist de passaporte e seguro; a nacional tira a cota das Compras e ajusta limites, documentos e moeda.',
-  },
   { title: 'Divisão de gastos', text: 'Registrar quem pagou cada coisa e ver no fim quem deve a quem, como no Splitwise.' },
   { title: 'Prazos de cancelamento', text: 'Reservas com “cancelamento grátis até…” e aviso perto da data.' },
   { title: 'Modelos de checklist', text: 'Listas prontas por tipo de viagem (frio, praia, internacional) e a sua salva para reusar.' },
@@ -19,6 +15,18 @@ export const IDEAS = [
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
+  {
+    version: '1.30',
+    date: '2026-10-27',
+    title: 'Viagem nacional ou internacional',
+    items: [
+      'Cada viagem agora é nacional ou internacional. No automático, o app descobre pelas cidades: se todas ficam no país de “Onde moro” (no Meu mapa), a viagem é nacional. Dá para fixar o tipo em Editar viagem.',
+      'A visão geral mostra o tipo e por onde a viagem passa: “Viagem nacional · Amazonas” ou “Viagem internacional · Japão”.',
+      'Viagem nacional fica sem cota da Receita: Compras mostra só o total comprado e o previsto, sem dólar, imposto nem free shop, e a viagem usa uma moeda só, a sua, sem câmbio.',
+      'No Meu mapa, o país onde você mora não conta mais como destino estrangeiro: aparece primeiro, com os estados das viagens nacionais, e a contagem ganha “viagens nacionais”.',
+      'Viagens e backups antigos continuam como estavam: sem tipo escolhido, ficam no automático, e sem “Onde moro” contam como internacionais.',
+    ],
+  },
   {
     version: '1.29',
     date: '2026-10-27',
