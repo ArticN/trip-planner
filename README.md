@@ -1,113 +1,112 @@
 # 🧳 Trip Planner
 
-Planner para qualquer viagem: várias viagens na mesma instalação, cada uma com mapa, roteiro dia a dia com horários,
-cidades, hospedagens e orçamento (moeda da viagem + conversão para a sua moeda).
+Um planner de viagens pessoal: mapa, roteiro dia a dia com horários, hospedagens, orçamento na moeda da viagem e checklist,
+tudo num app web que você hospeda de graça e abre no celular como se fosse um app.
 
-## Ambiente de desenvolvimento
+> **Projeto pessoal e "vibecoded".** Fiz este app para planejar uma viagem minha, conversando em português com o
+> [Claude](https://claude.ai) (pelo Claude Code): eu descrevia o que queria, o Claude escrevia o código, e eu testava e pedia
+> ajustes. Quase nenhuma linha foi digitada à mão. Ele funciona bem para mim, mas não é um produto: não tem testes
+> automatizados, suporte nem garantia de que vai continuar evoluindo. Use, copie e adapte à vontade.
+>
+> Este repositório tem **só o código**. Os dados de qualquer viagem ficam no banco de cada instalação, nunca no git, e o
+> exemplo que vem junto é inventado.
 
-Requer **Node 22.13+**.
+<p align="center">
+  <img src="docs/screens/dia.png" alt="Dia do roteiro: timeline por blocos à esquerda e, no mapa, a linha de metrô Ginza até Asakusa com as estações" width="900">
+</p>
+
+<p align="center">
+  <img src="docs/screens/visao-geral.png" alt="Visão geral da viagem com a rota entre cidades e o diagrama de linha de metrô" width="440">
+  <img src="docs/screens/home.png" alt="Tela inicial com contagem regressiva e o mapa dos países" width="440">
+</p>
+
+<sub>Capturas com a viagem de exemplo fictícia. O mapa-base (ruas) não aparece nelas porque foram tiradas sem acesso ao servidor de mapas; no app ele aparece normalmente.</sub>
+
+## Quero o meu
+
+O caminho completo, do zero até o link no celular, está em **[docs/GUIA.md](docs/GUIA.md)**. Em resumo:
+
+1. Faça um fork (ou cópia) deste repositório.
+2. Crie um banco grátis no [Turso](https://turso.tech) e guarde a URL e o token.
+3. Importe o repositório na [Vercel](https://vercel.com), crie as variáveis `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` e `APP_PASSWORD` e faça o deploy.
+4. Abra o link, entre com a sua senha e crie a sua viagem (ou importe o exemplo para conhecer o app).
+
+Para só experimentar no computador:
 
 ```bash
-npm ci          # rode de novo sempre que puxar mudanças do GitHub (instala dependências novas)
-npm run dev      # API em :3000 + Vite com hot reload em http://localhost:5173
-npm start        # só o app compilado (depois de npm run build) em http://localhost:3000
+npm ci
+npm run dev      # abre em http://localhost:5173
 ```
 
-Localmente os dados ficam em `data/planner.db` (SQLite, fora do git). O banco é acessado pelo `@libsql/client`,
-que usa esse arquivo no computador e o **Turso** quando publicado.
-
-## Publicar na web (grátis): Vercel + Turso
-
-1. **Banco (Turso)**: crie uma conta em https://turso.tech (grátis, sem cartão), crie um banco e gere um token.
-   Guarde a URL (`libsql://….turso.io`) e o token.
-2. **App (Vercel)**: em https://vercel.com, "Add New → Project", importe o repositório `trip-planner`.
-   O `vercel.json` já define o build (`npm run build`, saída `dist`) e a API em `api/index.js`.
-3. Em **Settings → Environment Variables** do projeto na Vercel, crie:
-   - `TURSO_DATABASE_URL` = a URL do banco
-   - `TURSO_AUTH_TOKEN` = o token
-   - `APP_PASSWORD` = a senha para entrar no app (o link é público; sem ela qualquer pessoa edita)
-4. Faça o deploy (ou "Redeploy" depois de criar as variáveis). As tabelas são criadas sozinhas no primeiro acesso.
-5. **Levar os dados do computador**: no app local, menu ⋯ → *Exportar backup (JSON)* de cada viagem; no app publicado,
-   tela inicial → *Importar backup*.
-
-No celular, abra o link e use "Adicionar à tela inicial" para ter um ícone como app.
-
-Variáveis também aceitas localmente: `DB_PATH` (arquivo do banco), `PORT`, `APP_PASSWORD`.
-
-### Estrutura
-
-```
-server/index.js    API Express + SQLite (rotas /api/*) e serve o build do front
-server/examples/   viagens de exemplo que podem ser carregadas na tela inicial
-web/src/           front-end React: App (rotas), Home (viagens), TripView, DayPanel, TripPanel, MapView (Leaflet), Modals
-vite.config.js     Vite com proxy de /api para :3000
-scripts/           setup.sh e sync-to-shared.sh
-```
+Requer **Node 22.13+**. Localmente os dados ficam em `data/planner.db`, que está no `.gitignore`.
 
 ## O que tem
 
-- **Minhas viagens**: tela inicial com todas as viagens, contagem regressiva, criar, duplicar, excluir, importar/exportar backup (JSON).
-- **Nova viagem**: nome, datas, ícone, moeda da viagem e sua moeda (com câmbio editável).
-- **Tema escuro** por padrão (alternável no menu ⋯ ou na tela inicial; a escolha fica salva no navegador), com mapa-base escuro.
-- **Visão geral**: barra "Rota da viagem" no topo do mapa (cidades coloridas na ordem de visita), pins em gota por cidade, rota entre hospedagens, bate-voltas (tracejado), cidades com contagem de pontos turísticos, lista de dias, camadas por tipo.
-- **Dia a dia**: timeline com horário, duração, custo e deslocamento entre paradas; no mapa, o caminho a pé pelas ruas (OSRM) e, quando a atividade tem estações cadastradas, a linha de trem/metrô na cor dela, com embarque, desembarque e baldeações.
-- **Edição**: criar/editar/excluir atividades, marcar como feito, arrastar para reordenar, "Ordenar por horário", arrastar marcadores no mapa (✋ Mover pontos), buscar local (OpenStreetMap) ou clicar no mapa.
-- **Cidades e locais** e **Hospedagens**: cadastro por viagem (a cidade nova já busca a posição no mapa).
-- **Alertas**: horários sobrepostos e atividades sem local no mapa.
-- **Checklist** por viagem (documentos, reservas, mala, outros), com progresso.
-- **Compras**: itens que você vai trazer (loja, preço, grupo, dia, comprado ou previsto), convertidos para dólar e para a sua moeda, com barra da cota de isenção da Receita (US$ 1.000 por padrão, editável) e estimativa do imposto sobre o excedente.
-- **Estatísticas**: gasto total e por dia, distância por dia (sem voos), noites, atividades e gasto por cidade e por tipo.
-- **Calendário** do roteiro em grade semanal; clicar num dia abre o roteiro dele.
-- **Notas e links** em cada atividade (código de reserva, ingresso, comprovante no Drive). Arquivos não são enviados ao app: guarde o link.
-- **Hospedagens completas**: horário de check-in/out, nº da reserva, preço (entra no orçamento) e link; aparecem no cabeçalho do dia.
-- **Trechos com fuso** (voo, trem): códigos de saída e chegada, nº do voo, dia e fuso de cada ponta. A duração e o `.ics` usam os fusos. O fuso do destino fica em "Editar viagem".
-- **Opções no mesmo horário**: um horário pode guardar 2 ou mais opções (ex.: três cafés da manhã) num carrossel com setas; o mapa mostra a opção escolhida e as outras apagadas. A principal (primeira) é a que conta no orçamento, na agenda e no PDF. No banco/backup, as opções de um horário compartilham o campo `alt` (mesmo texto, mesmo dia).
-- **Ideias**: lista de lugares sem dia na visão geral (anel tracejado no mapa); "Agendar…" manda para um dia e "Mover para ideias" faz o caminho inverso.
-- **Adição rápida**: "Buscar lugar para adicionar" e "+ No mapa" abrem o cadastro já com nome, endereço, posição e cidade mais próxima (atividade no dia aberto, ideia na visão geral).
-- **Modo hoje**: durante a viagem o app abre no dia atual (no fuso do destino), destaca a atividade de agora ou a próxima e mostra "Como chegar" (Google Maps).
-- **Exportar**: imprimir ou salvar PDF (inclui checklist, notas e links) e arquivo `.ics` para Google Agenda / Apple Calendário (horários sem fuso, no horário local).
-- **Orçamento** por item, cidade e dia. Imprimir roteiro. Atalhos: ← → trocam de dia. Links: `#/t/<viagem>/<aaaa-mm-dd>`.
+- **Várias viagens** na mesma instalação, com contagem regressiva, duplicar, exportar e importar backup (JSON).
+- **Mapa** com cidades, hospedagens, rota entre elas e bate-voltas; a rota também aparece como um diagrama de linha de metrô.
+- **Roteiro dia a dia** em blocos (manhã, café, almoço, jantar e o que vem depois de cada um), com horário, duração, custo e deslocamento.
+- **Caminho no mapa**: trechos a pé pelas ruas e linhas de trem/metrô na cor da linha, com embarque, baldeações e desembarque.
+- **Opções no mesmo horário** num carrossel (três cafés da manhã possíveis, por exemplo), só a principal conta no orçamento.
+- **Voos e trens com fuso** em cada ponta; ida e volta ganham um cartão próprio no dia.
+- **Hospedagens** com check-in/out, número da reserva, preço e link, no cabeçalho de cada dia.
+- **Orçamento** na moeda da viagem convertido para a sua, por dia, cidade e tipo; **estatísticas** de gasto e distância.
+- **Compras** com a cota de isenção da Receita (US$ 1.000 por padrão, editável) e estimativa do imposto.
+- **Checklist**, **ideias sem data**, **calendário**, **busca**, notas, links e **anexos** (ingressos, vouchers) em cada atividade.
+- **Modo hoje**: durante a viagem abre no dia atual, destaca a próxima atividade e oferece "Como chegar".
+- **Extras**: tempo previsto, câmbio automático, nascer e pôr do sol, Wikipédia, "Meu mapa" de países visitados, lembretes.
+- **Exportar**: PDF, arquivo `.ics` para a agenda e link só de leitura para compartilhar o roteiro.
+- **Celular e offline**: instalável como app (PWA), tema claro/escuro e aparência ajustável.
 
-## Trem e metrô entre atividades (campo `route`)
+A seção "Novidades" da tela inicial (arquivo `web/src/changelog.js`) conta a história de cada versão.
 
-Cada atividade pode guardar como se chega a ela a partir da anterior do dia (na primeira do dia, a partir da hospedagem). No editor é a seção "Trem ou metrô até aqui"; no backup JSON vai como objeto (ou texto JSON):
+## Stack
 
-```json
-"route": { "rides": [{
-  "mode": "metro", "line": "Ginza", "code": "G", "color": "#FF9500", "dir": "sentido Asakusa", "min": 18, "cost": 210,
-  "from": { "name": "Ginza", "lat": 35.6717, "lng": 139.7650 },
-  "to": { "name": "Asakusa", "lat": 35.7111, "lng": 139.7964 },
-  "stops": [{ "name": "Ueno", "lat": 35.7114, "lng": 139.7768 }]
-}] }
+| Parte | O que usa |
+| --- | --- |
+| Front-end | React 18, Vite 5, Leaflet + MapLibre (mapa vetorial OpenFreeMap) |
+| API | Express 4, rodando como uma única função serverless na Vercel (`api/index.js`) |
+| Banco | SQLite via `@libsql/client`: arquivo local no computador, [Turso](https://turso.tech) quando publicado |
+| Hospedagem | Vercel (plano grátis) + Turso (plano grátis) |
+| Serviços públicos | OpenFreeMap/OpenStreetMap (mapa e busca), OSRM (rotas a pé), Open-Meteo (tempo), Frankfurter (câmbio), Wikipédia |
+
+Nenhum serviço pede chave de API. A única senha é a `APP_PASSWORD`, que você escolhe.
+
+## Estrutura
+
+```
+api/index.js           entrada da Vercel: carrega a API inteira como uma função
+server/app.js          rotas /api/*, esquema e migrações do banco
+server/db.js           conexão: arquivo SQLite local ou Turso
+server/examples/       viagem de exemplo fictícia (carregável pela API)
+examples/              a mesma viagem de exemplo como backup JSON, para importar na tela inicial
+web/src/               front-end React (Home, TripView, DayPanel, MapView, Modals…)
+docs/                  guia de instalação, detalhes técnicos e capturas
+.claude/skills/        skills de design usadas pelo Claude durante o desenvolvimento
 ```
 
-`mode`: metro, train, shinkansen, bus, tram ou ferry. Obrigatórios: `from` e `to` com `lat`/`lng`. Opcionais: `line`, `code`, `color` (hex), `dir`, `stops` (estações intermediárias, para a linha seguir o traçado), `min` (minutos no trem; sem ele, estimado pela distância) e `cost`. Vários trechos são baldeações. Os trechos a pé (anterior → embarque, desembarque → próximo embarque, último desembarque → atividade) são calculados pelas ruas.
+Detalhes da API e do formato do backup (incluindo o campo `route` de trem/metrô) estão em [docs/TECNICO.md](docs/TECNICO.md).
 
-## Viagem de exemplo
+## Como foi feito
 
-Na tela inicial, "Carregar exemplo" cria uma viagem de demonstração (Japão 2026, 24 dias, 173 atividades) a partir de `server/examples/japan.js`.
-Para adicionar outro exemplo, crie um arquivo parecido em `server/examples/` e registre-o em `EXAMPLES` no `server/index.js`.
+Tudo foi construído em conversas com o Claude, versão por versão (são mais de 25, listadas em "Novidades"). Algumas coisas
+que ajudaram e que você pode reaproveitar se quiser continuar o projeto do mesmo jeito:
 
-## Atualizando de uma versão anterior
+- **Skills de design em `.claude/skills/`**: o Claude Code lê essas instruções antes de mexer na interface. O visual (preto
+  chapado, tipografia Instrument Sans/Serif, uma cor de destaque) segue a `design-taste-frontend`. Para checar a interface:
+  `node .claude/skills/design-taste-frontend/scripts/lint.mjs --app web/src`.
+- **Pedidos pequenos e concretos** ("o mapa fica preso num canto quando o voo sai do Brasil") funcionaram melhor que pedidos grandes.
+- **Uma entrada no changelog a cada entrega**, escrita para quem usa o app, deixou fácil acompanhar o que mudou.
 
-Bancos criados quando o app tinha uma única viagem (Japão) são migrados automaticamente na primeira execução: a viagem existente vira a viagem nº 1, com atividades, hospedagens e custos preservados.
+## Créditos
 
-## API (resumo)
+- [AdventureLog](https://github.com/seanmorley15/AdventureLog) (GPL-3.0): inspiração para várias funções (hospedagens completas,
+  ideias sem data, checklist, compartilhamento). Nenhum código dele foi copiado, só ideias.
+- Skills [`design-taste-frontend`](https://github.com/leonxlnx/taste-skill) (MIT, Leonxlnx) e
+  [`impeccable`](https://github.com/pbakaus/impeccable) (Apache-2.0, Paul Bakaus), incluídas em `.claude/skills/` com as licenças originais.
+- Dados de mapa © colaboradores do [OpenStreetMap](https://www.openstreetmap.org/copyright), estilos do [OpenFreeMap](https://openfreemap.org),
+  fronteiras e estados do [Natural Earth](https://www.naturalearthdata.com) (domínio público).
+- Feito com [Claude](https://claude.ai) e [Claude Code](https://claude.com/claude-code).
 
-`GET/POST /api/trips` · `GET/PUT/DELETE /api/trips/:id` · `POST /api/trips/:id/duplicate` · `GET /api/trips/:id/export` · `POST /api/trips/import` ·
-`POST /api/trips/:id/activities|stays|cities` · `PUT/DELETE /api/activities|stays|cities/:id` · `PUT /api/trips/:id/days/reorder` · `GET /api/examples`, `POST /api/examples/:key`.
+## Licença
 
-## Design e skills
-
-O visual (preto chapado, tipografia Instrument Sans/Serif, uma cor de destaque, botão primário em pílula branca) segue o guia da skill `design-taste-frontend`.
-
-Skills instaladas em `.claude/skills/`:
-
-- `design-taste-frontend` (de leonxlnx/taste-skill): completa, com os scripts locais `lint.mjs`, `draw.mjs` e `inspect.mjs`. Rode `node .claude/skills/design-taste-frontend/scripts/lint.mjs --app web/src` para checar a interface.
-- `impeccable` (de pbakaus/impeccable): apenas `SKILL.md` e `reference/`, como guia de design. O launcher e os hooks não foram instalados, porque baixam e executam um binário que não foi auditado.
-
-## Observações
-
-- Coordenadas dos exemplos são aproximadas; ajuste arrastando os pontos.
-- Mapas (tiles) e busca de locais usam serviços públicos (OSM/Carto) direto do navegador, então precisam de internet.
-- Linhas do trajeto são em linha reta (não são rotas de trem/ônibus).
+[MIT](LICENSE). Pode usar, modificar e hospedar a sua versão; só mantenha o aviso de copyright.
