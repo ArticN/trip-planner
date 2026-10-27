@@ -1,113 +1,168 @@
 # 🧳 Trip Planner
 
-Planner para qualquer viagem: várias viagens na mesma instalação, cada uma com mapa, roteiro dia a dia com horários,
-cidades, hospedagens e orçamento (moeda da viagem + conversão para a sua moeda).
+**Um planner de viagem pessoal: mapa, roteiro dia a dia, hospedagens, orçamento e checklist, num app web que você hospeda de graça.**
 
-## Ambiente de desenvolvimento
+*[English version below](#english)*
 
-Requer **Node 22.13+**.
+![Dia de viagem: roteiro à esquerda, caminho e metrô no mapa](docs/screenshots/day.png)
 
-```bash
-npm ci          # rode de novo sempre que puxar mudanças do GitHub (instala dependências novas)
-npm run dev      # API em :3000 + Vite com hot reload em http://localhost:5173
-npm start        # só o app compilado (depois de npm run build) em http://localhost:3000
-```
-
-Localmente os dados ficam em `data/planner.db` (SQLite, fora do git). O banco é acessado pelo `@libsql/client`,
-que usa esse arquivo no computador e o **Turso** quando publicado.
-
-## Publicar na web (grátis): Vercel + Turso
-
-1. **Banco (Turso)**: crie uma conta em https://turso.tech (grátis, sem cartão), crie um banco e gere um token.
-   Guarde a URL (`libsql://….turso.io`) e o token.
-2. **App (Vercel)**: em https://vercel.com, "Add New → Project", importe o repositório `trip-planner`.
-   O `vercel.json` já define o build (`npm run build`, saída `dist`) e a API em `api/index.js`.
-3. Em **Settings → Environment Variables** do projeto na Vercel, crie:
-   - `TURSO_DATABASE_URL` = a URL do banco
-   - `TURSO_AUTH_TOKEN` = o token
-   - `APP_PASSWORD` = a senha para entrar no app (o link é público; sem ela qualquer pessoa edita)
-4. Faça o deploy (ou "Redeploy" depois de criar as variáveis). As tabelas são criadas sozinhas no primeiro acesso.
-5. **Levar os dados do computador**: no app local, menu ⋯ → *Exportar backup (JSON)* de cada viagem; no app publicado,
-   tela inicial → *Importar backup*.
-
-No celular, abra o link e use "Adicionar à tela inicial" para ter um ícone como app.
-
-Variáveis também aceitas localmente: `DB_PATH` (arquivo do banco), `PORT`, `APP_PASSWORD`.
-
-### Estrutura
-
-```
-server/index.js    API Express + SQLite (rotas /api/*) e serve o build do front
-server/examples/   viagens de exemplo que podem ser carregadas na tela inicial
-web/src/           front-end React: App (rotas), Home (viagens), TripView, DayPanel, TripPanel, MapView (Leaflet), Modals
-vite.config.js     Vite com proxy de /api para :3000
-scripts/           setup.sh e sync-to-shared.sh
-```
+> **Projeto pessoal, "vibecoded".** Fiz este app para planejar a minha própria viagem, conversando com o
+> [Claude](https://claude.ai) (Claude Code): eu descrevia o que queria, ele escrevia o código, eu testava no celular e
+> pedia ajustes. Não é um produto, não tem suporte e pode ter arestas. O código está aqui para quem quiser usar,
+> copiar ou adaptar, e este README é um guia para você subir o seu.
+>
+> Os dados da minha viagem **não** estão no repositório: eles ficam no banco de dados de cada instalação. O exemplo
+> que vem no app é um roteiro fictício.
 
 ## O que tem
 
-- **Minhas viagens**: tela inicial com todas as viagens, contagem regressiva, criar, duplicar, excluir, importar/exportar backup (JSON).
-- **Nova viagem**: nome, datas, ícone, moeda da viagem e sua moeda (com câmbio editável).
-- **Tema escuro** por padrão (alternável no menu ⋯ ou na tela inicial; a escolha fica salva no navegador), com mapa-base escuro.
-- **Visão geral**: barra "Rota da viagem" no topo do mapa (cidades coloridas na ordem de visita), pins em gota por cidade, rota entre hospedagens, bate-voltas (tracejado), cidades com contagem de pontos turísticos, lista de dias, camadas por tipo.
-- **Dia a dia**: timeline com horário, duração, custo e deslocamento entre paradas; no mapa, o caminho a pé pelas ruas (OSRM) e, quando a atividade tem estações cadastradas, a linha de trem/metrô na cor dela, com embarque, desembarque e baldeações.
-- **Edição**: criar/editar/excluir atividades, marcar como feito, arrastar para reordenar, "Ordenar por horário", arrastar marcadores no mapa (✋ Mover pontos), buscar local (OpenStreetMap) ou clicar no mapa.
-- **Cidades e locais** e **Hospedagens**: cadastro por viagem (a cidade nova já busca a posição no mapa).
-- **Alertas**: horários sobrepostos e atividades sem local no mapa.
-- **Checklist** por viagem (documentos, reservas, mala, outros), com progresso.
-- **Compras**: itens que você vai trazer (loja, preço, grupo, dia, comprado ou previsto), convertidos para dólar e para a sua moeda, com barra da cota de isenção da Receita (US$ 1.000 por padrão, editável) e estimativa do imposto sobre o excedente.
-- **Estatísticas**: gasto total e por dia, distância por dia (sem voos), noites, atividades e gasto por cidade e por tipo.
-- **Calendário** do roteiro em grade semanal; clicar num dia abre o roteiro dele.
-- **Notas e links** em cada atividade (código de reserva, ingresso, comprovante no Drive). Arquivos não são enviados ao app: guarde o link.
-- **Hospedagens completas**: horário de check-in/out, nº da reserva, preço (entra no orçamento) e link; aparecem no cabeçalho do dia.
-- **Trechos com fuso** (voo, trem): códigos de saída e chegada, nº do voo, dia e fuso de cada ponta. A duração e o `.ics` usam os fusos. O fuso do destino fica em "Editar viagem".
-- **Opções no mesmo horário**: um horário pode guardar 2 ou mais opções (ex.: três cafés da manhã) num carrossel com setas; o mapa mostra a opção escolhida e as outras apagadas. A principal (primeira) é a que conta no orçamento, na agenda e no PDF. No banco/backup, as opções de um horário compartilham o campo `alt` (mesmo texto, mesmo dia).
-- **Ideias**: lista de lugares sem dia na visão geral (anel tracejado no mapa); "Agendar…" manda para um dia e "Mover para ideias" faz o caminho inverso.
-- **Adição rápida**: "Buscar lugar para adicionar" e "+ No mapa" abrem o cadastro já com nome, endereço, posição e cidade mais próxima (atividade no dia aberto, ideia na visão geral).
-- **Modo hoje**: durante a viagem o app abre no dia atual (no fuso do destino), destaca a atividade de agora ou a próxima e mostra "Como chegar" (Google Maps).
-- **Exportar**: imprimir ou salvar PDF (inclui checklist, notas e links) e arquivo `.ics` para Google Agenda / Apple Calendário (horários sem fuso, no horário local).
-- **Orçamento** por item, cidade e dia. Imprimir roteiro. Atalhos: ← → trocam de dia. Links: `#/t/<viagem>/<aaaa-mm-dd>`.
+- **Várias viagens** numa instalação, com contagem regressiva, duplicar, exportar/importar backup (JSON).
+- **Mapa** (Leaflet + OpenStreetMap) com cidades, hospedagens, rota da viagem e ideias sem dia.
+- **Dia a dia** em blocos (manhã, café, almoço, tarde, jantar…), com horários, custo e caminho entre as paradas.
+  O caminho a pé segue as ruas, e trechos de **trem/metrô** aparecem com a cor da linha e as estações.
+- **Voos e trens com fuso**: cada ponta no seu fuso, duração certa, cartão de embarque no dia.
+- **Opções no mesmo horário** (ex.: dois restaurantes para o almoço) num carrossel.
+- **Hospedagens**, **orçamento** (moeda da viagem + conversão para a sua, câmbio automático), **estatísticas**,
+  **calendário**, **checklist** e **compras** (com a cota de isenção da Receita).
+- **Modo hoje**: durante a viagem abre no dia atual e mostra a próxima atividade e "Como chegar".
+- **Exportar**: PDF, arquivo `.ics` e agenda assinada (Google Agenda / Apple Calendário).
+- **Link de compartilhamento** só leitura, sem notas, reservas nem gastos.
+- **Celular**: funciona como app (PWA, "Adicionar à tela inicial"), com mapa offline opcional.
+- **Senha única** opcional (`APP_PASSWORD`) para proteger a instalação publicada.
 
-## Trem e metrô entre atividades (campo `route`)
+| Tela inicial | Visão geral | Celular |
+|---|---|---|
+| ![Tela inicial](docs/screenshots/home.png) | ![Visão geral da viagem](docs/screenshots/overview.png) | ![Dia no celular](docs/screenshots/mobile-day.png) |
 
-Cada atividade pode guardar como se chega a ela a partir da anterior do dia (na primeira do dia, a partir da hospedagem). No editor é a seção "Trem ou metrô até aqui"; no backup JSON vai como objeto (ou texto JSON):
+**Stack:** React 18 + Vite, Leaflet/MapLibre no front; Express na API; SQLite via `@libsql/client`
+(arquivo local no computador, [Turso](https://turso.tech) na nuvem); deploy na [Vercel](https://vercel.com).
+A interface está em português.
 
-```json
-"route": { "rides": [{
-  "mode": "metro", "line": "Ginza", "code": "G", "color": "#FF9500", "dir": "sentido Asakusa", "min": 18, "cost": 210,
-  "from": { "name": "Ginza", "lat": 35.6717, "lng": 139.7650 },
-  "to": { "name": "Asakusa", "lat": 35.7111, "lng": 139.7964 },
-  "stops": [{ "name": "Ueno", "lat": 35.7114, "lng": 139.7768 }]
-}] }
+---
+
+## Faça o seu
+
+Você vai precisar de **Node 22.13+** e **git**. Para publicar, de uma conta no GitHub, na Vercel e no Turso
+(todas têm plano gratuito, sem cartão).
+
+### 1. Rodar no seu computador
+
+```bash
+git clone https://github.com/ArticN/trip-planner.git
+cd trip-planner
+npm ci
+npm run dev        # API em :3000 + front com hot reload em http://localhost:5173
 ```
 
-`mode`: metro, train, shinkansen, bus, tram ou ferry. Obrigatórios: `from` e `to` com `lat`/`lng`. Opcionais: `line`, `code`, `color` (hex), `dir`, `stops` (estações intermediárias, para a linha seguir o traçado), `min` (minutos no trem; sem ele, estimado pela distância) e `cost`. Vários trechos são baldeações. Os trechos a pé (anterior → embarque, desembarque → próximo embarque, último desembarque → atividade) são calculados pelas ruas.
+Abra http://localhost:5173 e clique em **+ Criar minha primeira viagem**. Para ver o app cheio antes, use o link
+**ou carregue um roteiro de exemplo**, logo abaixo (aparece enquanto não há nenhuma viagem). Os dados ficam em `data/planner.db` (fora do git).
 
-## Viagem de exemplo
+Para rodar o app compilado: `npm run build && npm start` (http://localhost:3000).
 
-Na tela inicial, "Carregar exemplo" cria uma viagem de demonstração (Japão 2026, 24 dias, 173 atividades) a partir de `server/examples/japan.js`.
-Para adicionar outro exemplo, crie um arquivo parecido em `server/examples/` e registre-o em `EXAMPLES` no `server/index.js`.
+### 2. Publicar na web (Vercel + Turso, grátis)
 
-## Atualizando de uma versão anterior
+1. **Faça um fork** deste repositório (botão *Fork* no GitHub), ou crie um repositório seu e envie o código.
+2. **Crie o banco no Turso**: em https://turso.tech crie uma conta e um banco. Copie a **URL**
+   (`libsql://<nome>-<usuario>.turso.io`) e gere um **token** (*Create token*). Pelo terminal, com a
+   [CLI do Turso](https://docs.turso.tech/cli/introduction):
+   ```bash
+   turso db create trip-planner
+   turso db show trip-planner --url
+   turso db tokens create trip-planner
+   ```
+3. **Importe na Vercel**: em https://vercel.com, *Add New → Project* e escolha o seu repositório. Não precisa
+   mudar nada no build: o `vercel.json` já define `npm run build`, a saída `dist` e a API em `api/index.js`.
+4. **Variáveis de ambiente** (*Settings → Environment Variables*):
 
-Bancos criados quando o app tinha uma única viagem (Japão) são migrados automaticamente na primeira execução: a viagem existente vira a viagem nº 1, com atividades, hospedagens e custos preservados.
+   | Variável | Obrigatória | O que é |
+   |---|---|---|
+   | `TURSO_DATABASE_URL` | sim | URL do banco (`libsql://…turso.io`) |
+   | `TURSO_AUTH_TOKEN` | sim | token do banco |
+   | `APP_PASSWORD` | recomendada | senha para entrar no app. Sem ela, **qualquer pessoa com o link pode ver e editar** |
 
-## API (resumo)
+5. **Deploy** (ou *Redeploy* se você criou as variáveis depois do primeiro deploy). As tabelas são criadas
+   sozinhas no primeiro acesso.
+6. No celular, abra o link e use **Adicionar à tela inicial**.
 
-`GET/POST /api/trips` · `GET/PUT/DELETE /api/trips/:id` · `POST /api/trips/:id/duplicate` · `GET /api/trips/:id/export` · `POST /api/trips/import` ·
-`POST /api/trips/:id/activities|stays|cities` · `PUT/DELETE /api/activities|stays|cities/:id` · `PUT /api/trips/:id/days/reorder` · `GET /api/examples`, `POST /api/examples/:key`.
+Se a API responder `a API não iniciou: TURSO_DATABASE_URL não configurada…`, falta alguma variável: confira e faça
+um *Redeploy*.
 
-## Design e skills
+**Levar dados do computador para a nuvem:** no app local, menu ⋯ da viagem → *Exportar backup (JSON)*; no app
+publicado, tela inicial → *Importar backup*.
 
-O visual (preto chapado, tipografia Instrument Sans/Serif, uma cor de destaque, botão primário em pílula branca) segue o guia da skill `design-taste-frontend`.
+### 3. Personalizar
 
-Skills instaladas em `.claude/skills/`:
+- **Seu próprio exemplo:** copie `server/examples/demo.js`, troque os dados e registre o arquivo em `EXAMPLES`
+  no `server/app.js`. Lembre que o que estiver nesse arquivo fica público no seu repositório: use dados fictícios.
+- **Visual:** cores e tema ficam no painel *Aparência* do app; o CSS está em `web/src/styles.css`.
+- **Com o Claude:** foi assim que o app nasceu. Abra o repositório no [Claude Code](https://claude.com/claude-code)
+  e peça o que quiser mudar. As skills de design usadas estão em `.claude/skills/`.
 
-- `design-taste-frontend` (de leonxlnx/taste-skill): completa, com os scripts locais `lint.mjs`, `draw.mjs` e `inspect.mjs`. Rode `node .claude/skills/design-taste-frontend/scripts/lint.mjs --app web/src` para checar a interface.
-- `impeccable` (de pbakaus/impeccable): apenas `SKILL.md` e `reference/`, como guia de design. O launcher e os hooks não foram instalados, porque baixam e executam um binário que não foi auditado.
+### Variáveis de ambiente (todas)
 
-## Observações
+| Variável | Onde | Padrão |
+|---|---|---|
+| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | nuvem | sem elas, usa o arquivo SQLite local |
+| `APP_PASSWORD` | qualquer | sem senha |
+| `DB_PATH` | local | `data/planner.db` |
+| `PORT` | local | `3000` |
 
-- Coordenadas dos exemplos são aproximadas; ajuste arrastando os pontos.
-- Mapas (tiles) e busca de locais usam serviços públicos (OSM/Carto) direto do navegador, então precisam de internet.
-- Linhas do trajeto são em linha reta (não são rotas de trem/ônibus).
+Há um modelo em [`.env.example`](.env.example). No computador, passe as variáveis no terminal
+(ex.: `APP_PASSWORD=minhasenha npm start`). Nunca envie senhas ou tokens para o git.
+
+### Privacidade
+
+- Seus roteiros, reservas, anexos e notas ficam **só no seu banco** (arquivo local ou Turso), nunca no código.
+- Backups exportados (`.json`) contêm tudo isso: não os coloque no repositório.
+- O link de compartilhamento mostra o roteiro sem notas, links, reservas, gastos e checklist.
+- Mapas, busca de lugares, rotas a pé, clima e câmbio usam serviços públicos (OpenStreetMap/Carto, OSRM,
+  Open-Meteo, Wikipédia…) direto do navegador.
+
+---
+
+## Para quem for mexer no código
+
+```
+api/index.js        função da Vercel que carrega a API
+server/app.js       API Express (rotas /api/*), migrações do banco e senha
+server/db.js        conexão: SQLite local ou Turso
+server/index.js     servidor local (API + build do front)
+server/examples/    viagens de exemplo carregáveis na tela inicial
+web/src/            front-end React (Home, TripView, DayPanel, MapView, Modals…)
+scripts/            dev.mjs (API + Vite juntos) e utilitários
+```
+
+Detalhes do formato do backup, do campo `route` (trem/metrô) e da API em
+[docs/referencia.md](docs/referencia.md).
+
+---
+
+<a id="english"></a>
+
+## English
+
+**A personal trip planner: map, day-by-day itinerary, stays, budget and checklist, in a web app you can host for
+free.** The UI is in Portuguese.
+
+> **Personal, "vibecoded" project.** I built it to plan my own trip by talking to [Claude](https://claude.ai)
+> (Claude Code): I described what I wanted, Claude wrote the code, I tested it on my phone and asked for changes.
+> It is not a product and has no support. My trip data is **not** in this repo; the bundled example is fictional.
+
+**Run locally** (Node 22.13+):
+
+```bash
+git clone https://github.com/ArticN/trip-planner.git && cd trip-planner
+npm ci && npm run dev    # http://localhost:5173
+```
+
+**Deploy your own (free):**
+
+1. Fork this repo.
+2. Create a database on [Turso](https://turso.tech) and copy its URL (`libsql://…`) and an auth token.
+3. Import the fork on [Vercel](https://vercel.com) (*Add New → Project*). `vercel.json` already sets the build.
+4. Add the environment variables `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` and `APP_PASSWORD` (the login password;
+   without it, anyone with the link can see and edit your trips).
+5. Deploy (or redeploy after adding the variables). Tables are created on first request.
+
+Your trips live only in your own database. To move local data to the cloud, export a JSON backup from the local
+app (⋯ menu) and import it on the deployed one.
