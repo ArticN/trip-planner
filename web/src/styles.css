@@ -471,6 +471,9 @@ button.big { padding: 12px 22px; font-size: 16px; }
 .leaflet-tooltip { background: var(--card); color: var(--ink); border-color: var(--line); }
 .leaflet-tooltip-top:before { border-top-color: var(--line); }
 .leaflet-tooltip.station-tip:before { display: none; }
+.leaflet-tooltip.airport-tip { padding: 2px 7px; font-size: 12px; font-weight: 500; border-radius: 4px; box-shadow: none; }
+.leaflet-tooltip.airport-tip b { letter-spacing: 0.04em; }
+.leaflet-tooltip.airport-tip:before { display: none; }
 :root:not([data-theme='light']) .leaflet-tile-pane .osm-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9); }
 
 @media print {

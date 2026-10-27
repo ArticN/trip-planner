@@ -19,6 +19,15 @@ export const IDEAS = [
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.28',
+    date: '2026-10-27',
+    title: 'Voo com escalas no mapa do dia',
+    items: [
+      'No dia de um voo, o mapa grande deixa de ficar preso na região da viagem e mostra o trajeto inteiro: o aeroporto de origem, cada escala e o destino final como pontos, ligados por arcos com setas. Ao voltar para um dia comum, o mapa volta para a região da viagem.',
+      'A escala agora é lida do próprio voo: um local como “Guarulhos (GRU) → Zurique → Narita (NRT)” já desenha GRU → ZRH → NRT, sem precisar preencher o campo Escalas. Vale para códigos de aeroporto e para os nomes das cidades que mais servem de escala, em português ou inglês.',
+    ],
+  },
+  {
     version: '1.27',
     date: '2026-10-27',
     title: 'Trajeto do voo no mapa-múndi',

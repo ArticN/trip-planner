@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { KINDS, esc, hasCoords, haversine, fmtKm, fmtDuration } from './util.js';
@@ -6,6 +6,7 @@ import { translatedBasemap, osmLayer } from './basemap.js';
 import { accentColor } from './theme.js';
 import { Icon, iconSvg } from './icons.jsx';
 import { travelLegs, parseRoute, rideColor, rideLabel } from './travel.js';
+import { loadAirports, flightRoute } from './flights.js';
 
 const WORLD_CENTER = [20, 0];
 const BASE_KEY = 'trip-planner-basemap';
@@ -191,6 +192,16 @@ export default function MapView({
     return () => window.removeEventListener('themechange', on);
   }, []);
 
+  // voos do dia com saída, escalas e chegada conhecidas: no dia do voo o mapa mostra o trajeto inteiro
+  const [airports, setAirports] = useState(null);
+  const hasFlight = mode === 'day' && items.some((a) => a.kind === 'flight');
+  useEffect(() => { if (hasFlight && !airports) loadAirports().then(setAirports).catch(() => {}); }, [hasFlight]);
+  const flights = useMemo(() => (hasFlight && airports
+    ? items.filter((a) => a.kind === 'flight').map((a) => ({ a, r: flightRoute(a, airports) })).filter((f) => f.r)
+    : []), [hasFlight, airports, items]);
+  const flightView = useRef(false);
+  const flightKey = flights.map((f) => f.r.dots.map((d) => d.code).join('-')).join('|');
+
   // ── cria o mapa uma vez
   useEffect(() => {
     // pontos e linhas em canvas (um só desenho) em vez de um elemento por ponto
@@ -230,10 +241,15 @@ export default function MapView({
     const map = mapRef.current;
     if (!map) return;
     const region = regionOf(cities, stays, cities.length ? [] : items);
-    if (!region) { map.setMaxBounds(null); map.setMinZoom(0); return; }
+    // dia de voo com trajeto: sem recorte, para caber o caminho do país de origem até o destino
+    const wasFlight = flightView.current;
+    flightView.current = !!flightKey;
+    if (!region || flightKey) { map.setMaxBounds(null); map.setMinZoom(flightKey ? 1 : 0); return; }
+    // saindo do mapa-múndi do voo: volta direto para a região antes de pôr o recorte (senão o enquadramento do dia se perde)
+    if (wasFlight) map.fitBounds(region, { animate: false });
     map.setMaxBounds(region.pad(1.2));
     map.setMinZoom(Math.max(2, map.getBoundsZoom(region.pad(0.8)) - 1));
-  }, [regionKey]);
+  }, [regionKey, flightKey]);
 
   // ── redesenha camadas quando os dados mudam
   useEffect(() => {
@@ -254,7 +270,29 @@ export default function MapView({
     let farNow = [];
 
     if (mode === 'day') {
-      const all = items.filter(hasCoords);
+      // voos com trajeto: aeroportos de saída, escalas e chegada ligados por arcos (no lugar do pino do voo)
+      const routed = new Set(flights.map((f) => f.a.id));
+      flights.forEach(({ a, r }) => {
+        const sel = a.id === selectedId;
+        r.legs.forEach((leg) => {
+          const path = leg.map(([x, y]) => [y, x]);
+          L.polyline(path, { color: route, weight: sel ? 3.5 : 2.5, opacity: 0.95, dashArray: '2 8', lineCap: 'round' })
+            .bindTooltip(`${esc(a.title)} · trajeto ilustrativo`, { sticky: true })
+            .on('click', () => cb.current.onSelect?.(a.id))
+            .addTo(group);
+          arrow(group, path);
+          path.forEach((p) => bounds.push(p));
+        });
+        r.dots.forEach((d) => {
+          L.circleMarker([d.lat, d.x], {
+            radius: d.end ? 7 : 5.5, color: route, weight: 2.5, fillColor: d.end ? route : '#fff', fillOpacity: 1, bubblingMouseEvents: false,
+          })
+            .bindTooltip(`<b>${esc(d.code)}</b> ${esc(d.city)}`, { permanent: true, direction: 'top', offset: [0, -8], className: 'airport-tip' })
+            .on('click', () => cb.current.onSelect?.(a.id))
+            .addTo(group);
+        });
+      });
+      const all = items.filter((a) => hasCoords(a) && !routed.has(a.id));
       const pts = all.filter(inArea);
       farNow = all.filter((a) => !inArea(a));
       const jit = editPositions ? new Map() : jitterMap(pts);
@@ -399,7 +437,7 @@ export default function MapView({
     }
 
     // enquadra o mapa só quando o contexto muda (dia/modo), não a cada edição
-    const key = `${mode}|${fitKey}`;
+    const key = `${mode}|${fitKey}|${flightKey}`;
     if (lastFit.current !== key && bounds.length) {
       const first = lastFit.current == null;
       lastFit.current = key;
@@ -412,7 +450,7 @@ export default function MapView({
 
     const farKey = farNow.map((a) => a.id).join('|');
     setFar((cur) => (cur.map((a) => a.id).join('|') === farKey ? cur : farNow));
-  }, [mode, items, alts, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look]);
+  }, [mode, items, alts, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look, flights]);
 
   useEffect(() => {
     const mb = mapRef.current?.options.maxBounds;
