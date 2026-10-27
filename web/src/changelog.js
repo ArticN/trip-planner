@@ -15,6 +15,17 @@ export const IDEAS = [
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.25',
+    date: '2026-10-27',
+    title: 'Opções no mesmo horário',
+    items: [
+      'Ficou em dúvida entre dois ou três lugares para o mesmo horário, como o café da manhã? No ingresso da atividade, o botão de cartões empilhados cria outra opção para aquele horário, já com o mesmo dia, bloco e horário.',
+      'As opções viram um carrossel dentro do mesmo ingresso: as setinhas ‹ › (ou deslizar o dedo para o lado, no celular) trocam a opção mostrada, e o mapa vai até ela. As outras opções aparecem no mapa como pinos apagados com o mesmo número; clicar num deles mostra aquela opção.',
+      'A primeira opção é a principal: é ela que conta no orçamento, nas estatísticas, na agenda (.ics), nos lembretes e no PDF. “Tornar principal” troca a principal sem descartar as outras.',
+      'Para tirar uma opção do carrossel, abra o editor dela e use “Separar das outras opções”, ou exclua a opção. O link compartilhado mostra a principal e cita as outras embaixo.',
+    ],
+  },
+  {
     version: '1.24',
     date: '2026-10-22',
     title: 'Meu mapa no seu país',

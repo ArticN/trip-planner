@@ -17,6 +17,7 @@ import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, orderBySlots, SLOTS, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
+  principals, collapseAlts, altGroups, altKey, newAltKey,
 } from './util.js';
 
 
@@ -41,6 +42,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [flyTarget, setFlyTarget] = useState(null);
   const [cityFocus, setCityFocus] = useState(null);
   const [toast, setToast] = useState('');
+  // carrossel de opções no mesmo horário: qual opção cada grupo está mostrando (grupo → id)
+  const [altView, setAltView] = useState({});
   // exclusão com "desfazer": some na hora e só é apagada no servidor depois de alguns segundos
   const [undo, setUndo] = useState(null);
   const pendingDel = useRef(null);
@@ -65,6 +68,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   }, []);
   useEffect(() => { setData(null); reload(); }, [reload]);
 
+  // das opções no mesmo horário, só a principal conta no orçamento, nas estatísticas, na agenda e no PDF
+  const acts = useMemo(() => principals(data?.activities || []), [data]);
   useReminders(data?.trip, data?.activities, notify);
 
   // anexos ficam guardados no aparelho (o service worker guarda cada um na primeira vez que é pedido)
@@ -97,12 +102,15 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   useEffect(() => { setTripAccent(trip?.accent); return () => setTripAccent(null); }, [trip?.accent]);
   const cityMap = useMemo(() => Object.fromEntries((data?.cities || []).map((c) => [c.key, c])), [data]);
   const days = useMemo(() => (trip ? rangeDays(trip.start, trip.end) : []), [trip]);
-  const byDay = useMemo(() => {
+  const groupDays = (list) => {
     const m = {};
-    (data?.activities || []).forEach((a) => { (m[a.day] ||= []).push(a); });
+    list.forEach((a) => { (m[a.day] ||= []).push(a); });
     Object.keys(m).forEach((d) => { m[d] = orderBySlots(m[d]); });
     return m;
-  }, [data]);
+  };
+  const byDay = useMemo(() => groupDays(acts), [acts]);
+  // o dia com todas as opções (o painel do dia mostra cada grupo como um carrossel)
+  const byDayAll = useMemo(() => groupDays(data?.activities || []), [data]);
 
   const daysInfo = useMemo(() => days.map((day) => {
     const list = byDay[day] || [];
@@ -120,7 +128,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const railCity = (day) => (data?.stays || []).find((s) => s.check_in <= day && day < s.check_out)?.city;
   const conflictsTotal = daysInfo.reduce((s, d) => s + d.conflicts, 0);
   const dayIndex = sel === 'trip' ? -1 : days.indexOf(sel);
-  const dayItems = useMemo(() => (sel === 'trip' ? [] : (byDay[sel] || []).map((a, i) => ({ ...a, n: i + 1 }))), [sel, byDay]);
+  const dayItems = useMemo(() => (sel === 'trip' ? [] : collapseAlts(byDayAll[sel] || [], altView).map((a, i) => ({ ...a, n: i + 1 }))), [sel, byDayAll, altView]);
   const dayConflicts = useMemo(() => findConflicts(dayItems), [dayItems]);
 
   const stayFor = useCallback((day) => {
@@ -130,9 +138,11 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
   const mapItems = useMemo(() => {
     const show = (a) => kinds.has(a.kind) && passDone(a, doneFilter);
-    if (sel === 'trip') return (data?.activities || []).filter(show);
+    if (sel === 'trip') return acts.filter(show);
     return dayItems.filter(show);
-  }, [sel, data, dayItems, kinds, doneFilter]);
+  }, [sel, acts, dayItems, kinds, doneFilter]);
+  // as outras opções do carrossel aparecem apagadas no mapa do dia
+  const mapAlts = useMemo(() => mapItems.flatMap((a) => (a.alts || []).filter((x) => x.id !== a.id && hasCoords(x)).map((x) => ({ ...x, n: a.n, of: a.alts.length, at: a.alts.indexOf(x) + 1 }))), [mapItems]);
 
   // ── navegação
   const go = useCallback((target) => {
@@ -212,7 +222,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   };
 
   const saveEdit = async () => {
-    const { draft: { _pending: pending = [], ...draft }, isNew } = editing;
+    const { draft: { _pending: pending = [], _altOf: altOf = null, ...draft }, isNew } = editing;
     const sendPending = async (owner, id) => {
       for (const f of pending) {
         try { const up = await api.uploadFile(owner, id, f); setData((d) => ({ ...d, files: [...(d.files || []), up] })); } catch (e) { say(`Não consegui anexar ${f.name}: ${e.message}`); }
@@ -234,9 +244,12 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     }
     try {
       if (isNew) {
+        // primeira opção extra: a atividade original entra no grupo
+        if (altOf != null) await updateActivity(altOf, { alt: draft.alt });
         const created = await api.createActivity(tripId, draft);
         setData((d) => ({ ...d, activities: [...d.activities, created] }));
         setSelectedId(created.id);
+        if (created.alt) setAltView((v) => ({ ...v, [altKey(created)]: created.id }));
         await sendPending('activity', created.id);
       } else {
         const saved = await api.updateActivity(draft.id, draft);
@@ -289,13 +302,63 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     else softDelete(`Excluída: ${draft.title}`, 'activities', original, () => api.deleteActivity(draft.id));
   };
 
-  const reorder = async (ids) => {
+  // ids do painel (um por grupo) → todas as opções, na ordem delas, no lugar do grupo
+  const expandAlts = (ids) => {
+    const full = byDayAll[sel] || [];
+    const groups = altGroups(full);
+    const out = [];
+    ids.forEach((id) => {
+      const a = full.find((x) => x.id === id);
+      const g = a?.alt && groups.get(altKey(a));
+      if (!g) out.push(id);
+      else if (!out.includes(g[0].id)) out.push(...g.map((x) => x.id));
+    });
+    return out;
+  };
+
+  const reorder = (raw) => saveOrder(expandAlts(raw));
+  const saveOrder = async (ids) => {
     const pos = Object.fromEntries(ids.map((id, i) => [id, i]));
     setData((d) => ({ ...d, activities: d.activities.map((a) => (a.id in pos && a.day === sel ? { ...a, sort: pos[a.id] } : a)) }));
     try { await api.reorderDay(tripId, sel, ids); } catch { say('Erro ao reordenar'); reload(); }
   };
 
-  const moveSlot = (id, slot) => updateActivity(id, { slot });
+  // levar uma opção para outro bloco leva o grupo inteiro
+  const groupOf = (id) => {
+    const a = data.activities.find((x) => x.id === id);
+    return (a?.alt && altGroups(data.activities).get(altKey(a))) || (a ? [a] : []);
+  };
+  const moveSlot = (id, slot) => groupOf(id).forEach((x) => updateActivity(x.id, { slot }));
+
+  // ── carrossel de opções
+  const showAlt = (id, fly = true) => {
+    const a = data.activities.find((x) => x.id === id);
+    if (!a) return;
+    if (a.alt) setAltView((v) => ({ ...v, [altKey(a)]: id }));
+    setSelectedId(id);
+    if (fly && hasCoords(a)) setFlyTarget({ lat: a.lat, lng: a.lng, nonce: ++nonce.current });
+  };
+  const stepAlt = (a, delta) => {
+    const g = a.alts || [];
+    if (g.length < 2) return;
+    showAlt(g[(a.altIndex + delta + g.length) % g.length].id);
+  };
+  // a opção mostrada vira a principal (primeira do grupo): é ela que conta no orçamento e na agenda
+  const makePrincipal = (a) => {
+    const g = a.alts || [];
+    const order = [a.id, ...g.filter((x) => x.id !== a.id).map((x) => x.id)];
+    let k = 0;
+    saveOrder((byDayAll[sel] || []).map((x) => (g.some((y) => y.id === x.id) ? order[k++] : x.id)));
+    say(`“${a.title}” é a opção principal`);
+  };
+  const addAlt = (a) => {
+    const key = a.alt || newAltKey();
+    setEditing({
+      draft: { day: a.day, city: a.city, kind: a.kind, slot: a.slot || a.slotKey || null, start: a.start, end: a.end, title: '', location: '', details: '', transport: '', cost: null, lat: null, lng: null, done: 0, alt: key, _altOf: a.alt ? null : a.id },
+      isNew: true,
+    });
+  };
+  const splitAlt = () => setEditing((e) => ({ ...e, draft: { ...e.draft, alt: null } }));
 
   const sortTime = () => {
     // cada bloco se ordena por dentro; os blocos já seguem a escala do dia
@@ -337,17 +400,12 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const onMarkerMove = (id, lat, lng) => updateActivity(id, { lat: +lat.toFixed(5), lng: +lng.toFixed(5) });
 
   const pinned = selectedId == null ? null : (data?.activities || []).find((x) => x.id === selectedId && hasCoords(x)) || null;
-  const selectFromList = (id) => {
-    setSelectedId(id);
-    const a = data.activities.find((x) => x.id === id);
-    if (hasCoords(a)) setFlyTarget({ lat: a.lat, lng: a.lng, nonce: ++nonce.current });
-  };
+  const selectFromList = (id) => showAlt(id);
 
   const onSearchPick = (type, item) => {
     if (type === 'activity') {
       go(item.day);
-      setSelectedId(item.id);
-      if (hasCoords(item)) setFlyTarget({ lat: item.lat, lng: item.lng, nonce: ++nonce.current });
+      showAlt(item.id);
       sheet.setDetent('half');
     } else if (type === 'idea') {
       setTimeout(() => openIdea(item), 0);
@@ -535,7 +593,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button onClick={() => setModal('offline')}>Mapa offline</button>
             <button onClick={() => setModal('reminders')}>Lembretes</button>
             <button onClick={() => window.print()}>Imprimir ou salvar PDF</button>
-            <button onClick={() => downloadIcs(trip, data.activities, cityMap)}>Exportar para agenda (.ics)</button>
+            <button onClick={() => downloadIcs(trip, acts, cityMap)}>Exportar para agenda (.ics)</button>
             <a href={`/api/trips/${tripId}/export`}>Exportar backup (JSON)</a>
           </div>
         </details>
@@ -565,7 +623,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           <div className="side-body">
             {sel === 'trip' ? (
               <TripPanel
-                trip={trip} cities={data.cities} cityMap={cityMap} stays={data.stays} activities={data.activities}
+                trip={trip} cities={data.cities} cityMap={cityMap} stays={data.stays} activities={acts}
                 conflictsTotal={conflictsTotal} kinds={kinds} onToggleKind={toggleKind} doneFilter={doneFilter} onDoneFilter={setDoneFilter} fx={fx}
                 onCity={focusCity} onOpenStays={() => setModal('stays')} onOpenBudget={() => setModal('budget')}
                 onOpenCities={() => setModal('cities')} onEditTrip={() => setModal('trip')}
@@ -578,6 +636,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
                 day={sel} dayIndex={dayIndex} items={dayItems} cityMap={cityMap} stay={stayFor(sel)} checkout={sel === 'trip' ? null : (data.stays || []).find((s) => s.check_out === sel && s !== stayFor(sel)) || null}
                 conflicts={dayConflicts} selectedId={selectedId} onSelect={selectFromList} onEdit={openEdit}
                 onToggleDone={toggleDone} onAdd={openNew} onMoveSlot={moveSlot} onReorder={reorder} onSortTime={sortTime}
+                onAltStep={stepAlt} onAltAdd={addAlt} onAltMain={makePrincipal}
                 kinds={kinds} onToggleKind={toggleKind} doneFilter={doneFilter} onDoneFilter={setDoneFilter} fx={fx} tripTz={trip.tz} now={sel === today ? now.min : null}
                 onPrev={() => step(-1)} onNext={() => step(1)} hasPrev={dayIndex > 0} hasNext={dayIndex < days.length - 1}
                 dayInfo={(data.days || []).find((d) => d.day === sel) || null} onSaveDayInfo={saveDayInfo} files={data.files || []}
@@ -591,6 +650,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             centerRef={mapCenter}
             mode={sel === 'trip' ? 'trip' : 'day'}
             items={mapItems}
+            alts={sel === 'trip' ? [] : mapAlts}
+            onAltPick={(id) => showAlt(id, false)}
             stays={data.stays}
             cities={data.cities}
             stayByDay={sel === 'trip' ? null : stayFor(sel)}
@@ -613,7 +674,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           />
           {pinned && !editPositions && !picking && !quickAdd && (
             <PinPanel
-              a={pinned} n={mapItems.find((x) => x.id === pinned.id)?.n} cityMap={cityMap} fx={fx} tripTz={trip.tz} files={filesOf('activity', pinned.id)}
+              a={pinned} n={mapItems.find((x) => x.id === pinned.id)?.n} group={mapItems.find((x) => x.id === pinned.id)} onAltStep={stepAlt} cityMap={cityMap} fx={fx} tripTz={trip.tz} files={filesOf('activity', pinned.id)}
               onEdit={openEdit} onToggleDone={toggleDone} onClose={() => setSelectedId(null)}
             />
           )}
@@ -660,6 +721,14 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <EditModal tripTz={trip.tz}
           files={editing.isNew ? [] : filesOf(editing.idea ? 'idea' : 'activity', editing.draft.id)}
           onAddFile={(f) => addFile(editing.idea ? 'idea' : 'activity', editing.draft.id, f)} onRemoveFile={removeFile}
+          altInfo={(() => {
+            const { draft, isNew } = editing;
+            if (editing.idea || !draft.alt) return null;
+            const g = data.activities.filter((x) => x.day === draft.day && x.alt === draft.alt).sort((x, y) => x.sort - y.sort || x.id - y.id);
+            if (isNew) return { index: Math.max(2, g.length + 1), count: Math.max(2, g.length + 1) };
+            return g.length > 1 ? { index: g.findIndex((x) => x.id === draft.id) + 1, count: g.length } : null;
+          })()}
+          onSplitAlt={splitAlt}
           draft={editing.draft} isNew={editing.isNew} isIdea={!!editing.idea} onToIdeas={toIdeas} cities={data.cities} days={days} fxCur={fx.cur}
           onChange={(d) => setEditing((e) => ({ ...e, draft: d }))}
           onSave={saveEdit} onDelete={deleteEdit} onClose={() => setEditing(null)}
@@ -671,10 +740,10 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'trip' && <TripModal trip={trip} onSave={saveTrip} onDelete={deleteTrip} onDuplicate={duplicateTrip} onClose={() => setModal(null)} />}
       {modal === 'checklist' && <ChecklistModal items={data.checklist} onCreate={createCheck} onUpdate={updateCheck} onDelete={deleteCheck} onClose={() => setModal(null)} />}
       {modal === 'shopping' && <ShoppingModal trip={trip} items={data.purchases || []} days={days} fx={fx} onCreate={createPurchase} onUpdate={updatePurchase} onDelete={deletePurchase} onTrip={patchTrip} onRefreshUsd={() => refreshUsd(true)} onClose={() => setModal(null)} />}
-      {modal === 'stats' && <StatsModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onClose={() => setModal(null)} />}
+      {modal === 'stats' && <StatsModal activities={acts} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onClose={() => setModal(null)} />}
       {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} initialDay={sel === 'trip' ? days[0] : sel} onPick={(d, aid) => { setModal(null); go(d); if (aid) setSelectedId(aid); }} onClose={() => setModal(null)} />}
       {modal === 'search' && <SearchModal data={data} cityMap={cityMap} onPick={onSearchPick} onClose={() => setModal(null)} />}
-      {modal === 'budget' && <BudgetModal activities={data.activities} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} rateAuto={trip.rate_auto !== 0} rateAt={trip.rate_at} onRateAuto={setRateAuto} files={data.files || []} onClose={() => setModal(null)} />}
+      {modal === 'budget' && <BudgetModal activities={acts} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onRate={saveRate} rateAuto={trip.rate_auto !== 0} rateAt={trip.rate_at} onRateAuto={setRateAuto} files={data.files || []} onClose={() => setModal(null)} />}
       {modal === 'look' && <AppearanceModal trip={trip} onTripAccent={(accent) => patchTrip({ accent })} onClose={() => setModal(null)} />}
       {modal === 'reminders' && <RemindersModal trip={trip} onSave={patchTrip} onCalendar={setCalendar} notify={notify} onNotify={async (on) => setNotifyState(await setNotify(on))} onClose={() => setModal(null)} />}
       {modal === 'offline' && <OfflineMapModal cities={data.cities} onClose={() => setModal(null)} />}

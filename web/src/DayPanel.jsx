@@ -1,6 +1,6 @@
 import { Stars } from './Stars.jsx';
 import { parseLinks, linkLabel } from './Extras.jsx';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { Icon } from './icons.jsx';
 import WeatherLine from './WeatherLine.jsx';
@@ -99,7 +99,7 @@ function DayInfo({ info, onSave }) {
 
 export default function DayPanel({
   day, dayIndex, items, cityMap, stay, checkout, conflicts, selectedId, onSelect, onEdit, onToggleDone, onAdd, onMoveSlot,
-  onReorder, onSortTime, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo, doneFilter = 'all', onDoneFilter, files = [],
+  onReorder, onSortTime, onAltStep, onAltAdd, onAltMain, kinds, onToggleKind, fx, onPrev, onNext, hasPrev, hasNext, tripTz, now = null, dayInfo = null, onSaveDayInfo, doneFilter = 'all', onDoneFilter, files = [],
 }) {
   // atividade escolhida (no mapa ou na busca) fica visível na lista
   useEffect(() => {
@@ -107,6 +107,18 @@ export default function DayPanel({
   }, [selectedId, day]);
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
+  // no celular, deslizar o ingresso para o lado troca a opção do carrossel
+  const touch = useRef(null);
+  const swipe = (a) => a.alts && {
+    onTouchStart: (e) => { const t = e.touches[0]; touch.current = { x: t.clientX, y: t.clientY }; },
+    onTouchEnd: (e) => {
+      const s = touch.current; touch.current = null;
+      if (!s) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - s.x;
+      if (Math.abs(dx) > 50 && Math.abs(t.clientY - s.y) < 40) onAltStep(a, dx < 0 ? 1 : -1);
+    },
+  };
 
   const cities = [...new Set(items.map((a) => a.city).filter((c) => c && c !== 'transito'))];
   const cost = items.reduce((s, a) => s + (a.cost || 0), 0);
@@ -283,7 +295,7 @@ export default function DayPanel({
           const endDay = endDayOf(a);
           const endPlus = a.end && endDay !== a.day ? ` (+${daysBetween(a.day, endDay)}d)` : '';
           const leg = a.from_code || a.to_code || a.ref;
-          const cls = ['item', ['flight', 'move'].includes(a.kind) ? 'ticket' : '', a.id === nowId ? 'now' : '', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
+          const cls = ['item', ['flight', 'move'].includes(a.kind) ? 'ticket' : '', a.alts ? 'has-alts' : '', a.id === nowId ? 'now' : '', a.id === selectedId ? 'sel' : '', a.done ? 'done' : '', conflicts.has(a.id) ? 'conflict' : '', dragId === a.id ? 'dragging' : '', overId === a.id ? 'over' : ''].join(' ');
           return (
             <li key={a.id}>
               {prev && visible.includes(prev) && <Gap a={prev} b={a} />}
@@ -297,6 +309,7 @@ export default function DayPanel({
                 onDrop={(e) => { e.preventDefault(); drop(a.id); setDragId(null); setOverId(null); }}
                 onDragEnd={() => { setDragId(null); setOverId(null); }}
                 onClick={() => onSelect(a.id)}
+                {...swipe(a)}
               >
                 <div className="time">
                   {a.start ? (
@@ -309,7 +322,8 @@ export default function DayPanel({
                   )}
                 </div>
                 <div className="pin-mini" style={{ '--c': k.color }} title={k.label}>{idx + 1}</div>
-                <div className="body">
+                <div className="body" key={a.id}>
+                  {a.alts && <AltBar a={a} onStep={onAltStep} onMain={onAltMain} />}
                   <div className="title-row">
                     <span className="title">{a.title}</span>
                     {a.id === nowId && <span className="now-badge">{nowLabel(a)}</span>}
@@ -353,6 +367,11 @@ export default function DayPanel({
                 </div>
                 <div className="actions">
                   <button className={`check${a.done ? ' on' : ''}`} title="Marcar como feito" onClick={(e) => { e.stopPropagation(); onToggleDone(a); }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5" /></svg></button>
+                  {onAltAdd && !['flight', 'move'].includes(a.kind) && (
+                    <button className="icon-btn sm alt-add" title="Outra opção para este horário" aria-label="Adicionar outra opção para este horário" onClick={(e) => { e.stopPropagation(); onAltAdd(a); }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="1.5" y="4" width="10" height="10" rx="1.5" /><path d="M4.5 1.5H13A1.5 1.5 0 0114.5 3v8.5M6.5 6.5v5M4 9h5" /></svg>
+                    </button>
+                  )}
                   <button className="icon-btn sm" title="Editar" onClick={(e) => { e.stopPropagation(); onEdit(a.id); }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 13.5l.7-3L11 2.7a1.4 1.4 0 012 2L5.5 12.8z" /></svg></button>
                 </div>
               </div>
@@ -367,6 +386,24 @@ export default function DayPanel({
       <div className="day-foot">
         <button className="primary" onClick={onAdd}>＋ Atividade</button>
       </div>
+    </div>
+  );
+}
+
+// carrossel das opções no mesmo horário: setas trocam a opção mostrada (e o ponto no mapa)
+function AltBar({ a, onStep, onMain }) {
+  const n = a.alts.length;
+  const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
+  return (
+    <div className="alt-bar" onClick={(e) => e.stopPropagation()}>
+      <button type="button" className="alt-arrow" onClick={stop(() => onStep(a, -1))} aria-label="Opção anterior" title="Opção anterior">‹</button>
+      <span className="alt-dots" aria-hidden="true">{a.alts.map((x, i) => <i key={x.id} className={i === a.altIndex ? 'on' : ''} />)}</span>
+      <span className="alt-count" aria-live="polite">Opção {a.altIndex + 1} de {n}</span>
+      <button type="button" className="alt-arrow" onClick={stop(() => onStep(a, 1))} aria-label="Próxima opção" title="Próxima opção">›</button>
+      <span className="spacer" />
+      {a.altIndex === 0
+        ? <span className="alt-main" title="A principal é a que conta no orçamento e na agenda">principal</span>
+        : <button type="button" className="mini alt-make" onClick={stop(() => onMain(a))} title="Passa a contar no orçamento e na agenda">Tornar principal</button>}
     </div>
   );
 }

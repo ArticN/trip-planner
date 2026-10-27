@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { actTz, zonedMs } from './util.js';
+import { actTz, zonedMs, principals } from './util.js';
 
 // lembretes neste aparelho enquanto o app está aberto (inclusive em segundo plano no Android);
 // com o app fechado quem avisa é a agenda assinada (ver RemindersModal)
@@ -30,7 +30,7 @@ export function useReminders(trip, activities, enabled) {
     const now = Date.now();
     let sent = {};
     try { sent = JSON.parse(localStorage.getItem('notified') || '{}'); } catch { /* vazio */ }
-    (activities || []).forEach((a) => {
+    principals(activities || []).forEach((a) => {
       if (!a.start || a.done) return;
       const tz = actTz(a, trip.tz).start;
       const startMs = tz ? zonedMs(a.day, a.start, tz) : new Date(`${a.day}T${a.start}:00`).getTime();

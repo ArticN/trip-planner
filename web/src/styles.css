@@ -1089,3 +1089,22 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
   .quota-top b { font-size: 24px; }
   .buy-v small { display: none; }
 }
+
+/* ── opções no mesmo horário: carrossel dentro do ingresso */
+.item.has-alts { border-left: 2px solid var(--accent); }
+.alt-bar { display: flex; align-items: center; gap: 6px; margin: -4px 0 6px; cursor: default; }
+.alt-arrow { width: 26px; height: 26px; padding: 0; border-radius: var(--r-pill); display: grid; place-items: center; font-size: 18px; line-height: 1; color: var(--ink-2); }
+.alt-arrow:hover:not(:disabled) { color: var(--ink); background: var(--raised); }
+.alt-dots { display: flex; gap: 4px; }
+.alt-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--hover-line); }
+.alt-dots i.on { background: var(--accent); }
+.alt-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.alt-main { flex: none; font-size: 12px; color: var(--accent); font-weight: 500; }
+.alt-make { flex: none; white-space: nowrap; font-size: 12px; padding: 2px 8px; }
+.has-alts .body { animation: alt-in 0.18s ease-out; }
+@keyframes alt-in { from { opacity: 0; transform: translateX(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .has-alts .body { animation: none; } }
+.alt-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: var(--r-box); background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 500; }
+.pp-alts { display: flex; align-items: center; gap: 6px; margin: 2px 0 4px; }
+.pin.ghost { opacity: 0.6; transform: rotate(-45deg) scale(0.85); border-style: dashed; filter: saturate(0.5); }
+.pin.ghost:hover { opacity: 0.9; filter: none; }

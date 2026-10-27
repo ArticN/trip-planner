@@ -6,7 +6,7 @@ import { setTripAccent } from './theme.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import PinPanel from './PinPanel.jsx';
 import Metro from './Metro.jsx';
-import { KINDS, SLOTS, orderBySlots, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
+import { KINDS, SLOTS, orderBySlots, principals, collapseAlts, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
 
 const noop = () => {};
 
@@ -47,7 +47,8 @@ export default function ShareView({ token }) {
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>{error}</p></div>;
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
-  const items = (sel === 'trip' ? data.activities : (byDay[sel] || []).map((a, i) => ({ ...a, n: i + 1 })));
+  // opções no mesmo horário: aparece a principal, com as outras citadas embaixo
+  const items = (sel === 'trip' ? principals(data.activities) : collapseAlts(byDay[sel] || []).map((a, i) => ({ ...a, n: i + 1 })));
   const stayFor = (day) => data.stays.find((s) => s.check_in <= day && day < s.check_out) || null;
   const pinned = items.find((a) => a.id === selectedId && a.lat != null) || null;
   const go = (d) => { setSel(d); setSelectedId(null); };
@@ -96,7 +97,7 @@ export default function ShareView({ token }) {
                 <div className="agenda">
                   {days.map((d) => {
                     const c = mainCity(d);
-                    const n = (byDay[d] || []).length;
+                    const n = principals(byDay[d] || []).length;
                     return (
                       <button key={d} className="ag-head share-day" style={{ '--c': c?.color || 'var(--ctl)' }} onClick={() => go(d)}>
                         <b>{fmtDayLong(d)}</b>
@@ -119,7 +120,7 @@ export default function ShareView({ token }) {
                     <button className={`ag-item${a.id === selectedId ? ' sel' : ''}`} onClick={() => pick(a)}>
                       <span className="ag-time">{a.start || '—'}{a.end ? <small>{a.end}</small> : null}</span>
                       <span className="ag-dot" style={{ '--k': (KINDS[a.kind] || KINDS.sight).color }} />
-                      <span className="ag-title">{a.title}{a.location ? <small>{a.location}</small> : null}{a.details ? <small className="wrap">{a.details}</small> : null}</span>
+                      <span className="ag-title">{a.title}{a.location ? <small>{a.location}</small> : null}{a.details ? <small className="wrap">{a.details}</small> : null}{a.alts ? <small>ou {a.alts.slice(1).map((x) => x.title).join(', ou ')}</small> : null}</span>
                     </button>
                     </Fragment>
                   ))}
