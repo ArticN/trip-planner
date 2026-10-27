@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import airportsUrl from './airports.json?url';
 import countriesUrl from './countries.json?url';
 import { haversine } from './util.js';
+import { loadAirports, flightRoute, rad } from './flights.js';
 
 // trajeto do voo num mapa-múndi simplificado: saída, escalas e chegada ligadas por arcos de grande círculo
 // (o caminho mais curto sobre a Terra, não a rota real do avião). Tudo embutido no app, funciona offline:
 // aeroportos do OurAirports (scripts/airports.mjs) e países do Natural Earth (os mesmos do Meu mapa)
 
-let airportsP = null;
 let worldP = null;
-const loadAirports = () => (airportsP ||= fetch(airportsUrl).then((r) => r.json()).catch((e) => { airportsP = null; throw e; }));
 const loadWorld = () => (worldP ||= Promise.all([fetch(countriesUrl).then((r) => r.json()), import('topojson-client')])
   .then(([topo, { feature }]) => feature(topo, topo.objects.countries).features.flatMap(rings))
   .catch((e) => { worldP = null; throw e; }));
@@ -31,73 +29,26 @@ function rings(f) {
   });
 }
 
-// códigos do trecho: saída, escalas e chegada (só os que parecem código IATA, como GRU)
-export function flightCodes(a) {
-  const via = String(a.via || '').toUpperCase().split(/[^A-Z]+/);
-  return [a.from_code, ...via, a.to_code].map((c) => String(c || '').trim().toUpperCase()).filter((c) => /^[A-Z]{3}$/.test(c))
-    .filter((c, i, l) => c !== l[i - 1]);
-}
-
-const rad = (d) => (d * Math.PI) / 180;
-const deg = (r) => (r * 180) / Math.PI;
-const vec = (p) => [Math.cos(rad(p.lat)) * Math.cos(rad(p.lng)), Math.cos(rad(p.lat)) * Math.sin(rad(p.lng)), Math.sin(rad(p.lat))];
-// pontos do arco de grande círculo entre a e b (interpolação esférica)
-function arc(a, b, n = 64) {
-  const u = vec(a);
-  const v = vec(b);
-  const w = Math.acos(Math.max(-1, Math.min(1, u[0] * v[0] + u[1] * v[1] + u[2] * v[2])));
-  if (w < 1e-6) return [[a.lng, a.lat], [b.lng, b.lat]];
-  const out = [];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const s1 = Math.sin((1 - t) * w) / Math.sin(w);
-    const s2 = Math.sin(t * w) / Math.sin(w);
-    const x = s1 * u[0] + s2 * v[0];
-    const y = s1 * u[1] + s2 * v[1];
-    const z = s1 * u[2] + s2 * v[2];
-    out.push([deg(Math.atan2(y, x)), deg(Math.atan2(z, Math.hypot(x, y)))]);
-  }
-  return out;
-}
-
 const W = 1000;
 
 export default function FlightPath({ a }) {
-  const codes = useMemo(() => flightCodes(a), [a.from_code, a.via, a.to_code]);
   const [airports, setAirports] = useState(null);
   const [world, setWorld] = useState(null);
   const still = useMemo(() => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches, []);
 
   useEffect(() => {
-    if (codes.length < 2) return;
     let live = true;
     loadAirports().then((x) => live && setAirports(x)).catch(() => {});
     loadWorld().then((x) => live && setWorld(x)).catch(() => {});
     return () => { live = false; };
-  }, [codes.length]);
+  }, []);
 
   const map = useMemo(() => {
     if (!airports) return null;
-    const stops = codes.map((c) => (airports[c] ? { code: c, lat: airports[c][0], lng: airports[c][1], city: airports[c][2] } : null));
-    const pts = stops.filter(Boolean);
-    if (pts.length < 2) return null;
-
-    // trajeto inteiro com a longitude contínua (um voo que cruza o Pacífico não dá a volta no mapa)
-    let prev = null;
-    const unwrap = (lng) => {
-      let x = lng;
-      if (prev != null) while (x - prev > 180) x -= 360;
-      if (prev != null) while (x - prev < -180) x += 360;
-      prev = x;
-      return x;
-    };
-    const legs = [];
-    const dots = [];
-    for (let i = 0; i < pts.length; i++) {
-      if (i > 0) legs.push(arc(pts[i - 1], pts[i]).map(([x, y], j) => [j === 0 ? prev : unwrap(x), y]));
-      else unwrap(pts[0].lng);
-      dots.push({ ...pts[i], x: prev });
-    }
+    const fr = flightRoute(a, airports);
+    if (!fr) return null;
+    const { legs, dots } = fr;
+    const pts = dots;
 
     // enquadramento: o trajeto com uma margem, nem estreito nem alto demais
     const all = legs.flat();
@@ -141,15 +92,16 @@ export default function FlightPath({ a }) {
       H, land, km,
       legs: legs.map(line),
       route: line(all),
-      dots: dots.map((d, i) => {
+      dots: dots.map((d) => {
         const [px, py] = xy(d.x, d.lat).split(',').map(Number);
-        return { ...d, px, py, end: i === 0 || i === dots.length - 1 };
+        return { ...d, px, py };
       }),
-      missing: codes.filter((c, i) => !stops[i]),
+      missing: fr.missing,
+      guessed: fr.guessed,
     };
-  }, [airports, world, codes]);
+  }, [airports, world, a.from_code, a.via, a.to_code, a.location, a.title]);
 
-  if (codes.length < 2 || !map) return null;
+  if (!map) return null;
   const fs = 44;
   const names = map.dots.map((d) => d.code).join(' → ');
   return (
@@ -173,6 +125,7 @@ export default function FlightPath({ a }) {
       <figcaption className="muted small">
         {map.dots.map((d) => d.city).join(' → ')} · ~{Math.round(map.km).toLocaleString('pt-BR')} km em linha reta
         {map.missing.length > 0 && <> · {map.missing.join(', ')} fora da lista de aeroportos</>}
+        {map.guessed && <> · escala lida do texto do voo</>}
         <span className="fp-note">Trajeto ilustrativo (o arco mais curto entre os aeroportos), não a rota real do avião.</span>
       </figcaption>
     </figure>
