@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Modal } from './Modals.jsx';
 import { money, fmtDay } from './util.js';
 
-// ── compras para trazer: total na moeda da viagem, em dólar (a cota da Receita é em US$) e na moeda de casa
+// ── compras para trazer: total na moeda da viagem, em dólar (a cota da Receita é em US$) e na moeda de casa.
+// Viagem nacional não passa pela Receita: só a lista e os totais, sem cota, dólar nem imposto.
 export const BUY_GROUPS = ['Café e cozinha', 'Figures e anime', 'Roupas e tênis', 'Eletrônicos', 'Lembranças', 'Outros'];
 export const DEFAULT_QUOTA_USD = 1000;
 const TAX = 0.5; // imposto de importação sobre o que passa da cota
@@ -26,7 +27,7 @@ export function usdRateOf(trip) {
 
 const EMPTY = { title: '', store: '', price: '', grp: BUY_GROUPS[0], day: '', bought: false, exempt: false, notes: '' };
 
-export function ShoppingModal({ trip, items, days, fx, onCreate, onUpdate, onDelete, onTrip, onRefreshUsd, onClose }) {
+export function ShoppingModal({ trip, domestic = false, items, days, fx, onCreate, onUpdate, onDelete, onTrip, onRefreshUsd, onClose }) {
   const usd = usdRateOf(trip);
   const quota = Number(trip.quota_usd) || DEFAULT_QUOTA_USD;
   const toUsd = (n) => n * usd;
@@ -48,7 +49,8 @@ export function ShoppingModal({ trip, items, days, fx, onCreate, onUpdate, onDel
     const sum = (l) => l.reduce((t, i) => t + (i.price || 0), 0);
     const bought = sum(counted.filter((i) => i.bought));
     const planned = sum(counted.filter((i) => !i.bought));
-    return { bought, planned, exempt: sum(items.filter((i) => i.exempt)), all: bought + planned, n: items.length, nBought: items.filter((i) => i.bought).length };
+    // na nacional não há cota: os totais contam tudo, inclusive o que estava marcado "fora da cota"
+    return { bought, planned, exempt: sum(items.filter((i) => i.exempt)), all: bought + planned, n: items.length, nBought: items.filter((i) => i.bought).length, anyBought: sum(items.filter((i) => i.bought)), any: sum(items) };
   }, [items]);
 
   const boughtUsd = toUsd(s.bought);
@@ -87,10 +89,18 @@ export function ShoppingModal({ trip, items, days, fx, onCreate, onUpdate, onDel
   const usdAuto = trip.usd_rate_at !== 'manual';
   const needUsd = trip.currency !== 'USD' && trip.home_currency !== 'USD';
 
-  const conv = (n) => [usd ? fmtUsd(toUsd(n)) : null, fx.convert ? fx.fmtHome(n) : null].filter(Boolean).join(' · ');
+  const conv = (n) => [usd && !domestic ? fmtUsd(toUsd(n)) : null, fx.convert ? fx.fmtHome(n) : null].filter(Boolean).join(' · ');
 
   return (
     <Modal title="Compras" onClose={onClose} wide footer={<><span className="muted">{s.nBought} de {s.n} compradas</span><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
+      {domestic ? (
+        <div className="quota">
+          <div className="quota-top">
+            <div><b>{fx.fmt(s.anyBought)}</b><span>comprado</span></div>
+            <div className="quota-left"><b>{fx.fmt(s.any)}</b><span>com o previsto</span></div>
+          </div>
+        </div>
+      ) : (
       <div className={`quota${left < 0 ? ' over' : ''}`}>
         <div className="quota-top">
           <div>
@@ -115,6 +125,7 @@ export function ShoppingModal({ trip, items, days, fx, onCreate, onUpdate, onDel
         </div>
         {over > 0 && usd > 0 && <p className="quota-warn">Com o previsto você passa {fmtUsd(over)} da cota. O imposto seria cerca de {fmtUsd(over * TAX)}{fx.convert ? ` (${fx.fmtHome((over * TAX) / usd)})` : ''}, 50% do que passar.</p>}
       </div>
+      )}
 
       <form className="buy-form form" onSubmit={submit}>
         <label className="full">Item<input value={draft.title} onChange={(e) => set('title', e.target.value)} placeholder="Ex: chaleira Hario Buono, figure da SEGA, tênis Onitsuka" autoFocus /></label>
@@ -132,28 +143,28 @@ export function ShoppingModal({ trip, items, days, fx, onCreate, onUpdate, onDel
         </label>
         <div className="full buy-flags">
           <label className="check-line"><input type="checkbox" checked={draft.bought} onChange={(e) => set('bought', e.target.checked)} />Já comprei</label>
-          <label className="check-line"><input type="checkbox" checked={draft.exempt} onChange={(e) => set('exempt', e.target.checked)} />Fora da cota (uso pessoal, como roupa que você vai usar)</label>
+          {!domestic && <label className="check-line"><input type="checkbox" checked={draft.exempt} onChange={(e) => set('exempt', e.target.checked)} />Fora da cota (uso pessoal, como roupa que você vai usar)</label>}
           <span className="spacer" />
           {editId && <button type="button" onClick={cancel}>Cancelar</button>}
           <button className="primary" type="submit" disabled={!valid}>{editId ? 'Salvar' : 'Adicionar'}</button>
         </div>
       </form>
 
-      {items.length === 0 && <div className="empty">Nenhuma compra ainda. Anote o que pretende trazer para ver quanto da cota já está comprometido.</div>}
+      {items.length === 0 && <div className="empty">Nenhuma compra ainda. {domestic ? 'Anote o que pretende comprar para ver o total.' : 'Anote o que pretende trazer para ver quanto da cota já está comprometido.'}</div>}
       {groups.map((g) => {
         const list = items.filter((i) => (i.grp || 'Outros') === g);
         if (!list.length) return null;
         const sub = list.reduce((t, i) => t + (i.price || 0), 0);
         return (
           <div key={g} className="check-group">
-            <div className="check-h">{g}<span>{fx.fmt(sub)}{usd ? ` · ${fmtUsd(toUsd(sub))}` : ''}</span></div>
+            <div className="check-h">{g}<span>{fx.fmt(sub)}{usd && !domestic ? ` · ${fmtUsd(toUsd(sub))}` : ''}</span></div>
             <ul className="check-list buy-list">
               {list.map((i) => (
                 <li key={i.id} className={`${i.bought ? 'got' : ''}${editId === i.id ? ' editing' : ''}`}>
                   <input type="checkbox" checked={!!i.bought} onChange={() => onUpdate(i.id, { bought: i.bought ? 0 : 1 })} aria-label={i.bought ? 'Marcar como não comprado' : 'Marcar como comprado'} title="Comprado" />
                   <button type="button" className="buy-main" onClick={() => edit(i)} title="Editar">
                     <span className="buy-t">{i.title}</span>
-                    <span className="buy-s">{[i.store, i.day ? fmtDay(i.day) : null, i.exempt ? 'fora da cota' : null, i.bought ? null : 'previsto'].filter(Boolean).join(' · ')}</span>
+                    <span className="buy-s">{[i.store, i.day ? fmtDay(i.day) : null, i.exempt && !domestic ? 'fora da cota' : null, i.bought ? null : 'previsto'].filter(Boolean).join(' · ')}</span>
                   </button>
                   <span className="buy-v"><b>{i.price != null ? fx.fmt(i.price) : '—'}</b>{i.price ? <small>{conv(i.price)}</small> : null}</span>
                   <button className="icon-btn sm" title="Remover" aria-label="Remover" onClick={() => onDelete(i.id)}>
@@ -166,6 +177,7 @@ export function ShoppingModal({ trip, items, days, fx, onCreate, onUpdate, onDel
         );
       })}
 
+      {!domestic && <>
       <div className="buy-settings">
         {needUsd && (
           <div className="rate-box">
@@ -183,6 +195,7 @@ export function ShoppingModal({ trip, items, days, fx, onCreate, onUpdate, onDel
       <p className="muted small buy-note">
         A Receita Federal isenta até US$ 1.000 por pessoa em compras trazidas na bagagem de viagem aérea ou marítima. O que passar paga 50% de imposto sobre o excedente e precisa ser declarado (e-DBV). Roupas e objetos de uso pessoal que você vai usar ficam fora da conta, e o free shop da chegada tem cota própria de US$ 1.000.
       </p>
+      </>}
     </Modal>
   );
 }

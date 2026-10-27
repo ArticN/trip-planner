@@ -14,7 +14,7 @@ const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
 const BUY_FIELDS = ['title', 'store', 'city', 'day', 'price', 'grp', 'bought', 'exempt', 'notes', 'sort'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope'];
 
 // objetos (ex.: route com as estações) vão para o banco como JSON
 const clean = (v) => (v === '' || v === undefined ? null : v && typeof v === 'object' ? JSON.stringify(v) : v);
@@ -110,7 +110,7 @@ async function migrate() {
   };
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['via', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT'], ['slot', 'TEXT'], ['route', 'TEXT'], ['alt', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT']]);
   await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
 
   if (legacy) {
@@ -159,10 +159,13 @@ function sortTimedSlots(items) {
 
 const TRANSIT_CITY = { key: 'transito', name: 'Em trânsito', emoji: '✈️', color: '#64748b', lat: null, lng: null };
 
+// viagem nacional ou internacional; vazio = automático (pelas cidades e o país onde mora, ver web/src/geo.js)
+const scopeOf = (v) => (v === 'domestic' || v === 'international' ? v : null);
+
 // cria uma viagem completa a partir de { trip, cities, stays, activities } (exemplo ou backup).
 // Tudo depois da viagem vai num único lote: no banco remoto é uma ida só.
 async function createTripFull(b) {
-  const { lastInsertRowid: id } = await db.run(`INSERT INTO trips (${TRIP_FIELDS.join(',')}) VALUES (${marks(TRIP_FIELDS)})`, pick({ rate: 1, emoji: '🧳', ...b.trip }, TRIP_FIELDS));
+  const { lastInsertRowid: id } = await db.run(`INSERT INTO trips (${TRIP_FIELDS.join(',')}) VALUES (${marks(TRIP_FIELDS)})`, pick({ rate: 1, emoji: '🧳', ...b.trip, scope: scopeOf(b.trip?.scope) }, TRIP_FIELDS));
   const list = [];
   const cities = [...(b.cities || [])];
   if (!cities.some((c) => c.key === 'transito')) cities.push(TRANSIT_CITY);
@@ -336,6 +339,7 @@ app.put('/api/trips/:id', needTrip, h(async (req, res) => {
   const cur = await db.get('SELECT * FROM trips WHERE id = ?', [req.tripId]);
   const row = { ...cur, ...req.body };
   if (row.accent && !/^#[0-9a-f]{6}$/i.test(row.accent)) row.accent = null;
+  row.scope = scopeOf(row.scope);
   if (!row.name || !row.start || !row.end || row.end < row.start) return res.status(400).json({ error: 'nome e datas válidas são obrigatórios' });
   await db.run(`UPDATE trips SET ${setList(TRIP_FIELDS)} WHERE id = ?`, [...pick(row, TRIP_FIELDS), req.tripId]);
   res.json(await db.get('SELECT * FROM trips WHERE id = ?', [req.tripId]));

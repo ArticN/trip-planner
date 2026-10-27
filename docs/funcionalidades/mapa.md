@@ -95,4 +95,8 @@ das viagens planejadas, com a lista das cidades de cada país.
   estados (ou províncias) ficam pintados quando você já foi e contornados quando a viagem ainda vai acontecer, e a
   lista agrupa as cidades por estado. Ilhas e territórios distantes ficam fora do quadro, a não ser que alguma viagem
   passe por lá.
-- O país e a visão escolhida ficam salvos no servidor, iguais em todos os aparelhos.
+- Viagens dentro do país onde você mora são [nacionais](viagens.md#nacional-ou-internacional): na visão **Mundo**, o
+  seu país aparece primeiro, com "onde você mora" e os estados visitados (ex.: Amazonas) em vez das cidades, fica com
+  contorno próprio e não conta em "países visitados". A contagem ganha **viagens nacionais**.
+- O país e a visão escolhida ficam salvos no servidor, iguais em todos os aparelhos. "Onde moro" também decide se cada
+  viagem é nacional ou internacional no modo automático.

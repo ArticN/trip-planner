@@ -12,6 +12,7 @@ import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
 import { fetchRate, roundRate } from './fx.js';
 import { ShoppingModal } from './Shopping.jsx';
+import { useTripPlace } from './geo.js';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal, RemindersModal } from './Modals.jsx';
 import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
@@ -103,6 +104,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   // ── derivados
   const trip = data?.trip;
   const fx = useMemo(() => (trip ? makeFx(trip) : null), [trip]);
+  // nacional ou internacional (escolhido na viagem ou descoberto pelas cidades e o país onde mora)
+  const place = useTripPlace(trip, data?.cities);
   // a viagem pode ter uma cor própria (Aparência), que vale enquanto ela está aberta
   useEffect(() => { setTripAccent(trip?.accent); return () => setTripAccent(null); }, [trip?.accent]);
   const cityMap = useMemo(() => Object.fromEntries((data?.cities || []).map((c) => [c.key, c])), [data]);
@@ -456,7 +459,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   // cotação em dólar para a cota de compras ('manual' em usd_rate_at = digitada, não atualiza)
   const refreshUsd = useCallback(async (force) => {
     const t = data?.trip;
-    if (!t || t.currency === 'USD' || t.home_currency === 'USD' || t.usd_rate_at === 'manual' || !navigator.onLine) return;
+    // viagem nacional não tem cota da Receita, então não precisa do dólar
+    if (!t || place.domestic || t.currency === 'USD' || t.home_currency === 'USD' || t.usd_rate_at === 'manual' || !navigator.onLine) return;
     const today = new Date().toISOString().slice(0, 10);
     if (!force && t.usd_rate_at === today && t.usd_rate) return;
     try {
@@ -464,7 +468,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       setData((d) => ({ ...d, trip: { ...d.trip, usd_rate: r, usd_rate_at: today } }));
       await api.saveTrip(tripId, { usd_rate: r, usd_rate_at: today });
     } catch { /* fica a cotação anterior */ }
-  }, [data?.trip?.id, data?.trip?.usd_rate_at, data?.trip?.currency, data?.trip?.home_currency]);
+  }, [data?.trip?.id, data?.trip?.usd_rate_at, data?.trip?.currency, data?.trip?.home_currency, place.domestic]);
   useEffect(() => { if (modal === 'shopping') refreshUsd(false); }, [modal, refreshUsd]);
 
   const createStay = async (s) => {
@@ -628,7 +632,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           <div className="side-body">
             {sel === 'trip' ? (
               <TripPanel
-                trip={trip} cities={data.cities} cityMap={cityMap} stays={data.stays} activities={acts}
+                trip={trip} place={place} cities={data.cities} cityMap={cityMap} stays={data.stays} activities={acts}
                 conflictsTotal={conflictsTotal} kinds={kinds} onToggleKind={toggleKind} doneFilter={doneFilter} onDoneFilter={setDoneFilter} fx={fx}
                 onCity={focusCity} onOpenStays={() => setModal('stays')} onOpenBudget={() => setModal('budget')}
                 onOpenCities={() => setModal('cities')} onEditTrip={() => setModal('trip')}
@@ -742,9 +746,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       )}
       {modal === 'stays' && <StaysModal stays={data.stays} cities={data.cities} trip={trip} onSave={saveStay} onCreate={createStay} onDelete={deleteStay} onClose={() => setModal(null)} />}
       {modal === 'cities' && <CitiesModal cities={data.cities} onCreate={createCity} onSave={saveCity} onDelete={deleteCity} onClose={() => setModal(null)} />}
-      {modal === 'trip' && <TripModal trip={trip} onSave={saveTrip} onDelete={deleteTrip} onDuplicate={duplicateTrip} onClose={() => setModal(null)} />}
-      {modal === 'checklist' && <ChecklistModal items={data.checklist} onCreate={createCheck} onUpdate={updateCheck} onDelete={deleteCheck} onClose={() => setModal(null)} />}
-      {modal === 'shopping' && <ShoppingModal trip={trip} items={data.purchases || []} days={days} fx={fx} onCreate={createPurchase} onUpdate={updatePurchase} onDelete={deletePurchase} onTrip={patchTrip} onRefreshUsd={() => refreshUsd(true)} onClose={() => setModal(null)} />}
+      {modal === 'trip' && <TripModal trip={trip} place={place} onSave={saveTrip} onDelete={deleteTrip} onDuplicate={duplicateTrip} onClose={() => setModal(null)} />}
+      {modal === 'checklist' && <ChecklistModal domestic={place.domestic} items={data.checklist} onCreate={createCheck} onUpdate={updateCheck} onDelete={deleteCheck} onClose={() => setModal(null)} />}
+      {modal === 'shopping' && <ShoppingModal trip={trip} domestic={place.domestic} items={data.purchases || []} days={days} fx={fx} onCreate={createPurchase} onUpdate={updatePurchase} onDelete={deletePurchase} onTrip={patchTrip} onRefreshUsd={() => refreshUsd(true)} onClose={() => setModal(null)} />}
       {modal === 'stats' && <StatsModal activities={acts} stays={data.stays} cityMap={cityMap} days={days} fx={fx} onClose={() => setModal(null)} />}
       {modal === 'calendar' && <CalendarModal days={days} byDay={byDay} cityMap={cityMap} daysInfo={daysInfo} fx={fx} initialDay={sel === 'trip' ? days[0] : sel} onPick={(d, aid) => { setModal(null); go(d); if (aid) setSelectedId(aid); }} onClose={() => setModal(null)} />}
       {modal === 'search' && <SearchModal data={data} cityMap={cityMap} onPick={onSearchPick} onClose={() => setModal(null)} />}
