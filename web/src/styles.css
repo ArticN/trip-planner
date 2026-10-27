@@ -237,8 +237,8 @@ input, select, textarea {
 .pin-mini { width: 24px; height: 24px; border-radius: 50%; background: var(--c); color: #fff; font-size: 12.5px; font-weight: 600; display: grid; place-items: center; margin-top: 1px; }
 .body { min-width: 0; }
 .title { font-weight: 500; overflow-wrap: anywhere; }
-.loc { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.det { font-size: 14px; color: var(--ink-2); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.loc { color: var(--muted); font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; }
+.det { font-size: 14px; color: var(--ink-2); margin-top: 4px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .item.sel .det { -webkit-line-clamp: unset; }
 .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .tag { font-size: 13px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--raised); color: var(--ink-2); }
@@ -412,7 +412,7 @@ input, select, textarea {
   .print-only ul { margin: 0; padding-left: 14pt; }
   .print-only li { margin: 2pt 0; }
   .print-only section { break-inside: avoid; }
-  .pt { font-variant-numeric: tabular-nums; color: #555; }
+  .pt { font-variant-numeric: tabular-nums; color: #555; overflow-wrap: anywhere; }
 }
 
 /* ── tela inicial (lista de viagens) */
@@ -502,7 +502,7 @@ button.big { padding: 12px 22px; font-size: 16px; }
 .check-list li.done span { color: var(--muted); text-decoration: line-through; }
 
 /* ── notas e links na atividade */
-.note { margin-top: 6px; font-size: 13px; color: var(--ink-2); padding-left: 10px; border-left: 2px solid var(--ctl); white-space: pre-wrap; }
+.note { margin-top: 6px; font-size: 13px; color: var(--ink-2); padding-left: 10px; border-left: 2px solid var(--ctl); white-space: pre-wrap; overflow-wrap: anywhere; }
 .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .links a, .link-list a { font-size: 13px; color: var(--accent); text-decoration: none; }
 .links a:hover, .link-list a:hover { text-decoration: underline; }
@@ -657,10 +657,13 @@ div.ms-pop { padding: 10px 12px; }
 /* tema e anotações do dia */
 .dayinfo-add { margin-top: 10px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
 .dayinfo-add:hover { color: var(--ink); }
-.dayinfo { display: grid; gap: 4px; width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.dayinfo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .dayinfo:hover { border-color: var(--hover-line); }
-.dayinfo-title { font-family: var(--serif); font-size: 19px; line-height: 1.2; }
-.dayinfo-notes { color: var(--ink-2); font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+.dayinfo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dayinfo-title { font-family: var(--serif); font-size: 19px; line-height: 1.2; overflow-wrap: anywhere; }
+.dayinfo-notes { color: var(--ink-2); font-size: 14px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.text-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.text-link:hover { text-decoration-thickness: 2px; }
 .dayinfo-form { display: grid; gap: 8px; margin-top: 12px; }
 .dayinfo-form input, .dayinfo-form textarea { width: 100%; }
 .dayinfo-actions { display: flex; justify-content: flex-end; gap: 8px; }
@@ -714,7 +717,7 @@ div.ms-pop { padding: 10px 12px; }
 .pp-when { color: var(--ink-2); font-size: 14px; }
 .pp-when::first-letter { text-transform: uppercase; }
 .pp-loc { margin-top: 2px; color: var(--muted); font-size: 14px; }
-.pp-text { margin: 10px 0 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+.pp-text { margin: 10px 0 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pp-notes { padding-left: 10px; border-left: 2px solid var(--line); color: var(--ink-2); }
 .pp-money { display: flex; gap: 16px; margin-top: 10px; font-size: 14px; color: var(--muted); }
 .pp-money b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -748,7 +751,8 @@ div.ms-pop { padding: 10px 12px; }
 .stars-input button { display: inline-flex; padding: 2px; border: 0; background: none; color: var(--line); cursor: pointer; }
 .stars-input button.on { color: var(--warn); }
 .stars-input span { margin-left: 8px; }
-.review { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-top: 4px; font-size: 14px; color: var(--ink-2); }
+.review { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-top: 4px; font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere; }
+.review > span { min-width: 0; }
 .stars { display: inline-flex; gap: 1px; color: var(--line); white-space: nowrap; }
 .stars .on { color: var(--warn); }
 
@@ -787,7 +791,7 @@ div.ms-pop { padding: 10px 12px; }
 .share-day:hover { background: var(--hover); }
 .share-day b::first-letter { text-transform: uppercase; }
 .ag-item.sel { background: var(--raised); }
-.ag-title small.wrap { white-space: normal; margin-top: 2px; }
+.ag-title small.wrap { white-space: normal; overflow-wrap: anywhere; margin-top: 2px; }
 .share-link { display: flex; gap: 8px; }
 .share-link input { flex: 1; min-width: 0; }
 
@@ -1019,7 +1023,7 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .stay-card div { display: grid; gap: 1px; min-width: 0; }
 .stay-card small { font-size: 12px; color: var(--muted); }
 .stay-card b { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.stay-card span { font-size: 12.5px; color: var(--muted); }
+.stay-card span { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
 .stay-card a { color: var(--accent); text-decoration: none; }
 .stay-card.in { background: var(--accent-soft); border-color: transparent; }
 .stay-card.in .ic, .stay-card.in small { color: var(--accent); }

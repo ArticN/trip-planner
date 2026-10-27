@@ -3,7 +3,7 @@ import { Stars } from './Stars.jsx';
 import { wikiSummary, wikiCached } from './wiki.js';
 import { FileList } from './Attachments.jsx';
 import { Icon } from './icons.jsx';
-import { parseLinks, linkLabel } from './Extras.jsx';
+import { parseLinks, linkLabel, LinkText } from './Extras.jsx';
 import { KINDS, hasCoords, duration, fmtDuration, fmtDayLong, endDayOf, directionsUrl } from './util.js';
 
 // painel de detalhes da atividade escolhida no mapa (substitui o balão pequeno do pin)
@@ -36,12 +36,12 @@ export default function PinPanel({ a, n, group = null, onAltStep, cityMap, fx, t
       <h3 className="pp-title">{a.title}</h3>
       <div className="pp-when">{when}</div>
       {a.location && <div className="pp-loc">{a.location}</div>}
-      {a.details && <p className="pp-text">{a.details}</p>}
-      {a.notes && <p className="pp-text pp-notes">{a.notes}</p>}
+      {a.details && <p className="pp-text"><LinkText text={a.details} /></p>}
+      {a.notes && <p className="pp-text pp-notes"><LinkText text={a.notes} /></p>}
       {(a.rating || a.review) && (
         <p className="pp-text review">
           {a.rating ? <Stars value={a.rating} /> : null}
-          {a.review && <span>{a.review}</span>}
+          {a.review && <span><LinkText text={a.review} /></span>}
         </p>
       )}
       {(a.cost != null || a.spent != null) && (
