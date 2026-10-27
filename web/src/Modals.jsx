@@ -302,6 +302,9 @@ export function EditModal({ draft, isNew, isIdea, altInfo = null, onSplitAlt, on
               </label>
               <label>Saída (código)<input value={draft.from_code || ''} onChange={(e) => set({ from_code: e.target.value.toUpperCase() })} placeholder="GRU, Tóquio…" /></label>
               <label>Chegada (código)<input value={draft.to_code || ''} onChange={(e) => set({ to_code: e.target.value.toUpperCase() })} placeholder="NRT, Kyoto…" /></label>
+              {draft.kind === 'flight' && (
+                <label className="full">Escalas (códigos dos aeroportos)<input value={draft.via || ''} onChange={(e) => set({ via: e.target.value.toUpperCase() || null })} placeholder="Ex: ZRH ou ICN, ADD (na ordem do voo)" /></label>
+              )}
               <label>Fuso da saída<TzInput value={draft.start_tz} onChange={(v) => set({ start_tz: v })} placeholder={tripTz || 'fuso da viagem'} /></label>
               <label>Fuso da chegada<TzInput value={draft.end_tz} onChange={(v) => set({ end_tz: v })} placeholder={tripTz || 'fuso da viagem'} /></label>
             </div>

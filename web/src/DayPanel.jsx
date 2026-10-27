@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { Icon } from './icons.jsx';
 import WeatherLine from './WeatherLine.jsx';
+import FlightPath from './FlightPath.jsx';
 import { travelTime, slack, gmapsDirections, parseRoute, rideColor, rideLabel, inkOn } from './travel.js';
 import {
   KINDS, KIND_KEYS, SLOTS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone, nowIn,
@@ -205,10 +206,12 @@ export default function DayPanel({
                     <div className="leg">
                       {a.from_code && <b>{a.from_code}</b>} {a.start}
                       {(a.to_code || a.end) && <> → {a.to_code && <b>{a.to_code}</b>} {a.end}{endPlus}</>}
+                      {a.via && <span className="muted"> · {/[^A-Z]+[A-Z]/i.test(a.via.trim()) ? 'escalas' : 'escala'} em {a.via}</span>}
                       {a.ref && <span className="muted"> · {a.ref}</span>}
                       {a.start_tz && a.end_tz && a.start_tz !== a.end_tz && <span className="muted"> · horários locais</span>}
                     </div>
                   )}
+                  {a.kind === 'flight' && <FlightPath a={a} />}
                   {a.location && <div className="loc">{a.location}</div>}
                   {a.details && <div className="det">{a.details}</div>}
                   {a.notes && <div className="note">{a.notes}</div>}

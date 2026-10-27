@@ -435,6 +435,7 @@ input, select, textarea {
 .home-empty h1 { font-family: var(--serif); font-weight: 400; font-size: 40px; margin: 0 0 8px; }
 .home-empty p { color: var(--muted); max-width: 440px; margin: 0 auto 22px; }
 button.big { padding: 12px 22px; font-size: 16px; }
+.home-empty .home-example-link { margin: 16px auto 0; }
 .home-examples { margin-top: 36px; padding-top: 18px; border-top: 1px dashed var(--line); }
 .home-examples h3 { margin: 0 0 10px; font-size: 14px; color: var(--muted); font-weight: 600; }
 .example { display: flex; justify-content: space-between; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--edge); border-radius: var(--radius); padding: 14px 16px; }
@@ -1119,6 +1120,18 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 .travel-box { margin: 14px 12px 4px; padding: 8px 0 2px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--raised); }
 .travel-box.volta { margin-top: 18px; }
 .travel-box .timeline { padding: 0 8px 4px; }
+/* trajeto do voo: mapa-múndi simplificado com arcos entre os aeroportos */
+.flight-path { margin: 10px 0 4px; }
+.flight-path svg { display: block; width: 100%; height: auto; max-height: 260px; border-radius: 12px; background: var(--card); }
+.fp-land { fill: color-mix(in srgb, var(--ink) 13%, transparent); stroke: none; }
+.fp-arc { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 1 6; vector-effect: non-scaling-stroke; }
+.flight-path circle { fill: var(--card); stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.flight-path .fp-end circle { fill: var(--accent); }
+.flight-path text { fill: var(--ink); font-weight: 600; letter-spacing: 0.04em; paint-order: stroke; stroke: var(--card); stroke-width: 8px; stroke-linejoin: round; }
+.flight-path .fp-via text { fill: var(--ink-2); font-weight: 500; }
+.fp-plane path { fill: var(--ink); }
+.flight-path figcaption { margin-top: 6px; line-height: 1.45; }
+.fp-note { display: block; opacity: 0.8; }
 .travel-h { display: flex; align-items: center; gap: 8px; padding: 2px 14px 6px; color: var(--accent); }
 .travel-h b { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 .travel-h span { font-size: 12.5px; color: var(--muted); }

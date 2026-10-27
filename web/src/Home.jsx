@@ -58,6 +58,15 @@ export default function Home({ version, onOpen, onChanged }) {
   };
 
 
+  // roteiro fictício de demonstração (server/examples), oferecido só com a lista vazia
+  const loadExample = async () => {
+    try {
+      const d = await api.loadExample('exemplo');
+      onChanged();
+      onOpen(d.trip.id);
+    } catch (e) { say('Não consegui carregar o exemplo'); }
+  };
+
   const onImport = async (e) => {
     const f = e.target.files?.[0];
     e.target.value = '';
@@ -109,6 +118,7 @@ export default function Home({ version, onOpen, onChanged }) {
             <h1>Para onde vamos?</h1>
             <p>Crie uma viagem para montar o roteiro dia a dia, ver tudo no mapa e controlar o orçamento.</p>
             <button className="primary big" onClick={newTrip}>+ Criar minha primeira viagem</button>
+            <p className="home-example-link"><button className="link-btn" onClick={loadExample}>ou carregue um roteiro de exemplo</button></p>
           </div>
         ) : (
           <>

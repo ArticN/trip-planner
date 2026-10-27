@@ -26,6 +26,7 @@ export const api = {
   deleteTrip: (id) => req('DELETE', `/api/trips/${id}`),
   duplicateTrip: (id) => req('POST', `/api/trips/${id}/duplicate`),
   importTrip: (data) => req('POST', '/api/trips/import', data),
+  loadExample: (key) => req('POST', `/api/examples/${encodeURIComponent(key)}`),
   share: (id) => req('POST', `/api/trips/${id}/share`),
   unshare: (id) => req('DELETE', `/api/trips/${id}/share`),
   shared: (token) => req('GET', `/api/share/${encodeURIComponent(token)}`),
