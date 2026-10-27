@@ -15,6 +15,14 @@ export const IDEAS = [
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui.
 export const CHANGELOG = [
   {
+    version: '1.26',
+    date: '2026-10-27',
+    title: 'Mapa certo no dia do voo',
+    items: [
+      'No dia de um voo que sai de fora da região da viagem (como o voo de Guarulhos para Tóquio), o mapa ficava preso num canto vazio, e clicar no voo afastava ainda mais. Agora o dia mostra a região da viagem inteira e um aviso explica que o voo começa fora da área do mapa.',
+    ],
+  },
+  {
     version: '1.25',
     date: '2026-10-27',
     title: 'Opções no mesmo horário',
