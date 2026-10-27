@@ -137,6 +137,7 @@ ajuda ao Claude Code.
 | `a API não iniciou: TURSO_DATABASE_URL não configurada…` | Crie as variáveis do passo 3 e faça Redeploy. |
 | Erro de autenticação do banco (401) | O token está errado, expirou ou tem espaço sobrando. Gere outro no Turso, troque `TURSO_AUTH_TOKEN` e faça Redeploy. |
 | A senha não é aceita | Confira `APP_PASSWORD` na Vercel (maiúsculas contam) e faça Redeploy depois de mudar. |
+| "Muitas tentativas erradas" | Depois de 10 senhas erradas o login fica bloqueado por 15 minutos naquele aparelho. Espere e tente de novo. |
 | O mapa fica em branco | O mapa vem de serviços públicos (OpenFreeMap/OpenStreetMap). Confira a internet ou rede da empresa/escola bloqueando. |
 | `npm ci` reclama da versão do Node | Instale o Node 22.13 ou mais novo (`.nvmrc` já indica a versão para quem usa nvm). |
 

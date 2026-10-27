@@ -16,6 +16,15 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.31',
+    date: '2026-10-27',
+    title: 'Login mais protegido',
+    items: [
+      'Depois de 10 senhas erradas seguidas, o login daquele aparelho fica bloqueado por 15 minutos. Isso freia quem tenta adivinhar a senha.',
+      'O site passa a mandar cabeçalhos de proteção: não pode ser aberto dentro de outro site (contra golpes de clique disfarçado) e não repassa o endereço completo para outros sites.',
+    ],
+  },
+  {
     version: '1.30',
     date: '2026-10-27',
     title: 'Viagem nacional ou internacional',

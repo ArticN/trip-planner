@@ -218,6 +218,13 @@ const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MA
 
 export const app = express();
 app.disable('x-powered-by');
+// cabeçalhos básicos de proteção (o front-end na Vercel recebe os mesmos via vercel.json)
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 app.use(express.json({ limit: '5mb' }));
 
 // rotas async: erros viram 500 em vez de derrubar o processo
@@ -242,15 +249,32 @@ const authed = (req) => {
 };
 const cookieAttrs = (req, maxAge) => `Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${req.secure || req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''}`;
 
+// limite de tentativas erradas por IP (na Vercel vale por instância, mas já freia quem tenta adivinhar a senha)
+const FAILS = new Map();
+const MAX_FAILS = 10;
+const LOCK_MS = 15 * 60 * 1000;
+const clientIp = (req) => String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+
 app.get('/api/session', (req, res) => res.json({ required: !!PASSWORD, ok: authed(req) }));
 app.post('/api/login', h(async (req, res) => {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const f = FAILS.get(ip);
+  if (f && f.until > now && f.n >= MAX_FAILS) {
+    res.setHeader('Retry-After', String(Math.ceil((f.until - now) / 1000)));
+    return res.status(429).json({ error: 'muitas tentativas erradas; espere alguns minutos' });
+  }
   const given = Buffer.from(String(req.body?.password || ''));
   const want = Buffer.from(PASSWORD);
   const ok = PASSWORD && given.length === want.length && crypto.timingSafeEqual(given, want);
   if (!ok) {
+    const cur = f && f.until > now ? f : { n: 0 };
+    FAILS.set(ip, { n: cur.n + 1, until: now + LOCK_MS });
+    if (FAILS.size > 5000) FAILS.clear();
     await new Promise((r) => setTimeout(r, 600)); // atrasa tentativas em sequência
     return res.status(401).json({ error: 'senha incorreta' });
   }
+  FAILS.delete(ip);
   res.setHeader('Set-Cookie', `${COOKIE}=${token}; ${cookieAttrs(req, 60 * 60 * 24 * 180)}`);
   res.json({ ok: true });
 }));
