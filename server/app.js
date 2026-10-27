@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
 import express from 'express';
 import { db } from './db.js';
-import * as japan from './examples/japan.js';
+import * as exemplo from './examples/exemplo.js';
 import { buildIcs } from '../web/src/ics.js';
 
 // viagens de exemplo que o usuário pode carregar na tela inicial
-const EXAMPLES = { japao: japan };
+const EXAMPLES = { exemplo };
 
 const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code', 'spent', 'rating', 'review', 'slot', 'route', 'alt'];
 const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
@@ -316,7 +316,7 @@ app.get('/api/examples', (_req, res) => {
 app.post('/api/examples/:key', h(async (req, res) => {
   const m = EXAMPLES[req.params.key];
   if (!m) return res.status(404).json({ error: 'exemplo não encontrado' });
-  const id = await createTripFull({ trip: m.TRIP, cities: m.CITIES.map((c) => ({ ...c })), stays: m.STAYS, activities: m.ACTIVITIES });
+  const id = await createTripFull({ trip: m.TRIP, cities: m.CITIES.map((c) => ({ ...c })), stays: m.STAYS, activities: m.ACTIVITIES, checklist: m.CHECKLIST, ideas: m.IDEAS, purchases: m.PURCHASES });
   res.status(201).json(await getTrip(id));
 }));
 
