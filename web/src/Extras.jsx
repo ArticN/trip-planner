@@ -11,6 +11,29 @@ export function parseLinks(v) {
 }
 export const linkLabel = (l) => l.label || l.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
 
+// texto livre com URLs: cada endereço vira um link curto (domínio ou "Google Maps"), sem a URL inteira estourando a caixa
+const URL_RE = /https?:\/\/[^\s<>"]+/g;
+const urlLabel = (url) => {
+  const host = url.replace(/^https?:\/\/(www\.)?/, '').split(/[/?#]/)[0];
+  if (/^(maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.)/.test(host) || /^google\.[a-z.]+\/maps/.test(url.replace(/^https?:\/\/(www\.)?/, ''))) {
+    return /\/maps\/dir\//.test(url) ? 'rota no Google Maps' : 'abrir no Google Maps';
+  }
+  return host;
+};
+export function LinkText({ text }) {
+  const out = [];
+  let last = 0;
+  for (const m of text.matchAll(URL_RE)) {
+    const url = m[0].replace(/[.,;:!?)\]]+$/, '');
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(<a key={m.index} className="text-link" href={url} target="_blank" rel="noreferrer" title={url} onClick={(e) => e.stopPropagation()}>{urlLabel(url)}</a>);
+    last = m.index + url.length;
+  }
+  if (!out.length) return text;
+  out.push(text.slice(last));
+  return out;
+}
+
 // ── checklist
 const DEFAULT_GROUPS = ['Documentos', 'Reservas', 'Mala', 'Outros'];
 

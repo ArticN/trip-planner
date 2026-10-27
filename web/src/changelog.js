@@ -20,6 +20,15 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.29',
+    date: '2026-10-27',
+    title: 'Anotações do dia sem texto cortado',
+    items: [
+      'A caixa de tema e anotações do dia não estoura mais para a direita: o texto quebra linha dentro da caixa, no computador e no celular. Uma URL comprida (como a de um roteiro a pé no Google Maps) deixava a caixa inteira mais larga que o painel e cortava até as frases normais.',
+      'Links colados no texto agora aparecem curtos e clicáveis: “rota no Google Maps”, “abrir no Google Maps” ou o nome do site. Vale para as anotações do dia e para detalhes, notas e avaliação das atividades, na lista e no cartão do mapa. Clicar no link abre a página sem entrar na edição.',
+    ],
+  },
+  {
     version: '1.28',
     date: '2026-10-27',
     title: 'Voo com escalas no mapa do dia',

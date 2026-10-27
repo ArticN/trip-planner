@@ -1,5 +1,5 @@
 import { Stars } from './Stars.jsx';
-import { parseLinks, linkLabel } from './Extras.jsx';
+import { parseLinks, linkLabel, LinkText } from './Extras.jsx';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { Icon } from './icons.jsx';
@@ -91,10 +91,11 @@ function DayInfo({ info, onSave }) {
   }
   if (!info?.title && !info?.notes) return <button className="dayinfo-add" onClick={open}>+ Tema e anotações do dia</button>;
   return (
-    <button className="dayinfo" onClick={open} title="Editar tema e anotações">
+    // div clicável (não <button>) porque as anotações podem ter links
+    <div className="dayinfo" role="button" tabIndex={0} onClick={open} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } }} title="Editar tema e anotações">
       {info.title && <span className="dayinfo-title">{info.title}</span>}
-      {info.notes && <span className="dayinfo-notes">{info.notes}</span>}
-    </button>
+      {info.notes && <span className="dayinfo-notes"><LinkText text={info.notes} /></span>}
+    </div>
   );
 }
 
@@ -213,12 +214,12 @@ export default function DayPanel({
                   )}
                   {a.kind === 'flight' && <FlightPath a={a} />}
                   {a.location && <div className="loc">{a.location}</div>}
-                  {a.details && <div className="det">{a.details}</div>}
-                  {a.notes && <div className="note">{a.notes}</div>}
+                  {a.details && <div className="det"><LinkText text={a.details} /></div>}
+                  {a.notes && <div className="note"><LinkText text={a.notes} /></div>}
                   {(a.rating || a.review) && (
                     <div className="review">
                       {a.rating ? <Stars value={a.rating} /> : null}
-                      {a.review && <span>{a.review}</span>}
+                      {a.review && <span><LinkText text={a.review} /></span>}
                     </div>
                   )}
                   {(parseLinks(a.links).length > 0 || hasCoords(a) || files.some((f) => f.activity_id === a.id && (f.kind || 'doc') === 'doc')) && (

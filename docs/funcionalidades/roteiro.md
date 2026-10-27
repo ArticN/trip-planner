@@ -108,6 +108,9 @@ Lugares que você quer conhecer mas ainda não sabe quando. Ficam na visão gera
 No cabeçalho de cada dia:
 
 - **+ Tema e anotações do dia**: um título ("Templos de Higashiyama") e anotações livres (plano B se chover…). Entram na busca.
+  Um endereço colado nas anotações (por exemplo um roteiro a pé do Google Maps) aparece como link curto,
+  "rota no Google Maps" ou o nome do site, em vez da URL inteira. O mesmo vale para detalhes, notas e avaliação
+  das atividades. Texto comprido sempre quebra linha dentro da caixa.
 - **Tempo**: máxima, mínima e chance de chuva (Open-Meteo, sem chave). Até 16 dias antes aparece a previsão; mais longe
   que isso, "Costuma fazer", a média da mesma época nos últimos 3 anos; dias que já passaram mostram "Fez".
 - **Sol nasce às… e se põe às…**, calculado no próprio app pelo primeiro ponto do dia (ou pela hospedagem). Só aparece
