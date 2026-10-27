@@ -39,7 +39,7 @@ export function flightCodes(a, airports) {
   let guessed = false;
   if (!a.via || !airports[from] || !airports[to]) {
     for (const t of [a.location, a.title]) {
-      const parts = String(t || '').split(/\s*(?:→|->|➝|✈)\s*/).filter(Boolean);
+      const parts = String(t || '').split(/\s*(?:→|->)\s*/).filter(Boolean);
       if (parts.length < 2) continue;
       const codes = parts.map((x) => codeOf(x, airports));
       if (!airports[from] && codes[0]) from = codes[0];
