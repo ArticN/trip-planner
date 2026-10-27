@@ -73,10 +73,10 @@ function bearing(a, b) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-function pinIcon(label, color, selected, kind) {
+function pinIcon(label, color, selected, kind, ghost = false) {
   return L.divIcon({
     className: 'pin-wrap',
-    html: `<div class="pin${selected ? ' sel' : ''}" style="--c:${color}" title="${esc(kind || '')}"><span>${label}</span></div>`,
+    html: `<div class="pin${selected ? ' sel' : ''}${ghost ? ' ghost' : ''}" style="--c:${color}" title="${esc(kind || '')}"><span>${label}</span></div>`,
     iconSize: [30, 30],
     iconAnchor: [15, 36],
     popupAnchor: [0, -38],
@@ -157,7 +157,7 @@ function drawLeg(group, l, accent) {
 }
 
 export default function MapView({
-  mode, items, stays, cities, stayByDay, selectedId, onSelect, onEdit, editPositions, onMove,
+  mode, items, alts = [], onAltPick, stays, cities, stayByDay, selectedId, onSelect, onEdit, editPositions, onMove,
   picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
 }) {
   const elRef = useRef(null);
@@ -165,7 +165,7 @@ export default function MapView({
   const layerRef = useRef(null);
   const markersRef = useRef(new Map());
   const cb = useRef({});
-  cb.current = { onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground };
+  cb.current = { onAltPick, onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground };
   const lastFit = useRef(null);
   const declutterRef = useRef(null);
   const drawGen = useRef(0);
@@ -260,6 +260,16 @@ export default function MapView({
         m.addTo(group);
         markersRef.current.set(a.id, m);
         bounds.push([a.lat, a.lng]);
+      });
+      // as outras opções do mesmo horário: pino apagado com o mesmo número; clicar mostra essa opção
+      alts.forEach((x) => {
+        const m = L.marker([x.lat, x.lng], {
+          icon: pinIcon(labelNumbers ? esc(x.n) : iconSvg(KINDS[x.kind] ? x.kind : 'sight', 15, 2.2), (KINDS[x.kind] || KINDS.sight).color, false, KINDS[x.kind]?.label, true),
+          zIndexOffset: -500,
+        }).bindTooltip(`Opção ${x.at} de ${x.of} · ${esc(x.title)}`, { direction: 'top', offset: [0, -30] });
+        m.on('click', () => cb.current.onAltPick?.(x.id));
+        m.addTo(group);
+        bounds.push([x.lat, x.lng]);
       });
       // hospedagem do dia
       const st = showStays && stayByDay ? stayByDay : null;
@@ -387,7 +397,7 @@ export default function MapView({
       lastFit.current = key;
     }
 
-  }, [mode, items, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look]);
+  }, [mode, items, alts, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look]);
 
   useEffect(() => {
     if (flyTarget && mapRef.current) {

@@ -1,4 +1,4 @@
-import { actTz, endDayOf, hasCoords, zonedMs } from './util.js';
+import { actTz, endDayOf, hasCoords, zonedMs, principals } from './util.js';
 
 // calendário .ics do roteiro: usado no "Exportar para agenda" (navegador) e na agenda assinada (servidor).
 // alarm / flightAlarm: minutos de antecedência do lembrete (0 = sem lembrete)
@@ -12,7 +12,8 @@ export function buildIcs(trip, activities, cityMap, { alarm = 0, flightAlarm = 0
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Trip Planner//PT-BR', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${esc(trip.name)}`];
   if (feed) lines.push('METHOD:PUBLISH', 'REFRESH-INTERVAL;VALUE=DURATION:PT6H', 'X-PUBLISHED-TTL:PT6H');
   const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-  activities.forEach((a) => {
+  // das opções no mesmo horário, só a principal vai para a agenda
+  principals(activities).forEach((a) => {
     const desc = [a.details, a.notes, ...parseLinks(a.links).map((l) => l.url)].filter(Boolean).join('\n');
     const loc = [a.location, cityMap[a.city]?.name].filter(Boolean).join(', ');
     lines.push('BEGIN:VEVENT', `UID:tp-${trip.id}-${a.id}@trip-planner`, `DTSTAMP:${stamp}`);

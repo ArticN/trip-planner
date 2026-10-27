@@ -7,7 +7,7 @@ import { parseLinks, linkLabel } from './Extras.jsx';
 import { KINDS, hasCoords, duration, fmtDuration, fmtDayLong, endDayOf, directionsUrl } from './util.js';
 
 // painel de detalhes da atividade escolhida no mapa (substitui o balão pequeno do pin)
-export default function PinPanel({ a, n, cityMap, fx, tripTz, onEdit, onToggleDone, onClose, files = [] }) {
+export default function PinPanel({ a, n, group = null, onAltStep, cityMap, fx, tripTz, onEdit, onToggleDone, onClose, files = [] }) {
   const k = KINDS[a.kind] || KINDS.sight;
   const city = cityMap[a.city];
   const dur = duration(a, tripTz);
@@ -25,6 +25,14 @@ export default function PinPanel({ a, n, cityMap, fx, tripTz, onEdit, onToggleDo
         <div className="pp-kind" style={{ color: k.color }}><Icon name={a.kind in KINDS ? a.kind : 'sight'} /> {k.label}{n ? ` · #${n}` : ''}{city ? ` · ${city.name}` : ''}</div>
         <button className="icon-btn sm" onClick={onClose} title="Fechar" aria-label="Fechar"><Icon name="x" size={14} /></button>
       </div>
+      {group?.alts && onAltStep && (
+        <div className="pp-alts">
+          <button className="alt-arrow" onClick={() => onAltStep(group, -1)} aria-label="Opção anterior" title="Opção anterior">‹</button>
+          <span className="alt-dots" aria-hidden="true">{group.alts.map((x, i) => <i key={x.id} className={i === group.altIndex ? 'on' : ''} />)}</span>
+          <span className="alt-count" aria-live="polite">Opção {group.altIndex + 1} de {group.alts.length}{group.altIndex === 0 ? ' · principal' : ''}</span>
+          <button className="alt-arrow" onClick={() => onAltStep(group, 1)} aria-label="Próxima opção" title="Próxima opção">›</button>
+        </div>
+      )}
       <h3 className="pp-title">{a.title}</h3>
       <div className="pp-when">{when}</div>
       {a.location && <div className="pp-loc">{a.location}</div>}

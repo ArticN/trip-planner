@@ -61,6 +61,7 @@ scripts/           setup.sh e sync-to-shared.sh
 - **Notas e links** em cada atividade (código de reserva, ingresso, comprovante no Drive). Arquivos não são enviados ao app: guarde o link.
 - **Hospedagens completas**: horário de check-in/out, nº da reserva, preço (entra no orçamento) e link; aparecem no cabeçalho do dia.
 - **Trechos com fuso** (voo, trem): códigos de saída e chegada, nº do voo, dia e fuso de cada ponta. A duração e o `.ics` usam os fusos. O fuso do destino fica em "Editar viagem".
+- **Opções no mesmo horário**: um horário pode guardar 2 ou mais opções (ex.: três cafés da manhã) num carrossel com setas; o mapa mostra a opção escolhida e as outras apagadas. A principal (primeira) é a que conta no orçamento, na agenda e no PDF. No banco/backup, as opções de um horário compartilham o campo `alt` (mesmo texto, mesmo dia).
 - **Ideias**: lista de lugares sem dia na visão geral (anel tracejado no mapa); "Agendar…" manda para um dia e "Mover para ideias" faz o caminho inverso.
 - **Adição rápida**: "Buscar lugar para adicionar" e "+ No mapa" abrem o cadastro já com nome, endereço, posição e cidade mais próxima (atividade no dia aberto, ideia na visão geral).
 - **Modo hoje**: durante a viagem o app abre no dia atual (no fuso do destino), destaca a atividade de agora ou a próxima e mostra "Como chegar" (Google Maps).

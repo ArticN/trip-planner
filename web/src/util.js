@@ -232,3 +232,48 @@ export function orderBySlots(list) {
   });
   return out.sort((x, y) => SLOT_RANK[x.slotKey] - SLOT_RANK[y.slotKey]);
 }
+
+// ── opções no mesmo horário (carrossel): atividades do mesmo dia com a mesma chave `alt`.
+// A primeira na ordem do dia é a principal: é ela que conta no orçamento, na agenda, nos lembretes e no PDF.
+const bySort = (x, y) => (x.sort ?? 0) - (y.sort ?? 0) || x.id - y.id;
+export const newAltKey = () => `o${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+// chave → opções em ordem (só grupos com 2 ou mais)
+export function altGroups(list) {
+  const m = new Map();
+  list.filter((a) => a.alt).slice().sort(bySort).forEach((a) => {
+    const k = `${a.day}|${a.alt}`;
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(a);
+  });
+  for (const [k, g] of m) if (g.length < 2) m.delete(k);
+  return m;
+}
+export const altKey = (a) => `${a.day}|${a.alt}`;
+
+// tira as opções que não são a principal
+export function principals(list) {
+  const extra = new Set();
+  altGroups(list).forEach((g) => g.slice(1).forEach((a) => extra.add(a.id)));
+  return extra.size ? list.filter((a) => !extra.has(a.id)) : list;
+}
+
+// o dia (já ordenado) com cada grupo virando um item só, no lugar da primeira opção:
+// mostra a opção escolhida em `view` (chave → id) e leva `alts` (todas) e `altIndex`
+export function collapseAlts(list, view = {}) {
+  const groups = altGroups(list);
+  if (!groups.size) return list;
+  const done = new Set();
+  const out = [];
+  list.forEach((a) => {
+    const g = a.alt && groups.get(altKey(a));
+    if (!g) { out.push(a); return; }
+    const k = altKey(a);
+    if (done.has(k)) return;
+    done.add(k);
+    const i = Math.max(0, g.findIndex((x) => x.id === view[k]));
+    const shown = list.find((x) => x.id === g[i].id);
+    out.push({ ...shown, slotKey: a.slotKey, alts: g, altIndex: i });
+  });
+  return out;
+}

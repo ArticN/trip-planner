@@ -204,14 +204,14 @@ function TzInput({ value, onChange, placeholder }) {
   );
 }
 
-export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap, files = [], onAddFile, onRemoveFile }) {
+export function EditModal({ draft, isNew, isIdea, altInfo = null, onSplitAlt, onToIdeas, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap, files = [], onAddFile, onRemoveFile }) {
   const set = (patch) => onChange({ ...draft, ...patch });
   const num = (v) => (v === '' || v == null ? null : Number(v));
   const valid = draft.title?.trim() && (isIdea || draft.day);
 
   return (
     <Modal
-      title={isIdea ? (isNew ? 'Nova ideia' : 'Editar ideia') : isNew ? 'Nova atividade' : 'Editar atividade'}
+      title={isIdea ? (isNew ? 'Nova ideia' : 'Editar ideia') : isNew ? (altInfo ? 'Nova opção para este horário' : 'Nova atividade') : 'Editar atividade'}
       onClose={onClose}
       footer={
         <>
@@ -224,6 +224,12 @@ export function EditModal({ draft, isNew, isIdea, onToIdeas, cities, days, fxCur
       }
     >
       <div className="form">
+        {altInfo && (
+          <div className="full alt-note">
+            <span>Opção {altInfo.index} de {altInfo.count} neste horário{altInfo.index === 1 && !isNew ? ' · principal' : ''}</span>
+            {!isNew && <button type="button" className="mini" onClick={onSplitAlt} title="Vira uma atividade separada, fora do carrossel">Separar das outras opções</button>}
+          </div>
+        )}
         <label className="full">Título
           <input autoFocus value={draft.title || ''} onChange={(e) => set({ title: e.target.value })} placeholder="Ex: Museu do Louvre" />
         </label>
