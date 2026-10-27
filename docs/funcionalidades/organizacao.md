@@ -4,6 +4,8 @@
 
 ## Checklist
 
+<p align="center"><img src="../screens/checklist.png" alt="Checklist com itens agrupados e contador de feitos" width="420"></p>
+
 **Checklist** no topo (ou no ⋯). Escreva o item, escolha o grupo (**Documentos**, **Reservas**, **Mala**, **Outros**, ou
 os grupos que vierem de um backup) e clique em **Adicionar**. Cada grupo mostra quantos itens estão feitos, e o rodapé o
 total. O progresso aparece no botão do pé da visão geral e no cartão da viagem em destaque, na tela inicial.

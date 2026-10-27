@@ -7,6 +7,8 @@ quando as duas são diferentes.
 
 ## Orçamento
 
+<p align="center"><img src="../screens/orcamento.png" alt="Janela Orçamento, com total previsto, gasto real e divisão por item, cidade e dia" width="600"></p>
+
 **Orçamento** no topo (ou no ⋯, no celular). Soma o **custo previsto** das atividades e o **preço total** das
 hospedagens, e mostra:
 

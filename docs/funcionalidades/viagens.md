@@ -34,6 +34,8 @@ Uma instalação guarda quantas viagens você quiser. Cada uma tem as próprias 
 
 ## Cidades e locais
 
+<p align="center"><img src="../screens/cidades.png" alt="Janela Cidades e locais, com emoji, cor e coordenadas de cada cidade" width="600"></p>
+
 Menu **⋯ › Cidades e locais** (ou "Cidades" no pé da visão geral).
 
 As cidades agrupam as atividades, dão cor aos dias (na barra de dias, no calendário e no diagrama de metrô) e aparecem
@@ -50,6 +52,8 @@ no mapa da visão geral.
 > ela. Renomear a cidade não muda a chave, então nada se perde.
 
 ## Hospedagens
+
+<p align="center"><img src="../screens/hospedagens.png" alt="Janela Hospedagens, com cartão da hospedagem de Tóquio" width="600"></p>
 
 **Hospedagens** no topo (ou no ⋯, no celular).
 
