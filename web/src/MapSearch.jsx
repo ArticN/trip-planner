@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
+import { OSM_LANG, osmName } from './osmName.js';
 
 // busca de lugares sobre o mapa (OpenStreetMap Nominatim); escolher um resultado abre o cadastro já preenchido
 export function MapSearch({ onPick }) {
@@ -13,7 +14,7 @@ export function MapSearch({ onPick }) {
     if (!q.trim()) return;
     setBusy(true); setErr(''); setRes(null);
     try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=pt-BR&q=${encodeURIComponent(q)}`);
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&${OSM_LANG}&q=${encodeURIComponent(q)}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setRes(await r.json());
     } catch (e) {
@@ -34,14 +35,17 @@ export function MapSearch({ onPick }) {
       {res && (
         <ul className="ms-pop">
           {res.length === 0 && <li className="muted small">Nada encontrado. Inclua a cidade no nome.</li>}
-          {res.map((r) => (
-            <li key={r.place_id}>
-              <button onClick={() => { const parts = r.display_name.split(','); onPick(parseFloat(r.lat), parseFloat(r.lon), r.name || parts[0], parts.slice(1, 3).join(',').trim()); close(); setQ(''); }}>
-                <b>{r.name || r.display_name.split(',')[0]}</b>
-                <span>{r.display_name}</span>
-              </button>
-            </li>
-          ))}
+          {res.map((r) => {
+            const { title, local } = osmName(r);
+            return (
+              <li key={r.place_id}>
+                <button onClick={() => { const parts = r.display_name.split(','); onPick(parseFloat(r.lat), parseFloat(r.lon), title, parts.slice(1, 3).join(',').trim()); close(); setQ(''); }}>
+                  <b>{title}{local && <small> {local}</small>}</b>
+                  <span>{r.display_name}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
