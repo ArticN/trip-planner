@@ -34,7 +34,7 @@ Num grupo de [opções](roteiro.md#opções-no-mesmo-horário), o painel também
 
 Três caminhos, todos abrem o editor já preenchido para você conferir e salvar:
 
-1. **Buscar lugar para adicionar**: digite o nome (inclua a cidade se não achar).
+1. **Buscar lugar para adicionar**: digite o nome (inclua a cidade se não achar). Fora do Brasil, o resultado mostra o nome em português ou inglês e, ao lado, o nome local (kanji, por exemplo); o título da atividade usa o nome legível. A busca é literal: no Japão, escreva em romaji ("Shirakawa-go Ogimachi") ou em japonês.
 2. **+ No mapa** e clique no lugar.
 3. **Perto daqui** e escolha um resultado.
 

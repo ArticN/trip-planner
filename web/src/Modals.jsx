@@ -1,3 +1,4 @@
+import { OSM_LANG, osmName } from './osmName.js';
 import { Star } from './Stars.jsx';
 import { useEffect, useState } from 'react';
 import { parseLinks, linkLabel } from './Extras.jsx';
@@ -37,7 +38,7 @@ function GeocodeBox({ initial, onPick, placeholder }) {
     if (!q.trim()) return;
     setBusy(true); setErr(''); setRes(null);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=pt-BR&q=${encodeURIComponent(q)}`;
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&${OSM_LANG}&q=${encodeURIComponent(q)}`;
       const r = await fetch(url);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setRes(await r.json());
@@ -56,12 +57,15 @@ function GeocodeBox({ initial, onPick, placeholder }) {
       {res && res.length === 0 && <div className="muted small pad">Nada encontrado. Tente outro nome, inclua a cidade ou escreva em inglês.</div>}
       {res && res.length > 0 && (
         <ul className="geo-res">
-          {res.map((r) => (
-            <li key={r.place_id} onClick={() => { onPick(parseFloat(r.lat), parseFloat(r.lon), r.display_name); setRes(null); }}>
-              <b>{r.name || r.display_name.split(',')[0]}</b>
-              <span>{r.display_name}</span>
-            </li>
-          ))}
+          {res.map((r) => {
+            const { title, local } = osmName(r);
+            return (
+              <li key={r.place_id} onClick={() => { onPick(parseFloat(r.lat), parseFloat(r.lon), r.display_name); setRes(null); }}>
+                <b>{title}{local && <small> {local}</small>}</b>
+                <span>{r.display_name}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -80,7 +84,7 @@ function StationInput({ label, value, onChange }) {
     if (!q) return;
     setBusy(true); setErr(''); setRes(null);
     try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=pt-BR&q=${encodeURIComponent(/station|esta|駅/i.test(q) ? q : `${q} station`)}`);
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&${OSM_LANG}&q=${encodeURIComponent(/station|esta|駅/i.test(q) ? q : `${q} station`)}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setRes(await r.json());
     } catch (e) { setErr(`Não consegui buscar (${e.message}). Digite lat/lng abaixo.`); } finally { setBusy(false); }
@@ -96,12 +100,15 @@ function StationInput({ label, value, onChange }) {
       {res && res.length === 0 && <div className="muted small pad">Nada encontrado. Tente o nome em inglês, com a cidade.</div>}
       {res && res.length > 0 && (
         <ul className="geo-res">
-          {res.map((r) => (
-            <li key={r.place_id} onClick={() => { onChange({ ...v, name: v.name || r.name, lat: +parseFloat(r.lat).toFixed(5), lng: +parseFloat(r.lon).toFixed(5) }); setRes(null); }}>
-              <b>{r.name || r.display_name.split(',')[0]}</b>
-              <span>{r.display_name}</span>
-            </li>
-          ))}
+          {res.map((r) => {
+            const { title, local } = osmName(r);
+            return (
+              <li key={r.place_id} onClick={() => { onChange({ ...v, name: v.name || title, lat: +parseFloat(r.lat).toFixed(5), lng: +parseFloat(r.lon).toFixed(5) }); setRes(null); }}>
+                <b>{title}{local && <small> {local}</small>}</b>
+                <span>{r.display_name}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
       <details className="coords">

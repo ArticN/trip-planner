@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { OSM_LANG, osmName } from './osmName.js';
 import { api } from './api.js';
 import MapView from './MapView.jsx';
 import { setTripAccent } from './theme.js';
@@ -389,10 +390,10 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     setQuickAdd(false);
     let name = ''; let address = '';
     try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=pt-BR&lat=${lat}&lon=${lng}`);
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&${OSM_LANG}&lat=${lat}&lon=${lng}`);
       if (r.ok) {
         const j = await r.json();
-        name = j.name || '';
+        name = j.name ? osmName(j).title : '';
         address = (j.display_name || '').split(',').slice(name ? 1 : 0, name ? 3 : 2).join(',').trim();
       }
     } catch { /* sem rede: abre só com a posição */ }

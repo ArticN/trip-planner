@@ -16,6 +16,15 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.32',
+    date: '2026-10-30',
+    title: 'Busca de lugares em romaji',
+    items: [
+      'Na busca de lugares e de estações, o resultado mostra o nome em português ou inglês (ou em romaji, quando o OpenStreetMap tem) e o nome local em japonês, chinês etc. ao lado. Ex.: "Shirakawa-go 白川郷".',
+      'Ao adicionar o lugar no roteiro, o título entra no nome legível, não em kanji.',
+    ],
+  },
+  {
     version: '1.31',
     date: '2026-10-27',
     title: 'Login mais protegido',
