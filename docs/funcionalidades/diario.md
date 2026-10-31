@@ -31,10 +31,11 @@ Toque em **Editar** (vira **Pronto** quando terminar; tudo salva sozinho). Cada 
   - **Filme**: uma tira de negativo que rola para o lado.
 - **Bloco de texto**, em três estilos: **Nota** (letra de mão em papel pautado), **Título** (grande, centralizado) e
   **Citação** (itálico, com uma barra vermelha).
+- **Bloco de vídeo** do YouTube, **Horizontal** ou **Vertical** (Shorts). Ver [Vídeos](#vídeos).
 
 No modo Editar:
 
-- **+ Fotos** e **+ Texto** entre os blocos e no fim da página inserem um bloco ali.
+- **+ Fotos**, **+ Texto** e **+ Vídeo** entre os blocos e no fim da página inserem um bloco ali.
 - Em cada bloco: trocar o layout ou o estilo, **+ fotos** (no bloco de fotos), subir ↑, descer ↓ e apagar ×. Apagar um
   bloco de fotos apaga as fotos dele.
 - Em cada foto, ‹ e › mudam a ordem dentro do bloco.
@@ -49,8 +50,43 @@ aparecem.
 ## Ver as fotos
 
 - Toque numa foto para abrir grande. Passe para os lados com as setas, ← → no teclado ou deslizando o dedo. Esc fecha.
-- Ali dá para escrever a **legenda**, **mover a foto para outra página**, **baixar** e **excluir**.
+- Ali dá para escrever a **legenda**, ver a **ficha (ⓘ Info)**, **mover a foto para outra página**, **baixar** e **excluir**.
 - A aba **Fotos**, no topo, mostra todas as fotos em ordem, agrupadas por dia, como o rolo da câmera.
+
+## O que o app lê de cada foto
+
+Ao enviar, o app lê os metadados (EXIF) que a câmera grava na foto original: **quando** foi tirada, **onde** (GPS) e
+**com o quê** (câmera, lente, abertura, velocidade, ISO e distância focal). A foto reduzida que vai para o álbum sai sem
+EXIF; o app guarda à parte só esses dados.
+
+- **Foto ligada à atividade**: com GPS, a foto é ligada à atividade do roteiro daquele dia que fica a até 600 m,
+  preferindo a que estava no horário. Sem GPS, só quando uma única atividade cabe no horário (ou a do horário não tem
+  local). Dá para trocar ou tirar no **ⓘ Info** da foto.
+- **Legenda automática**: sem legenda escrita, a foto mostra o nome da atividade (ou a cidade mais perto) e a hora,
+  como "Shinjuku Gyoen · 11:15". Escrever uma legenda substitui a automática.
+- **Ficha da foto (ⓘ Info)**: onde (coordenadas, altitude e "ver no mapa"), a atividade, quando, câmera, lente,
+  exposição e o tamanho original. A escolha de mostrar ou esconder a ficha fica salva.
+- **No mapa**: as fotos com GPS aparecem como miniaturas no [mapa](mapa.md#fotos-do-diário). No mapa do dia, uma linha
+  tracejada liga as fotos na ordem do horário: o caminho que você fez de verdade. Tocar na miniatura abre a foto.
+- **Na atividade**: o painel do pino no mapa mostra as fotos ligadas àquela atividade.
+- **Fotos sem local**: a aba Fotos avisa quantas fotos vieram sem GPS e as fotos com local ganham um pontinho. No
+  Galaxy, ligue **Câmera › Configurações › Marcas de localização**. Fotos que passaram pelo WhatsApp ou foram editadas
+  em alguns apps perdem esses dados.
+
+## Vídeos
+
+Os vídeos ficam **no YouTube**, não no app: lá eles mantêm a resolução original (até 4K), o espaço não tem limite e o
+banco do app não enche. Um minuto de vídeo 4K do celular tem uns 300 a 400 MB, e o servidor do app só aceita 4,5 MB por
+envio.
+
+1. Suba o vídeo pelo app do YouTube como **Não listado** (só quem tem o link vê).
+2. Toque em **Compartilhar › Copiar link**.
+3. No álbum, em **Editar**, toque em **+ Vídeo** e cole o link. Links de Shorts já entram como **Vertical**.
+
+O álbum mostra a capa com ▶ e só carrega o player ao tocar (o YouTube no modo de privacidade reforçada, sem cookies até
+dar play). O bloco tem legenda opcional, **Trocar vídeo** e **abrir no YouTube**. Funciona no link de visitante e vai no
+backup (só o código do vídeo). Limites: precisa de internet para tocar, e o vídeo não entra no mapa nem é ligado a uma
+atividade (o YouTube não informa onde nem quando foi gravado).
 
 ## O visual
 
@@ -62,7 +98,7 @@ primeiras fotos em polaroides, o carimbo 旅 ("viagem") e quantas fotos, página
 
 No **⋯ › Compartilhar roteiro**, ligue **Mostrar o diário de viagem no link**. Quem tem o link ganha o botão **Diário**
 e vê o álbum como você vê fora do modo Editar, pode abrir e baixar as fotos, e não muda nada. Desligar a opção esconde o
-álbum e bloqueia as fotos na hora. Ver [Compartilhar e backup](compartilhar-e-backup.md#link-só-de-leitura).
+álbum e bloqueia as fotos na hora. Quem vê o álbum pelo link também vê a ficha das fotos, com o local onde cada uma foi tirada. Ver [Compartilhar e backup](compartilhar-e-backup.md#link-só-de-leitura).
 
 ## Como as fotos são guardadas
 
@@ -83,7 +119,7 @@ sinal. A foto grande só fica guardada depois de aberta uma vez. Enviar fotos e 
 
 ## Limitações
 
-- As fotos **não vão no backup JSON**. Os títulos das páginas e os blocos de texto vão (campo `pages`, ver
+- As fotos **não vão no backup JSON**. Os títulos das páginas, os blocos de texto e os de vídeo vão (campo `pages`, ver
   [formato do JSON](compartilhar-e-backup.md#formato-do-json)).
 - Duplicar a viagem não copia o diário.
 - Para mudar a ordem das fotos, use ‹ ›; ainda não dá para arrastar.

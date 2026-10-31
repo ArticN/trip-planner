@@ -160,13 +160,15 @@ function drawLeg(group, l, accent) {
 export default function MapView({
   mode, items, alts = [], onAltPick, stays, cities, stayByDay, checkout = null, selectedId, onSelect, onEdit, editPositions, onMove,
   picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
+  photos = [], photoThumb, onPhoto,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const markersRef = useRef(new Map());
   const cb = useRef({});
-  cb.current = { onAltPick, onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground };
+  cb.current = { onAltPick, onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground, onPhoto };
+  const photoLayer = useRef(null);
   const lastFit = useRef(null);
   // atividades do dia fora da área da viagem (ex.: voo saindo de Guarulhos): não entram no mapa, só num aviso
   const [far, setFar] = useState([]);
@@ -220,6 +222,7 @@ export default function MapView({
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
+    photoLayer.current = L.layerGroup().addTo(map); // fotos do diário: camada à parte, não redesenha com o roteiro
     map.on('click', (e) => { if (cb.current.picking) cb.current.onPick?.(e.latlng.lat, e.latlng.lng); else cb.current.onBackground?.(); });
     mapRef.current = map;
     if (centerRef) centerRef.current = () => { const c = map.getCenter(); return { lat: c.lat, lng: c.lng, zoom: map.getZoom() }; };
@@ -451,6 +454,30 @@ export default function MapView({
     const farKey = farNow.map((a) => a.id).join('|');
     setFar((cur) => (cur.map((a) => a.id).join('|') === farKey ? cur : farNow));
   }, [mode, items, alts, stays, cities, stayByDay, checkout, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look, flights]);
+
+  // ── fotos do diário com GPS: uma miniatura onde cada foto foi tirada e, no dia, o caminho feito na ordem do horário
+  const photoKey = photos.map((p) => `${p.id}:${p.lat},${p.lng}:${p.label || ""}`).join('|');
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const g = photoLayer.current;
+    g.clearLayers();
+    if (!photos.length) return;
+    const list = [...photos].sort((a, b) => (a.taken_at || '').localeCompare(b.taken_at || ''));
+    if (mode === 'day' && list.length > 1) {
+      L.polyline(list.map((p) => [p.lat, p.lng]), { color: '#c2410c', weight: 3, opacity: 0.75, dashArray: '2 8', lineCap: 'round', interactive: false }).addTo(g);
+    }
+    list.forEach((p) => {
+      const icon = L.divIcon({ className: 'ph-pin-wrap', html: `<div class="ph-pin"><img src="${photoThumb(p.id)}" alt="" loading="lazy"></div>`, iconSize: [38, 38], iconAnchor: [19, 19] });
+      const time = (p.taken_at || '').slice(11, 16);
+      const day = mode === 'day' ? '' : `dia ${p.day || '?'} · `;
+      const cap = esc(p.label || '');
+      L.marker([p.lat, p.lng], { icon, zIndexOffset: 500, keyboard: false })
+        .bindTooltip(`${cap ? `<b>${cap}</b><br>` : ''}${day}${time}`, { direction: 'top', offset: [0, -18] })
+        .on('click', () => cb.current.onPhoto?.(p))
+        .addTo(g);
+    });
+  }, [photoKey, mode]);
 
   useEffect(() => {
     const mb = mapRef.current?.options.maxBounds;
