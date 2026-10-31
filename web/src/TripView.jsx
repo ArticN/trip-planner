@@ -145,6 +145,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     return stays.find((s) => s.check_in <= day && day < s.check_out) || stays.find((s) => s.check_out === day) || null;
   }, [data]);
 
+  // hospedagem que faz check-out no dia escolhido (dia de troca de cidade)
+  const checkoutStay = sel === 'trip' ? null : (data?.stays || []).find((s) => s.check_out === sel && s !== stayFor(sel)) || null;
+
   const mapItems = useMemo(() => {
     const show = (a) => kinds.has(a.kind) && passDone(a, doneFilter);
     if (sel === 'trip') return acts.filter(show);
@@ -643,7 +646,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
               />
             ) : (
               <DayPanel
-                day={sel} dayIndex={dayIndex} items={dayItems} cityMap={cityMap} stay={stayFor(sel)} checkout={sel === 'trip' ? null : (data.stays || []).find((s) => s.check_out === sel && s !== stayFor(sel)) || null}
+                day={sel} dayIndex={dayIndex} items={dayItems} cityMap={cityMap} stay={stayFor(sel)} checkout={checkoutStay}
                 conflicts={dayConflicts} selectedId={selectedId} onSelect={selectFromList} onEdit={openEdit}
                 onToggleDone={toggleDone} onAdd={openNew} onMoveSlot={moveSlot} onReorder={reorder} onSortTime={sortTime}
                 onAltStep={stepAlt} onAltAdd={addAlt} onAltMain={makePrincipal}
@@ -665,6 +668,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             stays={data.stays}
             cities={data.cities}
             stayByDay={sel === 'trip' ? null : stayFor(sel)}
+            checkout={checkoutStay}
             selectedId={selectedId}
             onSelect={(id) => { setSelectedId(id); if (isMobile && id) sheet.setDetent('peek'); }}
             padBottom={isMobile && sheet.detent !== 'full' ? heightOf(sheet.detent, window.innerHeight - 56) : 0}

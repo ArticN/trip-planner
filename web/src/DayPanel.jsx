@@ -5,7 +5,7 @@ import { api } from './api.js';
 import { Icon } from './icons.jsx';
 import WeatherLine from './WeatherLine.jsx';
 import FlightPath from './FlightPath.jsx';
-import { travelTime, slack, gmapsDirections, parseRoute, rideColor, rideLabel, inkOn } from './travel.js';
+import { travelTime, slack, gmapsDirections, parseRoute, rideColor, rideLabel, inkOn, dayStart, isStraightTravel } from './travel.js';
 import {
   KINDS, KIND_KEYS, SLOTS, hasCoords, duration, fmtDuration, haversine, fmtKm, fmtDayLong, daysBetween, endDayOf, toMin, directionsUrl, sunTimes, DONE_FILTERS, passDone, nowIn,
 } from './util.js';
@@ -36,14 +36,15 @@ const PX_PER_MIN = 0.5;
 function Gap({ a, b, fromStay = false }) {
   const [t, setT] = useState(null);
   const ok = hasCoords(a) && hasCoords(b) && haversine(a, b) >= 0.05;
-  const isMove = ['move', 'flight'].includes(a.kind) || ['move', 'flight'].includes(b.kind);
+  const isMove = isStraightTravel(a, b);
   useEffect(() => {
     let live = true;
     if (ok && !isMove) travelTime(a, b).then((v) => live && setT(v)).catch(() => {});
     return () => { live = false; };
   }, [a.lat, a.lng, b.lat, b.lng, b.transport, b.route, ok, isMove]);
   const free = slack(a, b);
-  const move = ok && !isMove && t ? t.min : 0;
+  // antes de um trecho de viagem com estações, o trem é a própria atividade: só conta a caminhada até a estação
+  const move = ok && !isMove && t ? (b.kind === 'move' ? t.legs.filter((l) => l.mode !== 'ride').reduce((n, l) => n + l.min, 0) : t.min) : 0;
   const rest = free != null ? free - move : null;
   if (!ok && !(rest >= 30)) return null;
   const tight = !!move && free != null && free < move;
@@ -174,7 +175,7 @@ export default function DayPanel({
           return (
             <li key={a.id}>
               {prev && visible.includes(prev) && prev.kind !== 'flight' && a.kind !== 'flight' && <Gap a={prev} b={a} />}
-              {!prev && hasCoords(stay) && parseRoute(a) && <Gap a={stay} b={a} fromStay />}
+              {!prev && dayStart([checkout, stay], a) && <Gap a={dayStart([checkout, stay], a).at} b={a} fromStay={dayStart([checkout, stay], a).stay} />}
               <div
                 className={cls}
                 draggable={a.kind !== 'flight'}

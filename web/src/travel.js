@@ -45,6 +45,26 @@ export const rideKm = (r) => { let k = 0; const p = [r.from, ...r.stops, r.to]; 
 export const rideMin = (r) => r.min || Math.round(3 + (rideKm(r) * 1.15 / RIDE_MODES[r.mode].kmh) * 60);
 export const rideLabel = (r) => [r.code, r.line].filter(Boolean).join(' ') || RIDE_MODES[r.mode].label;
 
+// hospedagem de onde o dia sai: a do check-out (dia de troca de cidade) vem antes da do dia.
+// Só quando a primeira atividade tem estações e a primeira estação fica perto dela (a pé);
+// assim a chegada do aeroporto não parte de um hotel onde ainda não se chegou
+export function dayHome(stays, first) {
+  const r = first && parseRoute(first);
+  if (!r) return null;
+  return stays.find((s) => s && isNum(s.lat) && isNum(s.lng) && haversine(s, r.rides[0].from) <= 5) || null;
+}
+
+// ponto de partida do dia: a hospedagem, ou (chegada do aeroporto, hotel sem endereço) a primeira estação
+export function dayStart(stays, first) {
+  const home = dayHome(stays, first);
+  if (home) return { at: home, stay: true };
+  const r = first && parseRoute(first);
+  return r ? { at: r.rides[0].from, stay: false } : null;
+}
+
+// deslocamento desenhado como linha reta: voo, ou trecho de viagem sem as estações cadastradas
+export const isStraightTravel = (a, b) => a.kind === 'flight' || b.kind === 'flight' || (b.kind === 'move' && !parseRoute(b));
+
 export function travelMode(a, b) {
   if (parseRoute(b)) return 'route';
   const t = (b.transport || '').toLowerCase();

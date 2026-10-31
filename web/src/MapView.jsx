@@ -5,7 +5,7 @@ import { KINDS, esc, hasCoords, haversine, fmtKm, fmtDuration } from './util.js'
 import { translatedBasemap, osmLayer } from './basemap.js';
 import { accentColor } from './theme.js';
 import { Icon, iconSvg } from './icons.jsx';
-import { travelLegs, parseRoute, rideColor, rideLabel } from './travel.js';
+import { travelLegs, parseRoute, rideColor, rideLabel, dayStart, isStraightTravel } from './travel.js';
 import { loadAirports, flightRoute } from './flights.js';
 
 const WORLD_CENTER = [20, 0];
@@ -158,7 +158,7 @@ function drawLeg(group, l, accent) {
 }
 
 export default function MapView({
-  mode, items, alts = [], onAltPick, stays, cities, stayByDay, selectedId, onSelect, onEdit, editPositions, onMove,
+  mode, items, alts = [], onAltPick, stays, cities, stayByDay, checkout = null, selectedId, onSelect, onEdit, editPositions, onMove,
   picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
 }) {
   const elRef = useRef(null);
@@ -327,14 +327,14 @@ export default function MapView({
         bounds.push([st.lat, st.lng]);
       }
       // trajeto: primeiro a linha reta e, assim que chega, o caminho pelas ruas e as linhas de trem/metrô.
-      // a primeira atividade com estações parte da hospedagem do dia
+      // a primeira atividade com estações parte da hospedagem (a do check-out, em dia de troca de cidade)
       const gen = ++drawGen.current;
-      const home = stayByDay && hasCoords(stayByDay) && pts[0] && parseRoute(pts[0]) ? stayByDay : null;
+      const home = dayStart([checkout, stayByDay], pts[0])?.at;
       const chain = home ? [home, ...pts] : pts;
       for (let i = 0; i < chain.length - 1; i++) {
         const p = chain[i];
         const q = chain[i + 1];
-        const isTransit = p.kind === 'move' || q.kind === 'move' || p.kind === 'flight' || q.kind === 'flight';
+        const isTransit = isStraightTravel(p, q);
         const km = haversine(p, q);
         if (km < 0.03) continue;
         if (isTransit) {
@@ -450,7 +450,7 @@ export default function MapView({
 
     const farKey = farNow.map((a) => a.id).join('|');
     setFar((cur) => (cur.map((a) => a.id).join('|') === farKey ? cur : farNow));
-  }, [mode, items, alts, stays, cities, stayByDay, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look, flights]);
+  }, [mode, items, alts, stays, cities, stayByDay, checkout, selectedId, editPositions, showStays, fitKey, labelNumbers, ideas, look, flights]);
 
   useEffect(() => {
     const mb = mapRef.current?.options.maxBounds;
