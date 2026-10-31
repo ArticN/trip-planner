@@ -16,6 +16,17 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.37',
+    date: '2026-10-31',
+    title: 'Análise com gráficos',
+    items: [
+      'A Análise trocou listas e tabelas por gráficos, com mais espaço entre as seções. As tabelas continuam em “Ver em tabela”.',
+      'Por dia: dia mais caro, mais barato e média, colunas com a linha da média e a faixa das cidades embaixo.',
+      'Por cidade em barras na mesma escala; hospedagens numa linha do tempo; comida com a faixa entre a opção mais barata e a mais cara e um mapa de calor das refeições dia a dia.',
+      'Passe o mouse, toque ou use o teclado em qualquer barra ou quadrado para ver o detalhe. Funciona no tema claro e no escuro.',
+    ],
+  },
+  {
     version: '1.36',
     date: '2026-10-31',
     title: 'Ingressos e reservas',

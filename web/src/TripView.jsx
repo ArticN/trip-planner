@@ -577,7 +577,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>Não consegui abrir esta viagem.</p><code>{error}</code><div><button onClick={reload}>Tentar de novo</button> <button onClick={() => onHome()}>Voltar às viagens</button></div></div>;
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
-  if (sel === 'analise') return <Analysis data={data} onBack={() => go('trip')} />;
+  if (sel === 'analise') return <Analysis data={data} onBack={() => go('trip')} onTickets={() => go('ingressos')} />;
   if (sel === 'ingressos') return <Tickets data={data} onBack={() => go('trip')} onToggle={toggleTicket} />;
 
   const now = nowIn(trip.tz);

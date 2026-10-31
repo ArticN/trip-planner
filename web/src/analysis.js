@@ -13,7 +13,7 @@ export const CATS = [
   { key: 'food', label: 'Comida' },
   { key: 'sight', label: 'Passeios e ingressos' },
   { key: 'shop', label: 'Compras' },
-].map((c, i) => ({ ...c, color: `var(--cat-${i + 1})` }));
+].map((c, i) => ({ ...c, color: `var(--cat-${i + 1})`, ink: i === 5 ? '#fff' : '#111' })); // ink: texto dentro da cor
 
 const zero = () => Object.fromEntries(CATS.map((c) => [c.key, 0]));
 const sumOf = (o) => Object.values(o).reduce((t, v) => t + v, 0);
@@ -153,7 +153,7 @@ export function analyze(data) {
   return {
     fx, days, total, grand, nights, dayRows, cityRows, stayRows, meals, mealStats, foodRange, tickets, free,
     modes: Object.values(modes).sort((x, y) => y.cost - x.cost), rides, intercity,
-    buyGroups: Object.values(buyGroups).sort((x, y) => y.v - x.v), quotaUsd, checks, paid, missing,
+    buyGroups: Object.values(buyGroups).sort((x, y) => y.v - x.v), quotaUsd, checks, paid, missing, cityName, cityColor,
     counts: { acts: acts.length, food: meals.length, sights: sights.length, cities: cityRows.filter((c) => c.k !== '_').length },
     home: (n) => (fx.convert ? money(n * fx.rate, fx.home) : money(n, fx.cur)),
     slotLabel: (k) => SLOTS.find((s) => s.key === k)?.label || '',
