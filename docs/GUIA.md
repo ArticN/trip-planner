@@ -12,7 +12,7 @@ original nem para o de ninguém.
 - Uma conta no [GitHub](https://github.com) (grátis).
 - Uma conta na [Vercel](https://vercel.com) (grátis, dá para entrar com o GitHub).
 - Uma conta no [Turso](https://turso.tech) (grátis, sem cartão, dá para entrar com o GitHub).
-- Opcional, só para rodar no seu computador: [Node.js 22.13 ou mais novo](https://nodejs.org).
+- Opcional, só para rodar no seu computador: [Node.js 24](https://nodejs.org).
 
 ## 1. Copie o repositório
 
@@ -139,7 +139,7 @@ ajuda ao Claude Code.
 | A senha não é aceita | Confira `APP_PASSWORD` na Vercel (maiúsculas contam) e faça Redeploy depois de mudar. |
 | "Muitas tentativas erradas" | Depois de 10 senhas erradas o login fica bloqueado por 15 minutos naquele aparelho. Espere e tente de novo. |
 | O mapa fica em branco | O mapa vem de serviços públicos (OpenFreeMap/OpenStreetMap). Confira a internet ou rede da empresa/escola bloqueando. |
-| `npm ci` reclama da versão do Node | Instale o Node 22.13 ou mais novo (`.nvmrc` já indica a versão para quem usa nvm). |
+| `npm ci` reclama da versão do Node | Instale o Node 24 (`.nvmrc` já indica a versão para quem usa nvm). |
 
 ## Custos e limites
 
