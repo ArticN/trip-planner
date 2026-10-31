@@ -4,7 +4,6 @@ export const IDEAS = [
   { title: 'Divisão de gastos', text: 'Registrar quem pagou cada coisa e ver no fim quem deve a quem, como no Splitwise.' },
   { title: 'Prazos de cancelamento', text: 'Reservas com “cancelamento grátis até…” e aviso perto da data.' },
   { title: 'Modelos de checklist', text: 'Listas prontas por tipo de viagem (frio, praia, internacional) e a sua salva para reusar.' },
-  { title: 'Diário com fotos', text: 'Fotos e texto em cada dia, virando um álbum da viagem no fim.' },
   {
     title: 'Trajeto real do voo',
     text: 'Depois que o voo pousa, buscar a rota que o avião fez de verdade (pelo número do voo e a data) e desenhar no mapa no lugar do arco ilustrativo. Depende de um serviço de dados de voo com chave, como o FlightAware.',
@@ -15,6 +14,20 @@ export const IDEAS = [
 // Novidades do app, da mais nova para a mais antiga. Cada entrega nova ganha uma versão aqui
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
+  {
+    version: '1.38',
+    date: '2026-10-31',
+    title: 'Diário de viagem',
+    items: [
+      'Nova página Diário, no topo da viagem (ou no ⋯, no celular): um caderno com uma página para cada dia, com carimbo da data, a cidade numa fita colorida e o que estava no roteiro num canhoto de ingresso.',
+      'Adicionar fotos: escolha várias de uma vez e cada uma vai sozinha para o dia em que foi tirada. No computador, dá para arrastar as fotos para um dia.',
+      'No celular, o botão Câmera abre direto a câmera e a foto vai para o dia de hoje.',
+      'As fotos viram polaroides. Toque numa para ver grande, escrever a legenda, trocar o dia, baixar ou excluir.',
+      'Escreva sobre o dia em papel pautado (salva sozinho) e cole um adesivo de humor: Incrível, Feliz, Tranquilo, Cansado, Emocionado, Dia de chuva ou Comi demais.',
+      'No Android, o ícone do app instalado agora preenche o formato do sistema (redondo ou squircle), sem borda branca.',
+      'As fotos são reduzidas no próprio celular antes de subir, para gastar pouco dado e pouco espaço. Guarde as originais: elas não vão no backup.',
+    ],
+  },
   {
     version: '1.37',
     date: '2026-10-31',

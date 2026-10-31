@@ -30,6 +30,7 @@ const insIdea = (tripId, row) => [`INSERT INTO ideas (trip_id,${IDEA_FIELDS.join
 const insCity = (tripId, row) => [`INSERT OR REPLACE INTO cities (trip_id,${CITY_FIELDS.join(',')}) VALUES (?,${marks(CITY_FIELDS)})`, [tripId, ...pick(row, CITY_FIELDS)]];
 const insBuy = (tripId, row) => [`INSERT INTO purchases (trip_id,${BUY_FIELDS.join(',')}) VALUES (?,${marks(BUY_FIELDS)})`, [tripId, ...pick({ ...row, bought: row.bought ? 1 : 0, exempt: row.exempt ? 1 : 0 }, BUY_FIELDS)]];
 const insDay = (tripId, row) => [`INSERT OR REPLACE INTO days (trip_id,${DAY_FIELDS.join(',')}) VALUES (?,${marks(DAY_FIELDS)})`, [tripId, ...pick(row, DAY_FIELDS)]];
+const insJournal = (tripId, row) => ['INSERT OR REPLACE INTO journal (trip_id, day, text, mood) VALUES (?,?,?,?)', [tripId, row.day, clean(row.text), clean(row.mood)]];
 const run1 = ([sql, args]) => db.run(sql, args);
 
 // ── esquema e migrações (roda uma vez por processo)
@@ -97,6 +98,20 @@ async function migrate() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+    -- diário de viagem: o texto e o humor de cada dia, e as fotos (a foto e uma miniatura, as duas já reduzidas no aparelho)
+    CREATE TABLE IF NOT EXISTS journal (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      day TEXT NOT NULL, text TEXT, mood TEXT,
+      UNIQUE (trip_id, day)
+    );
+    CREATE TABLE IF NOT EXISTS photos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      day TEXT, caption TEXT, taken_at TEXT, w INTEGER, h INTEGER, size INTEGER, sort INTEGER DEFAULT 0,
+      data BLOB, thumb BLOB, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_photos_trip ON photos(trip_id, day);
     CREATE INDEX IF NOT EXISTS idx_files_trip ON files(trip_id);
     CREATE INDEX IF NOT EXISTS idx_act_trip_day ON activities(trip_id, day, sort);
     CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
@@ -175,6 +190,7 @@ async function createTripFull(b) {
   (b.ideas || []).forEach((x, i) => list.push(insIdea(id, { sort: i, ...x })));
   (b.purchases || []).forEach((x, i) => list.push(insBuy(id, { sort: i, ...x })));
   (b.days || []).filter((d) => d.day && (d.title || d.notes)).forEach((d) => list.push(insDay(id, d)));
+  (b.journal || []).filter((d) => d.day && (d.text || d.mood)).forEach((d) => list.push(insJournal(id, d)));
   const byDay = new Map();
   (b.activities || []).forEach((x) => {
     const row = { ...x, cost: x.cost ?? x.cost_jpy ?? null };
@@ -196,12 +212,13 @@ async function createTripFull(b) {
 }
 
 // apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
-const deleteTrip = (id) => db.batch(['files', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
+const deleteTrip = (id) => db.batch(['files', 'photos', 'journal', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
 
+const PHOTO_META = 'id, day, caption, taken_at, w, h, size, sort, created_at';
 async function getTrip(id) {
   const trip = await db.get('SELECT * FROM trips WHERE id = ?', [id]);
   if (!trip) return null;
-  const [cities, stays, activities, checklist, ideas, days, files, purchases] = await Promise.all([
+  const [cities, stays, activities, checklist, ideas, days, files, purchases, journal, photos] = await Promise.all([
     db.all('SELECT * FROM cities WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id', [id]),
     db.all('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id', [id]),
@@ -210,8 +227,10 @@ async function getTrip(id) {
     db.all('SELECT * FROM days WHERE trip_id = ? ORDER BY day', [id]),
     db.all('SELECT id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM purchases WHERE trip_id = ? ORDER BY sort, id', [id]),
+    db.all('SELECT day, text, mood FROM journal WHERE trip_id = ? ORDER BY day', [id]),
+    db.all(`SELECT ${PHOTO_META} FROM photos WHERE trip_id = ? ORDER BY day, sort, taken_at, id`, [id]),
   ]);
-  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases };
+  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases, journal, photos };
 }
 
 const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MAX(sort), -1) AS m FROM ${table} WHERE ${where}`, args)).m + 1;
@@ -383,7 +402,7 @@ app.delete('/api/trips/:id', needTrip, h(async (req, res) => {
 
 app.post('/api/trips/:id/duplicate', needTrip, h(async (req, res) => {
   const d = await getTrip(req.tripId);
-  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null, rating: null, review: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })), purchases: d.purchases.map((x) => ({ ...x, bought: 0 })) });
+  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null, rating: null, review: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })), purchases: d.purchases.map((x) => ({ ...x, bought: 0 })), journal: [] });
   res.status(201).json(await getTrip(id));
 }));
 
@@ -574,6 +593,68 @@ app.get('/api/files/:fid', h(async (req, res) => {
 }));
 app.delete('/api/files/:fid', h(async (req, res) => {
   await db.run('DELETE FROM files WHERE id = ?', [Number(req.params.fid)]);
+  res.status(204).end();
+}));
+
+// ── diário de viagem
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+// texto e humor do dia: body = { text, mood }; os dois vazios apagam
+app.put('/api/trips/:id/journal/:day', needTrip, h(async (req, res) => {
+  const day = req.params.day;
+  if (!DAY_RE.test(day)) return res.status(400).json({ error: 'dia inválido' });
+  const row = { day, text: String(req.body?.text ?? '').trim().slice(0, 20000) || null, mood: String(req.body?.mood ?? '').trim().slice(0, 20) || null };
+  if (!row.text && !row.mood) {
+    await db.run('DELETE FROM journal WHERE trip_id = ? AND day = ?', [req.tripId, day]);
+    return res.json({ day, text: null, mood: null });
+  }
+  await run1(insJournal(req.tripId, row));
+  res.json(row);
+}));
+// foto nova: o corpo é a miniatura seguida da foto (X-Thumb-Length diz onde uma acaba), tudo numa requisição
+// só para caber no limite de 4,5 MB da Vercel; o aparelho já manda as duas reduzidas em JPEG
+app.post('/api/trips/:id/photos', needTrip, express.raw({ type: () => true, limit: MAX_FILE }), h(async (req, res) => {
+  const body = Buffer.isBuffer(req.body) ? req.body : null;
+  const tl = Number(req.get('x-thumb-length')) || 0;
+  if (!body?.length || tl <= 0 || tl >= body.length) return res.status(400).json({ error: 'foto vazia ou incompleta' });
+  const jpeg = (b) => b[0] === 0xff && b[1] === 0xd8;
+  const thumb = body.subarray(0, tl);
+  const data = body.subarray(tl);
+  if (!jpeg(thumb) || !jpeg(data)) return res.status(400).json({ error: 'a foto precisa chegar em JPEG' });
+  const day = String(req.get('x-day') || '');
+  const taken = String(req.get('x-taken') || '').slice(0, 25) || null;
+  const int = (v) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : null);
+  const sort = await nextSort('photos', 'trip_id = ? AND day IS ?', [req.tripId, DAY_RE.test(day) ? day : null]);
+  const r = await db.run('INSERT INTO photos (trip_id, day, taken_at, w, h, size, sort, data, thumb) VALUES (?,?,?,?,?,?,?,?,?)',
+    [req.tripId, DAY_RE.test(day) ? day : null, taken, int(req.get('x-w')), int(req.get('x-h')), data.length, sort, data, thumb]);
+  res.status(201).json(await db.get(`SELECT ${PHOTO_META} FROM photos WHERE id = ?`, [r.lastInsertRowid]));
+}));
+const sendPhoto = (col) => h(async (req, res) => {
+  const p = await db.get(`SELECT ${col} AS data FROM photos WHERE id = ?`, [Number(req.params.pid)]);
+  if (!p?.data) return res.status(404).json({ error: 'foto não encontrada' });
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Content-Disposition', `${'download' in req.query ? 'attachment' : 'inline'}; filename="foto-${Number(req.params.pid)}.jpg"`);
+  res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+  res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
+  res.end(Buffer.from(p.data));
+});
+app.get('/api/photos/:pid', sendPhoto('data'));
+app.get('/api/photos/:pid/thumb', sendPhoto('thumb'));
+// legenda, dia e ordem: body = { caption?, day?, sort? }
+app.put('/api/photos/:pid', h(async (req, res) => {
+  const pid = Number(req.params.pid);
+  const cur = await db.get(`SELECT ${PHOTO_META} FROM photos WHERE id = ?`, [pid]);
+  if (!cur) return res.status(404).json({ error: 'foto não encontrada' });
+  const b = req.body || {};
+  const row = {
+    caption: 'caption' in b ? String(b.caption ?? '').trim().slice(0, 500) || null : cur.caption,
+    day: 'day' in b ? (DAY_RE.test(String(b.day)) ? String(b.day) : null) : cur.day,
+    sort: Number.isFinite(Number(b.sort)) ? Number(b.sort) : cur.sort,
+  };
+  await db.run('UPDATE photos SET caption = ?, day = ?, sort = ? WHERE id = ?', [row.caption, row.day, row.sort, pid]);
+  res.json({ ...cur, ...row });
+}));
+app.delete('/api/photos/:pid', h(async (req, res) => {
+  await db.run('DELETE FROM photos WHERE id = ?', [Number(req.params.pid)]);
   res.status(204).end();
 }));
 

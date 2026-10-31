@@ -54,6 +54,22 @@ export const api = {
   },
   deleteFile: (id) => req('DELETE', `/api/files/${id}`),
   fileUrl: (id) => `/api/files/${id}`,
+  // diário de viagem: a miniatura e a foto vão juntas no corpo (X-Thumb-Length separa as duas)
+  saveJournal: (tripId, day, d) => req('PUT', `/api/trips/${tripId}/journal/${day}`, d),
+  uploadPhoto: async (tripId, { thumb, full, day, taken, w, h }) => {
+    const res = await fetch(`/api/trips/${tripId}/photos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream', 'X-Thumb-Length': String(thumb.size), 'X-Day': day || '', 'X-Taken': taken || '', 'X-W': String(w || ''), 'X-H': String(h || '') },
+      body: new Blob([thumb, full]),
+    });
+    if (res.status === 401) window.dispatchEvent(new Event('auth-required'));
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `erro ${res.status}`);
+    return res.json();
+  },
+  updatePhoto: (id, patch) => req('PUT', `/api/photos/${id}`, patch),
+  deletePhoto: (id) => req('DELETE', `/api/photos/${id}`),
+  photoUrl: (id) => `/api/photos/${id}`,
+  thumbUrl: (id) => `/api/photos/${id}/thumb`,
   // hospedagens
   createStay: (tripId, s) => req('POST', `/api/trips/${tripId}/stays`, s),
   updateStay: (id, patch) => req('PUT', `/api/stays/${id}`, patch),

@@ -32,8 +32,8 @@ app (numa planilha, num script ou pedindo a uma IA) e importar de uma vez.
 
 ## Formato do JSON
 
-Um objeto com `trip`, `cities`, `stays`, `activities`, `checklist`, `ideas`, `days` e `purchases` (o export também traz
-`files`, ignorado na importação). Obrigatórios: `trip.name`, `trip.start`, `trip.end` e a lista `activities` (pode ser
+Um objeto com `trip`, `cities`, `stays`, `activities`, `checklist`, `ideas`, `days`, `purchases` e `journal` (o export também
+traz `files` e `photos`, só com os dados de cada arquivo, ignorados na importação). Obrigatórios: `trip.name`, `trip.start`, `trip.end` e a lista `activities` (pode ser
 vazia). Os `id` e `trip_id` são ignorados. Campos vazios podem ser omitidos.
 
 Um exemplo mínimo que funciona:
@@ -131,12 +131,13 @@ Como se chega à atividade a partir da anterior do dia (na primeira do dia, a pa
 - Mais de um item em `rides` é uma baldeação. Os trechos a pé entre a atividade anterior, as estações e a atividade
   são calculados pelas ruas.
 
-### `checklist`, `ideas`, `days` e `purchases`
+### `checklist`, `ideas`, `days`, `purchases` e `journal`
 
 - `checklist`: `text` (obrigatório), `grp` (grupo), `done`.
 - `ideas`: `title` (obrigatório), `kind`, `city`, `location`, `details`, `cost`, `lat`, `lng`, `notes`, `links`.
 - `days`: tema e anotações de cada dia: `day`, `title`, `notes`.
 - `purchases`: `title` (obrigatório), `store`, `city`, `day`, `price` (moeda da viagem), `grp`, `bought`, `exempt` (fora da cota), `notes`.
+- `journal`: o [diário](diario.md) de cada dia: `day`, `text` e `mood` (`incrivel`, `feliz`, `tranquilo`, `cansado`, `saudade`, `chuva` ou `fome`). As fotos não vão no backup.
 
 ### Backups antigos
 

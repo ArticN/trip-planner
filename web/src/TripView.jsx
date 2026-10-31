@@ -10,6 +10,7 @@ import TripPanel from './TripPanel.jsx';
 import Metro from './Metro.jsx';
 import Analysis from './Analysis.jsx';
 import Tickets from './Tickets.jsx';
+import Journal from './Journal.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
@@ -165,7 +166,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   }, [onNavigate]);
 
   const step = useCallback((delta) => {
-    if (sel === 'trip' || sel === 'analise' || sel === 'ingressos') return;
+    if (sel === 'trip' || sel === 'analise' || sel === 'ingressos' || sel === 'diario') return;
     const i = days.indexOf(sel) + delta;
     if (i >= 0 && i < days.length) go(days[i]);
   }, [sel, days, go]);
@@ -175,13 +176,14 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       if (e.key === 'Escape' && picking) { setPicking(false); return; }
       const tag = document.activeElement?.tagName;
       if (modal || editing || ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      if (sel === 'analise' || sel === 'ingressos' || sel === 'diario') return; // páginas cheias têm os próprios atalhos
       if (e.key === '/' || (e.key === 'k' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); setModal('search'); return; }
       if (e.key === 'ArrowLeft') step(-1);
       if (e.key === 'ArrowRight') step(1);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [step, modal, editing, picking]);
+  }, [step, modal, editing, picking, sel]);
 
   const toggleKind = (k) => setKinds((prev) => {
     const n = new Set(prev);
@@ -579,6 +581,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
   if (sel === 'analise') return <Analysis data={data} onBack={() => go('trip')} onTickets={() => go('ingressos')} />;
   if (sel === 'ingressos') return <Tickets data={data} onBack={() => go('trip')} onToggle={toggleTicket} />;
+  if (sel === 'diario') return <Journal data={data} setData={setData} onBack={() => go('trip')} />;
 
   const now = nowIn(trip.tz);
   const today = now.day;
@@ -607,6 +610,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <button className="ghost hide-sm" onClick={() => setModal('budget')}>Orçamento</button>
         <button className="ghost hide-sm" onClick={() => go('analise')}>Análise</button>
         <button className="ghost hide-sm" onClick={() => go('ingressos')}>Ingressos</button>
+        <button className="ghost hide-sm" onClick={() => go('diario')}>Diário</button>
         <button className="ghost hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
         <button className="ghost hide-sm" onClick={() => setModal('shopping')}>Compras</button>
         <details className="menu">
@@ -616,6 +620,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button className="only-sm" onClick={() => setModal('budget')}>Orçamento</button>
             <button className="only-sm" onClick={() => go('analise')}>Análise</button>
             <button className="only-sm" onClick={() => go('ingressos')}>Ingressos</button>
+            <button className="only-sm" onClick={() => go('diario')}>Diário</button>
             <button className="only-sm" onClick={() => setModal('checklist')}>Checklist</button>
             <button className="only-sm" onClick={() => setModal('shopping')}>Compras</button>
             <button onClick={() => setModal('look')}>Aparência</button>
