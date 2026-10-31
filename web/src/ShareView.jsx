@@ -6,6 +6,7 @@ import { setTripAccent } from './theme.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import PinPanel from './PinPanel.jsx';
 import Metro from './Metro.jsx';
+import Analysis from './Analysis.jsx';
 import { KINDS, SLOTS, orderBySlots, principals, collapseAlts, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
 
 const noop = () => {};
@@ -16,6 +17,7 @@ export default function ShareView({ token }) {
   const [error, setError] = useState('');
   const [sel, setSel] = useState('trip');
   const [selectedId, setSelectedId] = useState(null);
+  const [analysis, setAnalysis] = useState(false);
   const sheet = useSheet('half');
   const isMobile = useIsMobile();
 
@@ -47,6 +49,8 @@ export default function ShareView({ token }) {
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>{error}</p></div>;
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
+  if (analysis) return <Analysis data={data} onBack={() => setAnalysis(false)} readOnly />;
+
   // opções no mesmo horário: aparece a principal, com as outras citadas embaixo
   const items = (sel === 'trip' ? principals(data.activities) : collapseAlts(byDay[sel] || []).map((a, i) => ({ ...a, n: i + 1 })));
   const stayFor = (day) => data.stays.find((s) => s.check_in <= day && day < s.check_out) || null;
@@ -65,6 +69,7 @@ export default function ShareView({ token }) {
           </div>
         </div>
         <span className="spacer" />
+        <button className="ghost" onClick={() => setAnalysis(true)}>Análise de gastos</button>
         <span className="share-badge hide-sm">Somente leitura</span>
       </header>
 

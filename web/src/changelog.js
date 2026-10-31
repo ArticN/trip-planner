@@ -16,6 +16,17 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.34',
+    date: '2026-10-31',
+    title: 'Análise da viagem',
+    items: [
+      'Nova página Análise (botão no topo da viagem): o total planejado em reais, quanto vai por dia, por noite de hotel e em comida, e um aviso do que ainda está sem preço.',
+      'Gráficos de para onde vai o dinheiro (hospedagem, voos, transporte, comida, passeios e compras), gasto por dia e por cidade, sempre com a tabela ao lado.',
+      'Todas as refeições com o preço da opção escolhida e a faixa entre a mais barata e a mais cara, mais os ingressos, o transporte por tipo, as compras na cota de US$ 1.000 e as reservas que faltam.',
+      'Quem abre o link de compartilhamento também vê a análise, pelo botão "Análise de gastos", e pode imprimir ou salvar em PDF.',
+    ],
+  },
+  {
     version: '1.33',
     date: '2026-10-31',
     title: 'Trens entre cidades no mapa',

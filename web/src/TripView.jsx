@@ -8,6 +8,7 @@ import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
 import Metro from './Metro.jsx';
+import Analysis from './Analysis.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
@@ -163,7 +164,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   }, [onNavigate]);
 
   const step = useCallback((delta) => {
-    if (sel === 'trip') return;
+    if (sel === 'trip' || sel === 'analise') return;
     const i = days.indexOf(sel) + delta;
     if (i >= 0 && i < days.length) go(days[i]);
   }, [sel, days, go]);
@@ -563,6 +564,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>Não consegui abrir esta viagem.</p><code>{error}</code><div><button onClick={reload}>Tentar de novo</button> <button onClick={() => onHome()}>Voltar às viagens</button></div></div>;
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
+  if (sel === 'analise') return <Analysis data={data} onBack={() => go('trip')} />;
+
   const now = nowIn(trip.tz);
   const today = now.day;
   const countdown = today < trip.start ? `Faltam ${daysBetween(today, trip.start)} dias`
@@ -588,6 +591,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         </button>
         <button className="ghost hide-sm" onClick={() => setModal('stays')}>Hospedagens</button>
         <button className="ghost hide-sm" onClick={() => setModal('budget')}>Orçamento</button>
+        <button className="ghost hide-sm" onClick={() => go('analise')}>Análise</button>
         <button className="ghost hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
         <button className="ghost hide-sm" onClick={() => setModal('shopping')}>Compras</button>
         <details className="menu">
@@ -595,6 +599,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           <div className="menu-pop" onClick={(e) => e.currentTarget.parentElement.removeAttribute('open')}>
             <button className="only-sm" onClick={() => setModal('stays')}>Hospedagens</button>
             <button className="only-sm" onClick={() => setModal('budget')}>Orçamento</button>
+            <button className="only-sm" onClick={() => go('analise')}>Análise</button>
             <button className="only-sm" onClick={() => setModal('checklist')}>Checklist</button>
             <button className="only-sm" onClick={() => setModal('shopping')}>Compras</button>
             <button onClick={() => setModal('look')}>Aparência</button>

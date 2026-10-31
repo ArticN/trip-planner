@@ -15,7 +15,7 @@ de exemplo") ou importando [`examples/viagem-exemplo.json`](../../examples/viage
 | [Roteiro do dia](roteiro.md) | Atividades e seus campos · blocos do dia · tempo livre e deslocamento · opções no mesmo horário (carrossel) · ideias sem data · tema do dia, tempo e sol · avaliações · busca · modo hoje |
 | [Mapa](mapa.md) | Visão geral e mapa do dia · tipos de mapa · adicionar pelo mapa · "Perto daqui" · caminho a pé e linhas de trem/metrô · Wikipédia · mapa offline · Meu mapa |
 | [Voos e trechos](voos.md) | Voos e trens com fuso · cartões de Ida e Volta · mapa-múndi do voo · escalas reconhecidas sozinhas (e como isso funciona) |
-| [Dinheiro](dinheiro.md) | Orçamento e câmbio automático · gasto real e recibo · estatísticas · compras e a cota da Receita |
+| [Dinheiro](dinheiro.md) | Orçamento e análise da viagem · câmbio automático · gasto real e recibo · estatísticas · compras e a cota da Receita |
 | [Organização e agenda](organizacao.md) | Checklist · notas, links e anexos · calendário · exportar .ics · lembretes · imprimir/PDF |
 | [Compartilhar e backup](compartilhar-e-backup.md) | Link só de leitura · exportar e importar backup · formato do JSON (campos `alt`, `route`, `via`…) |
 | [O app no dia a dia](app.md) | Instalar no celular (PWA) · funcionar sem internet · celular x computador · atalhos · aparência · Novidades |

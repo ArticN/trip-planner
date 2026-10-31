@@ -26,6 +26,32 @@ No editor da atividade, **Gasto real** é quanto saiu de fato. Com ele preenchid
 - o Orçamento ganha um quadro com o gasto real, o previsto desses mesmos itens e a diferença (acima ou abaixo do previsto);
 - o cabeçalho do dia passa a mostrar "gasto de … previstos".
 
+## Análise da viagem
+
+**Análise** no topo da viagem (ou no ⋯, no celular) abre uma página inteira com tudo o que foi planejado de gasto,
+pensada para quem quer ver a viagem toda de uma vez, como a família. Quem abre o
+[link de compartilhamento](compartilhar-e-backup.md) vê a mesma página pelo botão **Análise de gastos**.
+
+- **Resumo**: o total planejado na sua moeda (e na da viagem), a média por dia, por noite de hotel e de comida por
+  dia, quanto das compras conta na cota da Receita, e um aviso com o que ainda está sem preço.
+- **Para onde vai o dinheiro**: hospedagem, voos, transporte, comida, passeios e compras, em barra e em tabela.
+- **Por dia** e **por cidade**: colunas por dia (passe o mouse ou toque para ver o detalhe; "Ver em tabela" abre os
+  números) e um cartão por cidade com noites, dias e a média por dia.
+- **Hospedagem**: cada hotel com datas, noites, preço por noite e total.
+- **Comida**: média por café, almoço e jantar, as refeições mais caras e a lista completa, com a faixa de preço quando
+  há mais de uma opção e a marca de reserva.
+- **Passeios**, **Transporte** (por tipo e as viagens entre cidades), **Compras** (por grupo e na cota) e
+  **Reservas** (os itens de reserva e ingresso da checklist, feitos ou não).
+- **Imprimir ou salvar PDF** gera uma versão para papel.
+
+Como a conta é feita:
+
+- só a opção principal de cada horário entra no total; as outras dão a faixa de preço;
+- o preço da hospedagem é dividido pelas noites;
+- a passagem dentro do "como chegar" de uma atividade entra em Transporte;
+- as compras vêm da lista de compras (os itens de loja do roteiro só contam se a lista estiver vazia);
+- hotel ou voo sem preço aparece como "sem preço" e fica fora do total até ser preenchido.
+
 ## Câmbio automático
 
 Com moedas diferentes, o Orçamento mostra "1 JPY = … BRL" e a caixa **Atualizar sozinho com a cotação do dia**.
