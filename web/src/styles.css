@@ -1223,3 +1223,36 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
   .an-details { display: block; }
   .an-body section { break-inside: avoid-page; }
 }
+
+/* ── ingressos e reservas (usa a base da página de análise) */
+.tk-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.tk-filter .chip { font-size: 13px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--ctl); background: transparent; color: var(--ink-2); cursor: pointer; }
+.tk-filter .chip.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tk-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.tk-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: start; background: var(--card); border: 1px solid var(--edge); border-radius: var(--radius); padding: 12px 14px; }
+.tk-row.ok { opacity: .8; }
+.tk-when { display: grid; font-variant-numeric: tabular-nums; }
+.tk-when b { font-weight: 500; font-size: 14px; }
+.tk-when small { color: var(--muted); font-size: 12px; }
+.tk-main { display: grid; gap: 4px; min-width: 0; }
+.tk-title { font-size: 15px; line-height: 1.35; }
+.tk-notes { margin: 0; font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+.tk-links { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
+.tk-side { display: grid; justify-items: end; gap: 6px; text-align: right; }
+.tk-price { font-variant-numeric: tabular-nums; font-size: 14px; white-space: nowrap; }
+.tk-price small { display: block; font-size: 12px; color: var(--muted); }
+.tk-check { display: flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.tk-state { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.tk-state.ok { color: var(--cat-3); }
+.an-tag.tk-soon { border-color: var(--cat-4); }
+.an-tag.tk-late { border-color: var(--danger, #d64545); color: var(--danger, #d64545); }
+@media (max-width: 640px) {
+  .tk-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .tk-when { grid-auto-flow: column; justify-content: start; gap: 8px; }
+  .tk-side { grid-auto-flow: column; justify-content: space-between; align-items: center; text-align: left; border-top: 1px solid var(--line); padding-top: 8px; }
+  .tk-price small { display: inline; margin-left: 6px; }
+}
+@media print {
+  .tk-filter, .tk-check input { display: none; }
+  .tk-row { break-inside: avoid; }
+}

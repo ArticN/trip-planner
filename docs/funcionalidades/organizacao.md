@@ -30,6 +30,28 @@ Sobre os anexos:
 - Quando uma ideia vira atividade (ou o contrário), os anexos vão junto. Excluir a atividade apaga os anexos.
 - **Não vão no backup JSON** nem no link compartilhado. Guarde os originais em outro lugar também.
 
+## Ingressos e reservas
+
+**Ingressos** no topo da viagem (ou no ⋯, no celular) abre uma página com tudo o que precisa de ingresso ou reserva,
+montada a partir das notas das atividades e dos itens de reserva da checklist:
+
+- **Falta comprar ou reservar**: atividades principais cujas notas pedem reserva ("reservar", "ONDE COMPRAR",
+  "ingresso com horário", TableCheck, Klook…) e itens de reserva da checklist ainda não feitos. Se as notas disserem
+  "abre 1 mês antes", aparece quando a venda abre; se o dia já passou, a marca "data passou".
+- **Só se escolher essa opção**: o mesmo, mas em [opções do mesmo horário](roteiro.md#opções-no-mesmo-horário) que não
+  são a principal. Reserve só a que for escolher.
+- **Comprados e reservados**: o que tem "comprado", "já reservado" ou "pago" nas notas, ou o item da checklist marcado.
+- **Pagar na entrada**: passeios com preço e sem reserva, numa tabela com o total.
+
+Cada item mostra dia, horário, preço (na sua moeda e na da viagem), as notas, os links e os anexos da atividade, para
+abrir o ingresso dali mesmo. O topo mostra quantos já foram comprados, e dá para filtrar por tipo (transporte,
+ingresso, restaurante…). Marcar **Comprado** marca o item de reserva da checklist ligado àquela atividade, ou cria um
+no grupo "Reservas e ingressos". A página também imprime.
+
+Limitações: a separação lê as palavras das notas, então uma nota sem nenhuma dessas palavras não entra. Um item da
+checklist é ligado à atividade do mesmo dia com mais palavras em comum no título; sem data no começo do texto
+("09/11 …"), ele aparece sozinho.
+
 ## Calendário
 
 Menu **⋯ › Calendário** (ou no pé da visão geral). Três visões:

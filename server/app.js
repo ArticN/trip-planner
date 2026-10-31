@@ -14,7 +14,7 @@ const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
 const BUY_FIELDS = ['title', 'store', 'city', 'day', 'price', 'grp', 'bought', 'exempt', 'notes', 'sort'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope', 'share_money'];
 
 // objetos (ex.: route com as estações) vão para o banco como JSON
 const clean = (v) => (v === '' || v === undefined ? null : v && typeof v === 'object' ? JSON.stringify(v) : v);
@@ -110,7 +110,7 @@ async function migrate() {
   };
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['via', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT'], ['slot', 'TEXT'], ['route', 'TEXT'], ['alt', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT'], ['share_money', 'INTEGER DEFAULT 0']]);
   await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
 
   if (legacy) {
@@ -297,19 +297,26 @@ app.get('/api/cal/:token', h(async (req, res) => {
 }));
 
 const SHARE_ACT = ['id', 'day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'lat', 'lng', 'sort', 'start_tz', 'end_tz', 'from_code', 'to_code', 'via', 'slot', 'route', 'alt'];
+const SHARE_ACT_MONEY = ['cost', 'notes', 'links'];
 const only = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k] ?? null]));
 app.get('/api/share/:token', h(async (req, res) => {
   const t = String(req.params.token || '');
   const row = t.length >= 16 && (await db.get('SELECT id FROM trips WHERE share_token = ?', [t]));
   if (!row) return res.status(404).json({ error: 'link inválido ou desativado' });
   const d = await getTrip(row.id);
+  const money = !!d.trip.share_money;
   res.setHeader('Cache-Control', 'no-store');
   res.json({
-    trip: only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent']),
+    trip: only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent', 'share_money', ...(money ? ['usd_rate', 'quota_usd'] : [])]),
     cities: d.cities.map((c) => only(c, ['key', 'name', 'emoji', 'color', 'lat', 'lng'])),
-    stays: d.stays.map((x) => only(x, ['id', 'city', 'name', 'check_in', 'check_out', 'lat', 'lng'])),
-    activities: d.activities.map((a) => only(a, SHARE_ACT)),
+    stays: d.stays.map((x) => only(x, ['id', 'city', 'name', 'check_in', 'check_out', 'lat', 'lng', ...(money ? ['cost'] : [])])),
+    activities: d.activities.map((a) => only(a, money ? [...SHARE_ACT, ...SHARE_ACT_MONEY] : SHARE_ACT)),
     days: d.days.map((x) => only(x, ['day', 'title'])),
+    // com "mostrar gastos e ingressos no link" ligado: custos, compras e os itens de reserva da checklist (nunca códigos de reserva nem anexos)
+    ...(money ? {
+      purchases: d.purchases.map((x) => only(x, ['id', 'title', 'store', 'city', 'day', 'price', 'grp', 'exempt', 'bought'])),
+      checklist: d.checklist.filter((c) => /reserv|ingress/i.test(`${c.grp || ''} ${c.text}`)).map((c) => only(c, ['id', 'grp', 'text', 'done'])),
+    } : {}),
   });
 }));
 

@@ -12,6 +12,11 @@ O que **não** aparece no link: notas, links, anexos, números de reserva e de v
 já foi feito, checklist, compras e ideias. Das [opções no mesmo horário](roteiro.md#opções-no-mesmo-horário), aparece a
 principal, com as outras citadas embaixo. A cor própria da viagem também vale no link.
 
+**Mostrar gastos e ingressos no link** (no mesmo painel, desligado por padrão) libera para quem tem o link os custos
+das atividades e hospedagens, as notas e links das atividades, as compras, os itens de reserva da checklist e o câmbio.
+Com isso o link ganha os botões **Gastos** (a [análise da viagem](dinheiro.md#análise-da-viagem)) e **Ingressos** (a
+[página de ingressos](organizacao.md#ingressos-e-reservas)), só para ver. Números de reserva e anexos continuam fora.
+
 **Desativar link** invalida o endereço na hora. Criar de novo gera um link diferente.
 
 ## Backup

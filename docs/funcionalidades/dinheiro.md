@@ -30,7 +30,8 @@ No editor da atividade, **Gasto real** é quanto saiu de fato. Com ele preenchid
 
 **Análise** no topo da viagem (ou no ⋯, no celular) abre uma página inteira com tudo o que foi planejado de gasto,
 pensada para quem quer ver a viagem toda de uma vez, como a família. Quem abre o
-[link de compartilhamento](compartilhar-e-backup.md) vê a mesma página pelo botão **Análise de gastos**.
+[link de compartilhamento](compartilhar-e-backup.md) vê a mesma página pelo botão **Gastos**, se a opção **Mostrar
+gastos e ingressos no link** estiver ligada (sem ela, o link não leva custos e a página sairia zerada).
 
 - **Resumo**: o total planejado na sua moeda (e na da viagem), a média por dia, por noite de hotel e de comida por
   dia, quanto das compras conta na cota da Receita, e um aviso com o que ainda está sem preço.

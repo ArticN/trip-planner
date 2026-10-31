@@ -689,8 +689,9 @@ export function CitiesModal({ cities, onCreate, onSave, onDelete, onClose }) {
   );
 }
 
-// link de só leitura para mandar a quem viaja junto (sem notas, links, reservas, gastos e checklist)
-export function ShareModal({ trip, onCreate, onRemove, onClose }) {
+// link de só leitura para mandar a quem viaja junto (sem notas, links, reservas, gastos e checklist);
+// com "mostrar gastos e ingressos" ligado, o link ganha a análise de gastos e a página de ingressos
+export function ShareModal({ trip, onCreate, onRemove, onMoney, onClose }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const url = trip.share_token ? `${window.location.origin}/#/s/${trip.share_token}` : '';
@@ -713,6 +714,15 @@ export function ShareModal({ trip, onCreate, onRemove, onClose }) {
             <span className="spacer" />
             <button className="danger" disabled={busy} onClick={run(onRemove)}>Desativar link</button>
           </div>
+          {onMoney && (
+            <label className="check-line" style={{ marginTop: 16, alignItems: 'flex-start' }}>
+              <input type="checkbox" checked={!!trip.share_money} disabled={busy} onChange={(e) => run(() => onMoney(e.target.checked))()} />
+              <span>
+                <b>Mostrar gastos e ingressos no link</b>
+                <span className="muted small" style={{ display: 'block' }}>Quem tiver o link passa a ver a análise de gastos e a página de ingressos: custos, compras, notas das atividades e os itens de reserva do checklist. Códigos de reserva e anexos continuam escondidos.</span>
+              </span>
+            </label>
+          )}
         </>
       ) : (
         <button className="primary" disabled={busy} onClick={run(onCreate)}>Criar link</button>
