@@ -15,6 +15,19 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.40',
+    date: '2026-10-31',
+    title: 'Fotos que sabem onde foram tiradas, e vídeos no álbum',
+    items: [
+      'Ao enviar, o app lê o local (GPS), a hora e a câmera de cada foto e liga a foto à atividade do roteiro em que ela foi tirada.',
+      'Legenda automática: sem legenda escrita, a foto mostra a atividade (ou a cidade) e a hora, como “Shinjuku Gyoen · 11:15”.',
+      'Ficha da foto (ⓘ Info): local com altitude e link para o mapa, a atividade (dá para trocar), câmera, lente e exposição.',
+      'Fotos no mapa: miniaturas onde cada foto foi tirada e, no mapa do dia, o caminho que você fez de verdade. O botão Fotos liga e desliga. O painel da atividade mostra as fotos dela.',
+      'A aba Fotos avisa quais fotos vieram sem localização e como ligar isso na câmera do Galaxy.',
+      'Novo bloco de vídeo: cole o link de um vídeo do YouTube (pode ser “Não listado”), Vimeo, Google Drive, Instagram ou TikTok. O vídeo fica na plataforma, na resolução original, e toca dentro do álbum e no link de visitante.',
+    ],
+  },
+  {
     version: '1.39',
     date: '2026-10-31',
     title: 'Diário vira álbum de fotos',

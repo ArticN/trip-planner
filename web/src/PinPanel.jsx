@@ -7,7 +7,7 @@ import { parseLinks, linkLabel, LinkText } from './Extras.jsx';
 import { KINDS, hasCoords, duration, fmtDuration, fmtDayLong, endDayOf, directionsUrl } from './util.js';
 
 // painel de detalhes da atividade escolhida no mapa (substitui o balão pequeno do pin)
-export default function PinPanel({ a, n, group = null, onAltStep, cityMap, fx, tripTz, onEdit, onToggleDone, onClose, files = [] }) {
+export default function PinPanel({ a, n, group = null, onAltStep, cityMap, fx, tripTz, onEdit, onToggleDone, onClose, files = [], photos = [], photoThumb, onPhoto }) {
   const k = KINDS[a.kind] || KINDS.sight;
   const city = cityMap[a.city];
   const dur = duration(a, tripTz);
@@ -55,6 +55,16 @@ export default function PinPanel({ a, n, group = null, onAltStep, cityMap, fx, t
           {hasCoords(a) && <a href={directionsUrl(a)} target="_blank" rel="noreferrer">Como chegar</a>}
           {hasCoords(a) && <a href={`https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}`} target="_blank" rel="noreferrer">Google Maps</a>}
           {links.map((l, i) => <a key={i} href={l.url} target="_blank" rel="noreferrer">{linkLabel(l)}</a>)}
+        </div>
+      )}
+      {photos.length > 0 && (
+        <div className="pp-photos" aria-label="Fotos tiradas aqui">
+          {photos.slice(0, 8).map((p) => (
+            <button key={p.id} onClick={() => onPhoto?.(p.id)} title={`Foto das ${(p.taken_at || '').slice(11, 16)}`}>
+              <img src={photoThumb(p.id)} alt="" loading="lazy" />
+            </button>
+          ))}
+          {photos.length > 8 && <span>+{photos.length - 8}</span>}
         </div>
       )}
       <FileList files={files} />

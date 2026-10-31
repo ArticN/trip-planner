@@ -141,7 +141,7 @@ Como se chega à atividade a partir da anterior do dia (na primeira do dia, a pa
 - `ideas`: `title` (obrigatório), `kind`, `city`, `location`, `details`, `cost`, `lat`, `lng`, `notes`, `links`.
 - `days`: tema e anotações de cada dia: `day`, `title`, `notes`.
 - `purchases`: `title` (obrigatório), `store`, `city`, `day`, `price` (moeda da viagem), `grp`, `bought`, `exempt` (fora da cota), `notes`.
-- `pages`: as páginas do [diário](diario.md): `day` (opcional), `title` e `blocks`. Um bloco de texto é `{ "type": "text", "style": "nota" | "titulo" | "citacao", "text": "…" }`; os blocos de fotos (`{ "type": "photos", "layout", "ids" }`) são ignorados na importação, porque as fotos não vão no backup. Backups da versão 1.38 trazem `journal` (`day`, `text`), que vira uma página com um bloco de nota.
+- `pages`: as páginas do [diário](diario.md): `day` (opcional), `title` e `blocks`. Um bloco de texto é `{ "type": "text", "style": "nota" | "titulo" | "citacao", "text": "…" }`; um bloco de vídeo é `{ "type": "video", "src": "yt" | "vimeo" | "drive" | "ig" | "tiktok", "vid": "<código do vídeo na plataforma>", "vertical": true | false, "caption": "…" }`; os blocos de fotos (`{ "type": "photos", "layout", "ids" }`) são ignorados na importação, porque as fotos não vão no backup. Backups da versão 1.38 trazem `journal` (`day`, `text`), que vira uma página com um bloco de nota.
 
 ### Backups antigos
 

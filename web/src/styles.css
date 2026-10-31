@@ -1650,3 +1650,52 @@ input.dj-lb-cap:focus-visible { outline: none; box-shadow: none; background: #f2
   .dj .an-top .spacer { display: none; }
   .dj-tabs { margin-right: auto; }
 }
+
+/* metadados das fotos (v1.40) */
+.dj-info-btn { background: transparent; color: inherit; border-color: rgba(255, 255, 255, .3); }
+.dj-info-btn.on { background: rgba(255, 255, 255, .16); }
+.dj-info-btn:hover:not(:disabled) { background: rgba(255, 255, 255, .12); }
+.dj-lb { grid-template-rows: 1fr auto auto; overflow-y: auto; }
+.dj-info { width: min(1100px, 100%); margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; background: rgba(255, 255, 255, .07); color: #e8e2d8; font-size: 14px; }
+.dj-info dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; }
+.dj-info dt { color: #b9b1a4; }
+.dj-info dd { margin: 0; overflow-wrap: anywhere; }
+.dj-info a { color: #f2c27a; }
+.dj-info select { max-width: 100%; }
+.dj-warn { color: #f2a65a; }
+.dj-noplace { margin: 0 0 18px; padding: 10px 14px; border-radius: 12px; background: var(--warn-bg); color: var(--ink); font-size: 14px; border-left: 3px solid var(--warn); }
+.dj-roll-grid button { position: relative; }
+.dj-pin { position: absolute; right: 4px; bottom: 4px; width: 14px; height: 14px; border-radius: 50%; display: grid; place-items: center; font-size: 8px; color: #fff; background: rgba(15, 12, 10, .55); line-height: 1; }
+@media (max-width: 760px) { .dj-lb { grid-template-rows: auto auto auto; align-content: start; } }
+
+/* ── fotos do diário no mapa e na atividade (v1.40) */
+.ph-pin-wrap { background: none; border: 0; }
+.ph-pin { width: 38px; height: 38px; border-radius: 8px; overflow: hidden; background: #fff; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); transform: rotate(-3deg); transition: transform .15s; cursor: pointer; }
+.ph-pin:hover { transform: rotate(0) scale(1.15); }
+.ph-pin img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pp-photos { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 8px 0 4px; }
+.pp-photos button { padding: 0; border: 0; background: none; width: 52px; height: 52px; border-radius: 6px; overflow: hidden; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.pp-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pp-photos span { font-size: 12px; color: var(--muted); }
+/* com a ficha aberta, a foto encolhe para a ficha caber na tela do computador */
+@media (min-width: 761px) { .dj-lb.info-on .dj-lb-pol img { max-height: max(260px, calc(100vh - 470px)); } }
+
+/* ── vídeo do YouTube no álbum: capa com ▶, o player só carrega ao tocar */
+.dj-video { margin: 0; display: grid; justify-items: center; gap: 8px; }
+.dj-video-frame { position: relative; width: min(820px, 100%); aspect-ratio: 16 / 9; background: #111; border: 10px solid var(--pol, #fbf8f1); box-shadow: 0 10px 28px rgba(0, 0, 0, .28); transform: rotate(-.4deg); }
+.dj-video.vertical .dj-video-frame { width: min(340px, 100%); aspect-ratio: 9 / 16; transform: rotate(.8deg); }
+.dj-video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.dj-video-cover { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 0; background: #222 center / cover no-repeat; cursor: pointer; display: grid; place-items: center; }
+.dj-video-play { width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; padding-left: 5px; font-size: 26px; color: #fff; background: var(--pf, #e62117); box-shadow: 0 4px 18px rgba(0, 0, 0, .45); transition: transform .15s; }
+.dj-video-cover:hover .dj-video-play { transform: scale(1.08); }
+.dj-video figcaption { font-family: var(--hand); font-size: 24px; color: var(--ink, inherit); text-align: center; }
+.dj-video-edit { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; width: 100%; }
+.dj-video-edit input { flex: 1 1 220px; min-width: 0; }
+.dj-video-new { display: grid; gap: 6px; padding: 14px; border: 2px dashed rgba(127, 127, 127, .4); border-radius: 12px; }
+.dj-video-new input { width: 100%; }
+.dj-video-new p { margin: 0; }
+.dj-video-new .dj-warn { color: #e0893a; }
+.dj-video-cover.plain { background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--pf) 70%, #fff 0%), #151515 75%); }
+.dj-video-pf { position: absolute; left: 10px; bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: #fff; background: rgba(0, 0, 0, .55); padding: 3px 8px; border-radius: 999px; }
+/* Instagram e TikTok têm cabeçalho e rodapé no player: um pouco mais altos que 9:16 */
+.dj-video.ig.vertical .dj-video-frame, .dj-video.tiktok.vertical .dj-video-frame { aspect-ratio: 9 / 19; }

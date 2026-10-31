@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
+import { PLATFORMS, parseVideo, videoOf, embedUrl, pageUrl, coverUrls } from './video.js';
 import { preparePhoto } from './photos.js';
-import { rangeDays, fmtDay, fmtDayLong, nowIn, daysBetween } from './util.js';
+import { rangeDays, fmtDay, fmtDayLong, nowIn, daysBetween, principals } from './util.js';
+import { matchActivity, autoCaption, techSheet, hasPlace } from './photoMeta.js';
 
 // ── Diário de viagem: um álbum de fotos montado em páginas livres. Cada página pode ter um dia
 // (ganha o carimbo com a data e a cor da cidade) e uma sequência de blocos: fotos (em mosaico, grade,
@@ -34,7 +36,9 @@ const handFont = () => {
   document.head.appendChild(l);
 };
 
-export default function Journal({ data, setData = null, onBack, readOnly = false, token = null }) {
+const blockHasContent = (b) => (b.type === 'photos' ? b.ids.length > 0 : b.type === 'video' ? !!videoOf(b) : !!b.text?.trim());
+
+export default function Journal({ data, setData = null, onBack, readOnly = false, token = null, initialPhoto = null }) {
   const { trip } = data;
   const tripId = trip.id;
   const url = useMemo(() => (token
@@ -50,11 +54,14 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
   const visible = useMemo(() => pages.map((p) => ({ ...p, blocks: p.blocks.map((b) => (b.type === 'photos' ? { ...b, ids: b.ids.filter((x) => photosById[x]) } : b)) })), [pages, photosById]);
   const albumList = useMemo(() => visible.flatMap((p) => p.blocks.flatMap((b) => b.ids || [])).map((x) => photosById[x]), [visible, photosById]);
   const allList = useMemo(() => [...(data.photos || [])].sort((a, b) => takenKey(a).localeCompare(takenKey(b))), [data.photos]);
+  const actById = useMemo(() => Object.fromEntries((data.activities || []).map((a) => [a.id, a])), [data.activities]);
+  const caption = useCallback((p) => p.caption || autoCaption(p, actById, data.cities), [actById, data.cities]);
 
-  const [view, setView] = useState('album');
+  // vindo do mapa ou da atividade: abre direto na foto, com a lista de todas as fotos em volta
+  const [view, setView] = useState(() => (initialPhoto ? 'fotos' : 'album'));
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState([]); // fotos sendo reveladas: { key, url }
-  const [open, setOpen] = useState(null); // { id, list }
+  const [open, setOpen] = useState(() => (initialPhoto && photosById[initialPhoto] ? { id: initialPhoto, list: allList } : null)); // { id, list }
   const [toast, setToast] = useState('');
   const [focusBlock, setFocusBlock] = useState(null);
   const say = useCallback((m) => { setToast(m); setTimeout(() => setToast(''), 4200); }, []);
@@ -146,7 +153,9 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
         const day = days.includes(tday) ? tday : tpage?.day || (days.includes(today) ? today : null);
         const prev = URL.createObjectURL(ph.thumb);
         setPending((p) => p.map((x) => (x.key === key ? { ...x, url: prev } : x)));
-        const saved = await api.uploadPhoto(tripId, { ...ph, day });
+        // a atividade do roteiro em que a foto foi tirada (pelo horário e, se tiver, pelo GPS)
+        const activity = matchActivity({ ...ph, day }, data.activities);
+        const saved = await api.uploadPhoto(tripId, { ...ph, day, activity });
         setData((d) => ({ ...d, photos: [...(d.photos || []), saved] }));
         const page = tpage || (await pageForDay(day));
         placePhoto(page.id, saved.id, target?.blockId);
@@ -191,6 +200,10 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
     }
     say('Foto movida.');
   };
+  const setPhotoActivity = (photo, activity_id) => {
+    setData((d) => ({ ...d, photos: d.photos.map((p) => (p.id === photo.id ? { ...p, activity_id } : p)) }));
+    api.updatePhoto(photo.id, { activity_id }).catch(() => say('Não consegui salvar a atividade da foto.'));
+  };
   const updateCaption = (photo, caption) => {
     setData((d) => ({ ...d, photos: d.photos.map((p) => (p.id === photo.id ? { ...p, caption } : p)) }));
     api.updatePhoto(photo.id, { caption }).catch(() => say('Não consegui salvar a legenda.'));
@@ -218,7 +231,7 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
     } catch { say('Não consegui criar a página.'); }
   };
 
-  const hasContent = (p) => p.blocks.some((b) => (b.type === 'photos' ? b.ids.length : b.text?.trim()));
+  const hasContent = (p) => p.blocks.some(blockHasContent);
   const shown = readOnly || !editing ? visible.filter((p) => hasContent(p) || (!readOnly && p.title)) : visible;
   const nPhotos = (data.photos || []).length;
   const nCities = new Set(visible.filter(hasContent).map((p) => cityOf(p.day)?.key).filter(Boolean)).size;
@@ -299,7 +312,7 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
   const pageEl = (p) => (
     <Page
       key={p.id} page={p} days={days} jp={jp} today={today}
-      city={cityOf(p.day)} theme={p.day ? themes[p.day] : null} photosById={photosById} url={url}
+      city={cityOf(p.day)} theme={p.day ? themes[p.day] : null} photosById={photosById} url={url} caption={caption}
       edit={canEdit} focusBlock={focusBlock}
       onOpen={(id) => setOpen({ id, list: albumList })}
       onDay={(day) => savePage(p.id, { day })}
@@ -307,6 +320,7 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
       onBlocks={(fn) => setBlocks(p, fn)}
       onAddPhotos={(files, blockId) => addFiles(files, { pageId: p.id, blockId })}
       onAddText={(at) => { const id = newId(); setFocusBlock(id); setBlocks(p, (bl) => [...bl.slice(0, at), { id, type: 'text', style: 'nota', text: '' }, ...bl.slice(at)]); }}
+      onAddVideo={(at) => { const id = newId(); setFocusBlock(id); setBlocks(p, (bl) => [...bl.slice(0, at), { id, type: 'video', src: '', vid: '', vertical: false, caption: '' }, ...bl.slice(at)]); }}
       onAddPhotoBlock={(at) => { const id = newId(); setBlocks(p, (bl) => [...bl.slice(0, at), { id, type: 'photos', layout: 'grade', ids: [] }, ...bl.slice(at)]); return id; }}
       onDropBlockPhotos={dropPhotos}
       onDelete={() => deletePage(p)}
@@ -363,7 +377,7 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
         )}
 
         {view === 'fotos' ? (
-          <AllPhotos list={allList} days={days} url={url} onOpen={(id) => setOpen({ id, list: allList })} />
+          <AllPhotos list={allList} days={days} url={url} readOnly={readOnly} onOpen={(id) => setOpen({ id, list: allList })} />
         ) : book ? (
           <>
             <div className="dj-book" {...swipe}>
@@ -409,6 +423,7 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
           pageOf={(photoId) => pages.find((pg) => pg.blocks.some((b) => b.ids?.includes(photoId)))?.id}
           onClose={() => setOpen(null)} onGo={(id) => setOpen((o) => ({ ...o, id }))}
           onCaption={updateCaption} onMove={movePhoto} onDelete={removePhoto}
+          caption={caption} actById={actById} activities={data.activities || []} onActivity={setPhotoActivity}
         />
       )}
       {toast && <div className="toast" role="status">{toast}</div>}
@@ -436,12 +451,12 @@ function Hanko({ day, jp }) {
   );
 }
 
-function Page({ page, days, jp, today, city, theme, photosById, url, edit, focusBlock, onOpen, onDay, onTitle, onBlocks, onAddPhotos, onAddText, onAddPhotoBlock, onDropBlockPhotos, onDelete, onFileDrop }) {
+function Page({ page, days, jp, today, city, theme, photosById, url, caption, edit, focusBlock, onOpen, onDay, onTitle, onBlocks, onAddPhotos, onAddText, onAddVideo, onAddPhotoBlock, onDropBlockPhotos, onDelete, onFileDrop }) {
   const [drag, setDrag] = useState(false);
   const idx = page.day ? days.indexOf(page.day) : -1;
   const auto = theme || (city ? `${city.emoji || ''} ${city.name}`.trim() : idx >= 0 ? `${idx + 1}º dia` : 'Página');
   const title = page.title || auto;
-  const blocks = edit ? page.blocks : page.blocks.filter((b) => (b.type === 'photos' ? b.ids.length : b.text?.trim()));
+  const blocks = edit ? page.blocks : page.blocks.filter(blockHasContent);
   const move = (i, d) => onBlocks((bl) => { const n = [...bl]; const j = i + d; if (j < 0 || j >= n.length) return bl; [n[i], n[j]] = [n[j], n[i]]; return n; });
   const remove = (b) => {
     const n = b.ids?.length || 0;
@@ -482,15 +497,23 @@ function Page({ page, days, jp, today, city, theme, photosById, url, edit, focus
 
       {blocks.map((b, i) => (
         <div key={b.id} className={`dj-block ${b.type}${edit ? ' edit' : ''}`}>
-          {edit && i > 0 && <Inserter onPhotos={(files) => { const id = onAddPhotoBlock(i); onAddPhotos(files, id); }} onText={() => onAddText(i)} />}
+          {edit && i > 0 && <Inserter onPhotos={(files) => { const id = onAddPhotoBlock(i); onAddPhotos(files, id); }} onText={() => onAddText(i)} onVideo={() => onAddVideo(i)} />}
           {edit && (
             <div className="dj-block-bar">
-              <div className="dj-seg" role="group" aria-label={b.type === 'photos' ? 'Layout das fotos' : 'Estilo do texto'}>
-                {(b.type === 'photos' ? LAYOUTS : STYLES).map(([k, l]) => (
-                  <button key={k} className={(b.layout || b.style) === k ? 'on' : ''} aria-pressed={(b.layout || b.style) === k}
-                    onClick={() => patch(b, b.type === 'photos' ? { layout: k } : { style: k })}>{l}</button>
-                ))}
-              </div>
+              {b.type === 'video' ? (
+                <div className="dj-seg" role="group" aria-label="Formato do vídeo">
+                  {[[false, 'Horizontal'], [true, 'Vertical']].map(([k, l]) => (
+                    <button key={l} className={!!b.vertical === k ? 'on' : ''} aria-pressed={!!b.vertical === k} onClick={() => patch(b, { vertical: k })}>{l}</button>
+                  ))}
+                </div>
+              ) : (
+                <div className="dj-seg" role="group" aria-label={b.type === 'photos' ? 'Layout das fotos' : 'Estilo do texto'}>
+                  {(b.type === 'photos' ? LAYOUTS : STYLES).map(([k, l]) => (
+                    <button key={k} className={(b.layout || b.style) === k ? 'on' : ''} aria-pressed={(b.layout || b.style) === k}
+                      onClick={() => patch(b, b.type === 'photos' ? { layout: k } : { style: k })}>{l}</button>
+                  ))}
+                </div>
+              )}
               <span className="spacer" />
               {b.type === 'photos' && <PhotoButton label="+ fotos" className="sm" onFiles={(f) => onAddPhotos(f, b.id)} />}
               <button className="icon-btn sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Subir bloco" title="Subir">↑</button>
@@ -499,7 +522,9 @@ function Page({ page, days, jp, today, city, theme, photosById, url, edit, focus
             </div>
           )}
           {b.type === 'photos' ? (
-            <Photos block={b} photosById={photosById} url={url} edit={edit} onOpen={onOpen} onReorder={(ids) => patch(b, { ids })} />
+            <Photos block={b} photosById={photosById} url={url} caption={caption} edit={edit} onOpen={onOpen} onReorder={(ids) => patch(b, { ids })} />
+          ) : b.type === 'video' ? (
+            <VideoBlock block={b} edit={edit} autoFocus={focusBlock === b.id} onChange={(p) => patch(b, p)} />
           ) : (
             <TextBlock block={b} edit={edit} autoFocus={focusBlock === b.id} onChange={(text) => patch(b, { text })} />
           )}
@@ -508,7 +533,7 @@ function Page({ page, days, jp, today, city, theme, photosById, url, edit, focus
       {edit && (
         <div className="dj-block-end">
           {!page.blocks.length && <p className="muted small">Página em branco. Comece com fotos ou com um texto:</p>}
-          <Inserter always onPhotos={(files) => { const id = onAddPhotoBlock(page.blocks.length); onAddPhotos(files, id); }} onText={() => onAddText(page.blocks.length)} />
+          <Inserter always onPhotos={(files) => { const id = onAddPhotoBlock(page.blocks.length); onAddPhotos(files, id); }} onText={() => onAddText(page.blocks.length)} onVideo={() => onAddVideo(page.blocks.length)} />
         </div>
       )}
       {drag && <div className="dj-dropping dj-hand">solte para colar nesta página</div>}
@@ -517,7 +542,7 @@ function Page({ page, days, jp, today, city, theme, photosById, url, edit, focus
 }
 
 // "+" entre os blocos: foto ou texto
-function Inserter({ onPhotos, onText, always = false }) {
+function Inserter({ onPhotos, onText, onVideo, always = false }) {
   return (
     <div className={`dj-insert${always ? ' always' : ''}`}>
       <label className="btn-like sm">
@@ -525,11 +550,12 @@ function Inserter({ onPhotos, onText, always = false }) {
         <input type="file" accept="image/*" multiple hidden onChange={(e) => { const f = [...(e.target.files || [])]; e.target.value = ''; if (f.length) onPhotos(f); }} />
       </label>
       <button className="sm" onClick={onText}>+ Texto</button>
+      {onVideo && <button className="sm" onClick={onVideo} title="Vídeo do YouTube">+ Vídeo</button>}
     </div>
   );
 }
 
-function Photos({ block, photosById, url, edit, onOpen, onReorder }) {
+function Photos({ block, photosById, url, caption, edit, onOpen, onReorder }) {
   const list = block.ids.map((x) => photosById[x]).filter(Boolean);
   if (!list.length) return edit ? <div className="dj-noph muted small">Bloco sem fotos ainda. Use “+ fotos”.</div> : null;
   const layout = block.layout || 'mosaico';
@@ -546,7 +572,7 @@ function Photos({ block, photosById, url, edit, onOpen, onReorder }) {
         {list.map((p, i) => (
           <figure key={p.id} className="dj-pol" style={{ '--r': `${tilt(p.id)}deg` }}>
             <button onClick={() => onOpen(p.id)} aria-label={p.caption ? `Abrir foto: ${p.caption}` : 'Abrir foto'}><img src={url.thumb(p.id)} alt={p.caption || ''} loading="lazy" /></button>
-            <figcaption>{p.caption || (p.taken_at ? p.taken_at.slice(11, 16) : '')}</figcaption>
+            <figcaption>{caption(p)}</figcaption>
             {tools(i)}
           </figure>
         ))}
@@ -559,7 +585,7 @@ function Photos({ block, photosById, url, edit, onOpen, onReorder }) {
         {list.map((p, i) => (
           <figure key={p.id}>
             <button onClick={() => onOpen(p.id)} aria-label="Abrir foto"><img src={url.full(p.id)} alt={p.caption || ''} loading="lazy" style={p.w && p.h ? { aspectRatio: `${p.w} / ${p.h}` } : undefined} /></button>
-            {p.caption && <figcaption>{p.caption}</figcaption>}
+            {caption(p) && <figcaption>{caption(p)}</figcaption>}
             {tools(i)}
           </figure>
         ))}
@@ -579,6 +605,72 @@ function Photos({ block, photosById, url, edit, onOpen, onReorder }) {
         </figure>
       ))}
     </div>
+  );
+}
+
+// vídeo: o arquivo fica no YouTube, Vimeo, Google Drive, Instagram ou TikTok (resolução cheia, sem ocupar o banco do app);
+// o álbum mostra a capa e só carrega o player quando você toca no ▶
+function VideoBlock({ block, edit, autoFocus, onChange }) {
+  const [playing, setPlaying] = useState(false);
+  const [link, setLink] = useState('');
+  const [msg, setMsg] = useState(null); // { bad, text }
+  const [cap, setCap] = useState(block.caption || '');
+  const ref = useRef(null);
+  const v = videoOf(block);
+  const key = v ? `${v.src}:${v.vid}` : '';
+  useEffect(() => { setCap(block.caption || ''); }, [block.caption]);
+  useEffect(() => { if (autoFocus && edit && !v) ref.current?.focus(); }, [autoFocus, edit, key]);
+  useEffect(() => { setPlaying(false); }, [key, edit]);
+  const take = async (text) => {
+    setLink(text);
+    let r = parseVideo(text);
+    if (r?.short) {
+      setMsg({ text: 'Abrindo o link do TikTok…' });
+      r = await api.resolveVideo(r.short).then((x) => ({ ...x, vertical: true })).catch(() => null);
+      if (!r) { setMsg({ bad: true, text: 'Não consegui abrir esse link do TikTok. Abra o vídeo no navegador e copie o endereço completo.' }); return; }
+    }
+    if (!r) { setMsg(text.trim() ? { bad: true, text: 'Não reconheci esse link. Use um link do YouTube, Vimeo, Google Drive, Instagram ou TikTok.' } : null); return; }
+    setMsg(null);
+    setLink('');
+    onChange({ src: r.src, vid: r.vid, vertical: !!r.vertical });
+  };
+  if (edit && !v) {
+    return (
+      <div className="dj-video-new">
+        <input ref={ref} type="url" inputMode="url" value={link} placeholder="Cole o link do vídeo" aria-label="Link do vídeo"
+          onChange={(e) => take(e.target.value)} />
+        <p className={`small ${msg?.bad ? 'dj-warn' : 'muted'}`}>
+          {msg?.text || <>Vale <b>YouTube</b> (pode ser “Não listado”), <b>Vimeo</b>, <b>Google Drive</b> (compartilhado com “qualquer pessoa com o link”), <b>Instagram</b> e <b>TikTok</b> (conta pública). No app, toque em Compartilhar › Copiar link e cole aqui.</>}
+        </p>
+      </div>
+    );
+  }
+  if (!v) return null;
+  const pf = PLATFORMS[v.src];
+  const covers = coverUrls(v, block.vertical);
+  return (
+    <figure className={`dj-video ${block.vertical ? 'vertical' : 'wide'} ${v.src}`}>
+      <div className="dj-video-frame">
+        {playing ? (
+          <iframe src={embedUrl(v)} title={block.caption || `Vídeo do ${pf.name}`}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
+        ) : (
+          <button className={`dj-video-cover${covers.length ? '' : ' plain'}`} onClick={() => setPlaying(true)} aria-label={`Assistir${block.caption ? `: ${block.caption}` : ' o vídeo'} (${pf.name})`}
+            style={{ '--pf': pf.color, ...(covers.length ? { backgroundImage: covers.map((u) => `url(${u})`).join(', ') } : {}) }}>
+            <span className="dj-video-play" aria-hidden="true">▶</span>
+            <span className="dj-video-pf">{pf.name}</span>
+          </button>
+        )}
+      </div>
+      {edit ? (
+        <div className="dj-video-edit">
+          <input value={cap} maxLength={300} placeholder="Legenda (opcional)" aria-label="Legenda do vídeo"
+            onChange={(e) => setCap(e.target.value)} onBlur={() => cap !== (block.caption || '') && onChange({ caption: cap })} />
+          <button className="sm ghost" onClick={() => onChange({ src: '', vid: '' })}>Trocar vídeo</button>
+          <a className="small" href={pageUrl(v)} target="_blank" rel="noreferrer">abrir no {pf.name}</a>
+        </div>
+      ) : block.caption ? <figcaption>{block.caption}</figcaption> : null}
+    </figure>
   );
 }
 
@@ -606,21 +698,31 @@ function TextBlock({ block, edit, autoFocus, onChange }) {
 }
 
 // todas as fotos por dia, como no rolo da câmera
-function AllPhotos({ list, days, url, onOpen }) {
+function AllPhotos({ list, days, url, readOnly, onOpen }) {
   const groups = useMemo(() => {
     const m = new Map();
     list.forEach((p) => { const k = p.day && days.includes(p.day) ? p.day : ''; if (!m.has(k)) m.set(k, []); m.get(k).push(p); });
     return [...m.entries()].sort(([a], [b]) => (a || '9999').localeCompare(b || '9999'));
   }, [list, days]);
   if (!list.length) return <p className="dj-empty dj-hand">Nenhuma foto ainda.</p>;
+  const noPlace = list.filter((p) => !hasPlace(p)).length;
   return (
     <div className="dj-roll">
+      {!readOnly && noPlace > 0 && (
+        <p className="dj-noplace">
+          <b>{noPlace === list.length ? 'Nenhuma foto tem localização.' : `${noPlace} de ${list.length} fotos estão sem localização.`}</b>{' '}
+          Elas não aparecem no mapa. No celular, ligue a localização na câmera (no Galaxy: Câmera › Configurações › Marcas de localização) e envie a foto original, sem editar nem passar pelo WhatsApp, que apaga esses dados.
+        </p>
+      )}
       {groups.map(([day, ps]) => (
         <section key={day || 'sem'}>
           <h3>{day ? <>{fmtDayLong(day)} <span className="muted">· {days.indexOf(day) + 1}º dia</span></> : 'Fora das datas da viagem'} <span className="muted">· {ps.length}</span></h3>
           <div className="dj-roll-grid">
             {ps.map((p) => (
-              <button key={p.id} onClick={() => onOpen(p.id)} aria-label={p.caption || 'Abrir foto'}><img src={url.thumb(p.id)} alt={p.caption || ''} loading="lazy" /></button>
+              <button key={p.id} onClick={() => onOpen(p.id)} aria-label={p.caption || 'Abrir foto'}>
+                <img src={url.thumb(p.id)} alt={p.caption || ''} loading="lazy" />
+                {hasPlace(p) && <span className="dj-pin" aria-label="com localização" title="Com localização">●</span>}
+              </button>
             ))}
           </div>
         </section>
@@ -629,10 +731,11 @@ function AllPhotos({ list, days, url, onOpen }) {
   );
 }
 
-function Lightbox({ list, id, url, readOnly, pages, pageOf, onClose, onGo, onCaption, onMove, onDelete }) {
+function Lightbox({ list, id, url, readOnly, pages, pageOf, onClose, onGo, onCaption, onMove, onDelete, caption, actById, activities, onActivity }) {
   const i = list.findIndex((p) => p.id === id);
   const p = list[i];
   const [cap, setCap] = useState(p?.caption || '');
+  const [info, setInfo] = useState(() => { try { return localStorage.getItem('dj-info') === '1'; } catch { return false; } });
   const touch = useRef(null);
   useEffect(() => { setCap(p?.caption || ''); }, [p?.id]);
   useEffect(() => {
@@ -648,6 +751,11 @@ function Lightbox({ list, id, url, readOnly, pages, pageOf, onClose, onGo, onCap
   if (!p) return null;
   const saveCap = () => { if ((p.caption || '') !== cap.trim()) onCaption(p, cap.trim()); };
   const page = pageOf(p.id);
+  const autoCap = caption({ ...p, caption: '' });
+  const act = p.activity_id && actById[p.activity_id];
+  const sheet = techSheet(p);
+  const dayActs = principals(activities).filter((a) => a.day === p.day && a.kind !== 'free');
+  const toggleInfo = () => setInfo((v) => { try { localStorage.setItem('dj-info', v ? '0' : '1'); } catch { /* só agora */ } return !v; });
   // deslizar o dedo para os lados troca de foto
   const swipe = {
     onTouchStart: (e) => { touch.current = e.touches[0].clientX; },
@@ -658,20 +766,21 @@ function Lightbox({ list, id, url, readOnly, pages, pageOf, onClose, onGo, onCap
     },
   };
   return (
-    <div className="dj-lb" role="dialog" aria-modal="true" aria-label="Foto do álbum" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} {...swipe}>
+    <div className={`dj-lb${info ? ' info-on' : ''}`} role="dialog" aria-modal="true" aria-label="Foto do álbum" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} {...swipe}>
       <button className="dj-lb-x icon-btn" onClick={onClose} aria-label="Fechar">×</button>
       {i > 0 && <button className="dj-lb-nav prev icon-btn" onClick={() => onGo(list[i - 1].id)} aria-label="Foto anterior">‹</button>}
       {i < list.length - 1 && <button className="dj-lb-nav next icon-btn" onClick={() => onGo(list[i + 1].id)} aria-label="Próxima foto">›</button>}
       <figure className="dj-lb-pol">
         <img src={url.full(p.id)} alt={p.caption || ''} style={{ backgroundImage: `url(${url.thumb(p.id)})` }} />
-        {readOnly ? (p.caption ? <figcaption className="dj-lb-cap">{p.caption}</figcaption> : null) : (
-          <input className="dj-lb-cap" value={cap} placeholder="escreva uma legenda…" maxLength={500} aria-label="Legenda"
+        {readOnly ? (caption(p) ? <figcaption className="dj-lb-cap">{caption(p)}</figcaption> : null) : (
+          <input className="dj-lb-cap" value={cap} placeholder={autoCap || 'escreva uma legenda…'} maxLength={500} aria-label="Legenda"
             onChange={(e) => setCap(e.target.value)} onBlur={saveCap} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
         )}
       </figure>
       <div className="dj-lb-bar">
         <span className="muted small">{i + 1} de {list.length}{p.taken_at ? ` · ${fmtDay(p.taken_at.slice(0, 10))} às ${p.taken_at.slice(11, 16)}` : ''}</span>
         <span className="spacer" />
+        <button className={`dj-info-btn${info ? ' on' : ''}`} onClick={toggleInfo} aria-pressed={info} title="Informações da foto">ⓘ Info</button>
         {!readOnly && pages.length > 1 && (
           <select value={page || ''} onChange={(e) => e.target.value && onMove(p, Number(e.target.value))} aria-label="Página do álbum">
             {!page && <option value="">Em nenhuma página</option>}
@@ -681,6 +790,33 @@ function Lightbox({ list, id, url, readOnly, pages, pageOf, onClose, onGo, onCap
         <a className="btn-like" href={`${url.full(p.id)}?download`} download>Baixar</a>
         {!readOnly && <button className="danger" onClick={() => onDelete(p)}>Excluir</button>}
       </div>
+      {info && (
+        <aside className="dj-info" aria-label="Informações da foto">
+          <dl>
+            <dt>Onde</dt>
+            <dd>
+              {hasPlace(p) ? (
+                <>{p.lat.toFixed(5)}, {p.lng.toFixed(5)}{sheet.altitude ? ` · ${sheet.altitude}` : ''} · <a href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`} target="_blank" rel="noreferrer">ver no mapa</a></>
+              ) : <span className="dj-warn">Sem localização: a foto não aparece no mapa.</span>}
+            </dd>
+            <dt>Atividade</dt>
+            <dd>
+              {readOnly ? (act ? act.title : '—') : (
+                <select value={p.activity_id || ''} onChange={(e) => onActivity(p, Number(e.target.value) || null)} aria-label="Atividade do roteiro">
+                  <option value="">Nenhuma</option>
+                  {act && !dayActs.some((a) => a.id === act.id) && <option value={act.id}>{act.title}</option>}
+                  {dayActs.map((a) => <option key={a.id} value={a.id}>{a.start ? `${a.start} · ` : ''}{a.title}</option>)}
+                </select>
+              )}
+            </dd>
+            {p.taken_at && <><dt>Quando</dt><dd>{fmtDayLong(p.taken_at.slice(0, 10))}, {p.taken_at.slice(11, 16)}{sheet.noExif ? ' (data do arquivo; a foto não tinha a data gravada)' : ''}</dd></>}
+            {sheet.camera && <><dt>Câmera</dt><dd>{sheet.camera}</dd></>}
+            {sheet.lens && <><dt>Lente</dt><dd>{sheet.lens}</dd></>}
+            {sheet.exposure && <><dt>Exposição</dt><dd>{sheet.exposure}</dd></>}
+            {sheet.original && <><dt>Original</dt><dd>{sheet.original} · no app: {p.w} × {p.h}</dd></>}
+          </dl>
+        </aside>
+      )}
     </div>
   );
 }

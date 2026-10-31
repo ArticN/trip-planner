@@ -11,6 +11,7 @@ import Metro from './Metro.jsx';
 import Analysis from './Analysis.jsx';
 import Tickets from './Tickets.jsx';
 import Journal from './Journal.jsx';
+import { hasPlace, autoCaption } from './photoMeta.js';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
@@ -43,6 +44,10 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [showStaysDay, setShowStaysDay] = useState(true);
   const [showStaysTrip, setShowStaysTrip] = useState(false);
   const [labelNumbers, setLabelNumbers] = useState(true);
+  // fotos do diário no mapa (só as que vieram com GPS)
+  const [showPhotos, setShowPhotos] = useState(() => { try { return localStorage.getItem('map-photos') !== '0'; } catch { return true; } });
+  const togglePhotos = () => setShowPhotos((v) => { try { localStorage.setItem('map-photos', v ? '0' : '1'); } catch { /* vale só agora */ } return !v; });
+  const [openPhoto, setOpenPhoto] = useState(null);
   const [modal, setModal] = useState(null);
   const [flyTarget, setFlyTarget] = useState(null);
   const [cityFocus, setCityFocus] = useState(null);
@@ -164,6 +169,15 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     setSelectedId(null);
     onNavigate(target);
   }, [onNavigate]);
+  const showPhoto = (id) => { setOpenPhoto(id); go('diario'); };
+  useEffect(() => { if (sel !== 'diario') setOpenPhoto(null); }, [sel]);
+
+  // fotos com GPS: no mapa da viagem todas, no mapa do dia só as do dia (com o caminho feito)
+  const geoPhotos = useMemo(() => (data?.photos || []).filter(hasPlace).filter((p) => sel === 'trip' || p.day === sel), [data?.photos, sel]);
+  const mapPhotos = useMemo(() => {
+    const byId = Object.fromEntries((data?.activities || []).map((a) => [a.id, a]));
+    return geoPhotos.map((p) => ({ ...p, label: p.caption || autoCaption(p, byId, data?.cities || []) }));
+  }, [geoPhotos, data?.activities, data?.cities]);
 
   const step = useCallback((delta) => {
     if (sel === 'trip' || sel === 'analise' || sel === 'ingressos' || sel === 'diario') return;
@@ -587,7 +601,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
   if (sel === 'analise') return <Analysis data={data} onBack={() => go('trip')} onTickets={() => go('ingressos')} />;
   if (sel === 'ingressos') return <Tickets data={data} onBack={() => go('trip')} onToggle={toggleTicket} />;
-  if (sel === 'diario') return <Journal data={data} setData={setData} onBack={() => go('trip')} />;
+  if (sel === 'diario') return <Journal key={openPhoto || 'album'} data={data} setData={setData} initialPhoto={openPhoto} onBack={() => { setOpenPhoto(null); go('trip'); }} />;
 
   const now = nowIn(trip.tz);
   const today = now.day;
@@ -717,10 +731,14 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             showStays={sel === 'trip' ? showStaysTrip : showStaysDay}
             labelNumbers={labelNumbers}
             onBackground={() => setSelectedId(null)}
+            photos={showPhotos ? mapPhotos : []}
+            photoThumb={api.thumbUrl}
+            onPhoto={(p) => showPhoto(p.id)}
           />
           {pinned && !editPositions && !picking && !quickAdd && (
             <PinPanel
               a={pinned} n={mapItems.find((x) => x.id === pinned.id)?.n} group={mapItems.find((x) => x.id === pinned.id)} onAltStep={stepAlt} cityMap={cityMap} fx={fx} tripTz={trip.tz} files={filesOf('activity', pinned.id)}
+              photos={(data.photos || []).filter((p) => p.activity_id === pinned.id)} photoThumb={api.thumbUrl} onPhoto={showPhoto}
               onEdit={openEdit} onToggleDone={toggleDone} onClose={() => setSelectedId(null)}
             />
           )}
@@ -733,6 +751,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button className={quickAdd ? 'on' : ''} onClick={() => setQuickAdd((v) => !v)} title={sel === 'trip' ? 'Clique no mapa para criar uma ideia ali' : 'Clique no mapa para criar uma atividade ali'}>{quickAdd ? 'Clique no mapa…' : '+ No mapa'}</button>
             {sel !== 'trip' && (
               <button className={labelNumbers ? 'on' : ''} onClick={() => setLabelNumbers((v) => !v)} title="Alternar entre números e ícones">{labelNumbers ? 'Números' : 'Ícones'}</button>
+            )}
+            {geoPhotos.length > 0 && (
+              <button className={showPhotos ? 'on' : ''} onClick={togglePhotos} title={sel === 'trip' ? 'Onde cada foto do diário foi tirada' : 'Onde cada foto do dia foi tirada e o caminho feito'}>Fotos</button>
             )}
             <button className={(sel === 'trip' ? showStaysTrip : showStaysDay) ? 'on' : ''} onClick={() => (sel === 'trip' ? setShowStaysTrip((v) => !v) : setShowStaysDay((v) => !v))}>Hotéis</button>
             {sel !== 'trip' && (

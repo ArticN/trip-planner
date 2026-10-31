@@ -20,6 +20,7 @@ Ferramentas do mapa (no celular ficam numa linha que desliza para o lado):
 | Perto daqui | Ver [abaixo](#perto-daqui). |
 | + No mapa | Clique em qualquer ponto do mapa para criar ali uma atividade (no dia) ou uma ideia (na visão geral). O app tenta descobrir o nome e o endereço do ponto. |
 | Números / Ícones | No dia: pinos com o número da ordem ou com o ícone do tipo. |
+| Fotos | Aparece quando há fotos do [diário](diario.md#o-que-o-app-lê-de-cada-foto) com GPS. Mostra ou esconde as miniaturas (ver [abaixo](#fotos-do-diário)). A escolha fica salva. |
 | Hotéis | Mostra ou esconde as hospedagens. |
 | Mover pontos | No dia: arraste os pinos para corrigir a posição. Salva sozinho. |
 | Tipo de mapa (canto) | **Mapa** (nomes em português ou inglês), **Nomes locais** (como nas placas), **Relevo** e **Satélite**. A escolha fica salva. |
@@ -29,6 +30,13 @@ Ferramentas do mapa (no celular ficam numa linha que desliza para o lado):
 **Sobre este lugar (Wikipédia)** traz o resumo
 da página (em português, ou inglês se não houver), só se a página for de um lugar perto do pino, para evitar homônimos.
 Num grupo de [opções](roteiro.md#opções-no-mesmo-horário), o painel também tem as setas do carrossel.
+
+## Fotos do diário
+
+As fotos do [diário](diario.md) que vieram com GPS aparecem como miniaturas onde foram tiradas: todas na visão geral, e
+só as do dia no mapa do dia. No dia, uma linha tracejada laranja liga as fotos na ordem do horário: o caminho que você
+fez de verdade, para comparar com o planejado. Passar o mouse mostra a legenda e a hora; tocar abre a foto no diário. O
+painel do pino de uma atividade mostra as fotos ligadas a ela.
 
 ## Adicionar pelo mapa
 

@@ -55,13 +55,16 @@ export const api = {
   deleteFile: (id) => req('DELETE', `/api/files/${id}`),
   fileUrl: (id) => `/api/files/${id}`,
   // diário de viagem: a miniatura e a foto vão juntas no corpo (X-Thumb-Length separa as duas)
+  resolveVideo: (url) => req('POST', '/api/video/resolve', { url }),
   createPage: (tripId, p) => req('POST', `/api/trips/${tripId}/pages`, p),
   updatePage: (id, patch) => req('PUT', `/api/pages/${id}`, patch),
   deletePage: (id) => req('DELETE', `/api/pages/${id}`),
-  uploadPhoto: async (tripId, { thumb, full, day, taken, w, h }) => {
+  uploadPhoto: async (tripId, { thumb, full, day, taken, w, h, lat, lng, activity, meta }) => {
     const res = await fetch(`/api/trips/${tripId}/photos`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream', 'X-Thumb-Length': String(thumb.size), 'X-Day': day || '', 'X-Taken': taken || '', 'X-W': String(w || ''), 'X-H': String(h || '') },
+      headers: { 'Content-Type': 'application/octet-stream', 'X-Thumb-Length': String(thumb.size), 'X-Day': day || '', 'X-Taken': taken || '', 'X-W': String(w || ''), 'X-H': String(h || ''),
+        'X-Lat': lat == null ? '' : String(lat), 'X-Lng': lng == null ? '' : String(lng), 'X-Activity': activity ? String(activity) : '',
+        'X-Meta': meta ? encodeURIComponent(JSON.stringify(meta)).slice(0, 1500) : '' },
       body: new Blob([thumb, full]),
     });
     if (res.status === 401) window.dispatchEvent(new Event('auth-required'));

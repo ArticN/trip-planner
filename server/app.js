@@ -153,6 +153,8 @@ async function migrate() {
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
   await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT'], ['share_money', 'INTEGER DEFAULT 0'], ['share_diary', 'INTEGER DEFAULT 0']]);
   await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
+  // metadados das fotos (v1.40): onde foi tirada, a atividade do roteiro e a câmera (JSON)
+  await addCols('photos', [['lat', 'REAL'], ['lng', 'REAL'], ['activity_id', 'INTEGER'], ['meta', 'TEXT']]);
 
   if (legacy) {
     const kv = Object.fromEntries((await db.all('SELECT key, value FROM trip')).map((r) => [r.key, r.value]));
@@ -218,7 +220,7 @@ async function createTripFull(b) {
   (b.days || []).filter((d) => d.day && (d.title || d.notes)).forEach((d) => list.push(insDay(id, d)));
   // diário: as fotos não vão no backup, então só os blocos de texto voltam (backup da v1.38: journal vira páginas)
   const pages = Array.isArray(b.pages) ? b.pages : (b.journal || []).filter((d) => d.day && d.text).map((d) => ({ day: d.day, blocks: [{ type: 'text', style: 'nota', text: d.text }] }));
-  pages.map((p) => ({ ...p, blocks: cleanBlocks(p.blocks).filter((x) => x.type === 'text') })).filter((p) => p.blocks.length)
+  pages.map((p) => ({ ...p, blocks: cleanBlocks(p.blocks).filter((x) => x.type === 'text' || (x.type === 'video' && x.vid)) })).filter((p) => p.blocks.length)
     .forEach((p, i) => list.push(insPage(id, p, i)));
   const byDay = new Map();
   (b.activities || []).forEach((x) => {
@@ -243,16 +245,30 @@ async function createTripFull(b) {
 // apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
 const deleteTrip = (id) => db.batch(['files', 'photos', 'journal', 'album_pages', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
 
-const PHOTO_META = 'id, day, caption, taken_at, w, h, size, sort, created_at';
+const PHOTO_META = 'id, day, caption, taken_at, w, h, size, sort, created_at, lat, lng, activity_id, meta';
 const parseBlocks = (v) => { try { const b = JSON.parse(v || '[]'); return Array.isArray(b) ? b : []; } catch { return []; } };
 const pageOut = (r) => ({ ...r, blocks: parseBlocks(r.blocks) });
 // blocos aceitos: fotos (ids + layout) e texto (estilo + texto); o resto é descartado
 const LAYOUTS = ['mosaico', 'grade', 'destaque', 'polaroides', 'filme'];
 const STYLES = ['nota', 'titulo', 'citacao'];
+// vídeo do álbum: o arquivo fica na plataforma; o bloco guarda só a plataforma e o código do vídeo
+const VIDEO_IDS = {
+  yt: /^[\w-]{11}$/,
+  vimeo: /^\d{6,12}(\/[0-9a-f]{6,20})?$/,
+  drive: /^[\w-]{20,80}$/,
+  ig: /^[\w-]{5,40}$/,
+  tiktok: /^\d{10,25}$/,
+};
 const cleanBlocks = (list) => (Array.isArray(list) ? list : []).slice(0, 200).map((b, i) => {
   const id = String(b?.id || `b${Date.now().toString(36)}${i}`).slice(0, 40);
   if (b?.type === 'photos') return { id, type: 'photos', layout: LAYOUTS.includes(b.layout) ? b.layout : 'mosaico', ids: (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isInteger).slice(0, 500) };
   if (b?.type === 'text') return { id, type: 'text', style: STYLES.includes(b.style) ? b.style : 'nota', text: String(b.text ?? '').slice(0, 20000) };
+  // vídeo do YouTube: só o código do vídeo (11 caracteres); o arquivo fica no YouTube
+  if (b?.type === 'video') {
+    const src = Object.hasOwn(VIDEO_IDS, b.src) ? b.src : 'yt';
+    const vid = VIDEO_IDS[src].test(String(b.vid || '')) ? String(b.vid) : '';
+    return { id, type: 'video', src, vid, vertical: !!b.vertical, caption: String(b.caption ?? '').slice(0, 300) };
+  }
   return null;
 }).filter(Boolean);
 const insPage = (tripId, p, sort) => ['INSERT INTO album_pages (trip_id, day, title, blocks, sort) VALUES (?,?,?,?,?)',
@@ -654,6 +670,20 @@ app.delete('/api/files/:fid', h(async (req, res) => {
 
 // ── diário de viagem
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+// câmera e foto original, como o aparelho leu do EXIF: só campos conhecidos e curtos
+const META_KEYS = { make: 's', model: 's', lens: 's', f: 'n', exp: 'n', iso: 'n', focal: 'n', focal35: 'n', alt: 'n', ow: 'n', oh: 'n', noexif: 'n' };
+function cleanMeta(raw) {
+  let m;
+  try { m = JSON.parse(decodeURIComponent(String(raw || ''))); } catch { return null; }
+  if (!m || typeof m !== 'object') return null;
+  const out = {};
+  for (const [k, t] of Object.entries(META_KEYS)) {
+    const x = m[k];
+    if (t === 's' && typeof x === 'string' && x.trim()) out[k] = x.trim().slice(0, 80);
+    if (t === 'n' && typeof x === 'number' && Number.isFinite(x)) out[k] = x;
+  }
+  return Object.keys(out).length ? JSON.stringify(out) : null;
+}
 function photoHeaders(req, res) {
   res.setHeader('Content-Type', 'image/jpeg');
   res.setHeader('Content-Disposition', `${'download' in req.query ? 'attachment' : 'inline'}; filename="foto-${Number(req.params.pid)}.jpg"`);
@@ -672,10 +702,16 @@ app.post('/api/trips/:id/photos', needTrip, express.raw({ type: () => true, limi
   if (!jpeg(thumb) || !jpeg(data)) return res.status(400).json({ error: 'a foto precisa chegar em JPEG' });
   const day = String(req.get('x-day') || '');
   const taken = String(req.get('x-taken') || '').slice(0, 25) || null;
-  const int = (v) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : null);
+  const int = (v) => (v !== '' && v != null && Number.isFinite(Number(v)) ? Math.round(Number(v)) : null);
+  const num = (v, max) => (v !== '' && v != null && Number.isFinite(Number(v)) && Math.abs(Number(v)) <= max ? Number(v) : null);
+  const lat = num(req.get('x-lat'), 90);
+  const lng = num(req.get('x-lng'), 180);
+  const act = int(req.get('x-activity'));
+  const activity = act && (await db.get('SELECT id FROM activities WHERE id = ? AND trip_id = ?', [act, req.tripId])) ? act : null;
   const sort = await nextSort('photos', 'trip_id = ? AND day IS ?', [req.tripId, DAY_RE.test(day) ? day : null]);
-  const r = await db.run('INSERT INTO photos (trip_id, day, taken_at, w, h, size, sort, data, thumb) VALUES (?,?,?,?,?,?,?,?,?)',
-    [req.tripId, DAY_RE.test(day) ? day : null, taken, int(req.get('x-w')), int(req.get('x-h')), data.length, sort, data, thumb]);
+  const r = await db.run('INSERT INTO photos (trip_id, day, taken_at, w, h, size, sort, data, thumb, lat, lng, activity_id, meta) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    [req.tripId, DAY_RE.test(day) ? day : null, taken, int(req.get('x-w')), int(req.get('x-h')), data.length, sort, data, thumb,
+      lat != null && lng != null ? lat : null, lat != null && lng != null ? lng : null, activity, cleanMeta(req.get('x-meta'))]);
   res.status(201).json(await db.get(`SELECT ${PHOTO_META} FROM photos WHERE id = ?`, [r.lastInsertRowid]));
 }));
 const sendPhoto = (col) => h(async (req, res) => {
@@ -691,6 +727,24 @@ app.post('/api/trips/:id/pages', needTrip, h(async (req, res) => {
   const r = await run1(insPage(req.tripId, b, sort));
   res.status(201).json(pageOut(await db.get('SELECT id, day, title, blocks, sort FROM album_pages WHERE id = ?', [r.lastInsertRowid])));
 }));
+// link curto do TikTok (vt.tiktok.com/…, o que o app copia): segue os redirecionamentos para achar o código do vídeo.
+// Só para hosts do TikTok, para o servidor não virar um proxy aberto.
+const TIKTOK_HOST = /^(?:vt|vm|www|m)\.tiktok\.com$/i;
+app.post('/api/video/resolve', h(async (req, res) => {
+  let url;
+  try { url = new URL(String(req.body?.url || '')); } catch { return res.status(400).json({ error: 'link inválido' }); }
+  for (let i = 0; i < 5; i++) {
+    if (url.protocol !== 'https:' || !TIKTOK_HOST.test(url.hostname)) break;
+    const m = url.pathname.match(/\/video\/(\d{10,25})/);
+    if (m) return res.json({ src: 'tiktok', vid: m[1] });
+    const r = await fetch(url, { method: 'HEAD', redirect: 'manual', signal: AbortSignal.timeout(6000) }).catch(() => null);
+    const loc = r?.headers.get('location');
+    if (!loc) break;
+    url = new URL(loc, url);
+  }
+  res.status(404).json({ error: 'não achei o vídeo nesse link' });
+}));
+
 app.put('/api/pages/:pid', h(async (req, res) => {
   const pid = Number(req.params.pid);
   const cur = await db.get('SELECT * FROM album_pages WHERE id = ?', [pid]);
@@ -722,8 +776,9 @@ app.put('/api/photos/:pid', h(async (req, res) => {
     caption: 'caption' in b ? String(b.caption ?? '').trim().slice(0, 500) || null : cur.caption,
     day: 'day' in b ? (DAY_RE.test(String(b.day)) ? String(b.day) : null) : cur.day,
     sort: Number.isFinite(Number(b.sort)) ? Number(b.sort) : cur.sort,
+    activity_id: 'activity_id' in b ? (Number(b.activity_id) || null) : cur.activity_id,
   };
-  await db.run('UPDATE photos SET caption = ?, day = ?, sort = ? WHERE id = ?', [row.caption, row.day, row.sort, pid]);
+  await db.run('UPDATE photos SET caption = ?, day = ?, sort = ?, activity_id = ? WHERE id = ?', [row.caption, row.day, row.sort, row.activity_id, pid]);
   res.json({ ...cur, ...row });
 }));
 app.delete('/api/photos/:pid', h(async (req, res) => {
