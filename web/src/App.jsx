@@ -5,9 +5,9 @@ import Login from './Login.jsx';
 import ShareView from './ShareView.jsx';
 import { api } from './api.js';
 
-// rotas por hash: #/ (viagens) · #/t/<id> (visão geral) · #/t/<id>/<aaaa-mm-dd> (dia) · #/t/<id>/analise
+// rotas por hash: #/ (viagens) · #/t/<id> (visão geral) · #/t/<id>/<aaaa-mm-dd> (dia) · #/t/<id>/analise · #/t/<id>/ingressos
 function parseHash() {
-  const m = window.location.hash.replace(/^#\/?/, '').match(/^t\/(\d+)(?:\/(\d{4}-\d{2}-\d{2}|analise))?$/);
+  const m = window.location.hash.replace(/^#\/?/, '').match(/^t\/(\d+)(?:\/(\d{4}-\d{2}-\d{2}|analise|ingressos))?$/);
   return m ? { tripId: Number(m[1]), sel: m[2] || 'trip' } : { tripId: null, sel: 'trip' };
 }
 

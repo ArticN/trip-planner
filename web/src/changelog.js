@@ -16,6 +16,17 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.36',
+    date: '2026-10-31',
+    title: 'Ingressos e reservas',
+    items: [
+      'Nova página Ingressos, no topo da viagem (ou no ⋯, no celular): o que falta comprar ou reservar, o que só precisa se escolher aquela opção, o que já foi comprado e o que se paga na entrada.',
+      'Cada item mostra dia, horário, preço, as notas com onde comprar, os links, os anexos (o PDF do ingresso abre direto dali) e quando a venda abre, se as notas disserem.',
+      'Marcar “Comprado” marca o item de reserva da checklist (e cria um, se a atividade ainda não tiver).',
+      'Compartilhar roteiro ganhou a opção “Mostrar gastos e ingressos no link”: com ela ligada, quem tem o link vê os botões Gastos e Ingressos. Códigos de reserva e anexos continuam fora do link.',
+    ],
+  },
+  {
     version: '1.35',
     date: '2026-10-31',
     title: 'Análise rola de novo',

@@ -9,6 +9,7 @@ import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
 import Metro from './Metro.jsx';
 import Analysis from './Analysis.jsx';
+import Tickets from './Tickets.jsx';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
@@ -164,7 +165,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   }, [onNavigate]);
 
   const step = useCallback((delta) => {
-    if (sel === 'trip' || sel === 'analise') return;
+    if (sel === 'trip' || sel === 'analise' || sel === 'ingressos') return;
     const i = days.indexOf(sel) + delta;
     if (i >= 0 && i < days.length) go(days[i]);
   }, [sel, days, go]);
@@ -494,6 +495,18 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     setData((d) => ({ ...d, checklist: d.checklist.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
     await api.updateCheck(id, patch);
   };
+  // página de ingressos: "Comprado" marca o item de reserva da checklist ou cria um ("09/11 Título"), que a página reconhece pelo dia e pelo nome
+  const toggleTicket = (e, done) => {
+    if (e.check?.id) return updateCheck(e.check.id, { done: done ? 1 : 0 });
+    const [, m, d] = (e.day || '').split('-');
+    return createCheck({ grp: 'Reservas e ingressos', text: `${d && m ? `${d}/${m} ` : ''}${e.title}`, done: done ? 1 : 0 });
+  };
+  const setShareMoney = async (on) => {
+    try {
+      const saved = await api.saveTrip(tripId, { ...data.trip, share_money: on ? 1 : 0 });
+      setData((d) => ({ ...d, trip: saved }));
+    } catch { say('Não consegui alterar o link'); }
+  };
   const deleteCheck = (id) => {
     const item = data.checklist.find((x) => x.id === id);
     if (item) softDelete(`Item removido: ${item.text}`, 'checklist', item, () => api.deleteCheck(id));
@@ -565,6 +578,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
   if (sel === 'analise') return <Analysis data={data} onBack={() => go('trip')} />;
+  if (sel === 'ingressos') return <Tickets data={data} onBack={() => go('trip')} onToggle={toggleTicket} />;
 
   const now = nowIn(trip.tz);
   const today = now.day;
@@ -592,6 +606,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <button className="ghost hide-sm" onClick={() => setModal('stays')}>Hospedagens</button>
         <button className="ghost hide-sm" onClick={() => setModal('budget')}>Orçamento</button>
         <button className="ghost hide-sm" onClick={() => go('analise')}>Análise</button>
+        <button className="ghost hide-sm" onClick={() => go('ingressos')}>Ingressos</button>
         <button className="ghost hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
         <button className="ghost hide-sm" onClick={() => setModal('shopping')}>Compras</button>
         <details className="menu">
@@ -600,6 +615,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button className="only-sm" onClick={() => setModal('stays')}>Hospedagens</button>
             <button className="only-sm" onClick={() => setModal('budget')}>Orçamento</button>
             <button className="only-sm" onClick={() => go('analise')}>Análise</button>
+            <button className="only-sm" onClick={() => go('ingressos')}>Ingressos</button>
             <button className="only-sm" onClick={() => setModal('checklist')}>Checklist</button>
             <button className="only-sm" onClick={() => setModal('shopping')}>Compras</button>
             <button onClick={() => setModal('look')}>Aparência</button>
@@ -766,7 +782,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'look' && <AppearanceModal trip={trip} onTripAccent={(accent) => patchTrip({ accent })} onClose={() => setModal(null)} />}
       {modal === 'reminders' && <RemindersModal trip={trip} onSave={patchTrip} onCalendar={setCalendar} notify={notify} onNotify={async (on) => setNotifyState(await setNotify(on))} onClose={() => setModal(null)} />}
       {modal === 'offline' && <OfflineMapModal cities={data.cities} onClose={() => setModal(null)} />}
-      {modal === 'share' && <ShareModal trip={trip} onCreate={() => setShare(true)} onRemove={() => setShare(false)} onClose={() => setModal(null)} />}
+      {modal === 'share' && <ShareModal trip={trip} onCreate={() => setShare(true)} onRemove={() => setShare(false)} onMoney={setShareMoney} onClose={() => setModal(null)} />}
       {toast && !undo && <div className="toast">{toast}</div>}
       {undo && (
         <div className="toast undo-toast" role="status">

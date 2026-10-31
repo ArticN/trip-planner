@@ -16,14 +16,14 @@ de exemplo") ou importando [`examples/viagem-exemplo.json`](../../examples/viage
 | [Mapa](mapa.md) | Visão geral e mapa do dia · tipos de mapa · adicionar pelo mapa · "Perto daqui" · caminho a pé e linhas de trem/metrô · Wikipédia · mapa offline · Meu mapa |
 | [Voos e trechos](voos.md) | Voos e trens com fuso · cartões de Ida e Volta · mapa-múndi do voo · escalas reconhecidas sozinhas (e como isso funciona) |
 | [Dinheiro](dinheiro.md) | Orçamento e análise da viagem · câmbio automático · gasto real e recibo · estatísticas · compras e a cota da Receita |
-| [Organização e agenda](organizacao.md) | Checklist · notas, links e anexos · calendário · exportar .ics · lembretes · imprimir/PDF |
+| [Organização e agenda](organizacao.md) | Checklist · notas, links e anexos · ingressos e reservas · calendário · exportar .ics · lembretes · imprimir/PDF |
 | [Compartilhar e backup](compartilhar-e-backup.md) | Link só de leitura · exportar e importar backup · formato do JSON (campos `alt`, `route`, `via`…) |
 | [O app no dia a dia](app.md) | Instalar no celular (PWA) · funcionar sem internet · celular x computador · atalhos · aparência · Novidades |
 
 ## Onde fica cada coisa
 
 - **Tela inicial**: lista de viagens, viagem em destaque, Meu mapa, Novidades, Importar backup e Aparência (ícone de paleta).
-- **Dentro da viagem, no topo**: lupa (busca), Hospedagens, Orçamento, Checklist, Compras e o menu **⋯** (no celular, todos ficam no ⋯).
+- **Dentro da viagem, no topo**: lupa (busca), Hospedagens, Orçamento, Análise, Ingressos, Checklist, Compras e o menu **⋯** (no celular, todos ficam no ⋯).
 - **Menu ⋯**: Aparência, Editar viagem, Cidades e locais, Estatísticas, Calendário, Compartilhar roteiro, Mapa offline,
   Lembretes, Imprimir ou salvar PDF, Exportar para agenda (.ics) e Exportar backup (JSON).
 - **Barra de dias**: "Geral" abre a visão geral da viagem; cada dia abre o roteiro daquele dia.

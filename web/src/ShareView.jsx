@@ -7,6 +7,7 @@ import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import PinPanel from './PinPanel.jsx';
 import Metro from './Metro.jsx';
 import Analysis from './Analysis.jsx';
+import Tickets from './Tickets.jsx';
 import { KINDS, SLOTS, orderBySlots, principals, collapseAlts, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
 
 const noop = () => {};
@@ -17,7 +18,7 @@ export default function ShareView({ token }) {
   const [error, setError] = useState('');
   const [sel, setSel] = useState('trip');
   const [selectedId, setSelectedId] = useState(null);
-  const [analysis, setAnalysis] = useState(false);
+  const [page, setPage] = useState(null); // null | 'analise' | 'ingressos' (só com gastos liberados no link)
   const sheet = useSheet('half');
   const isMobile = useIsMobile();
 
@@ -49,7 +50,8 @@ export default function ShareView({ token }) {
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>{error}</p></div>;
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
-  if (analysis) return <Analysis data={data} onBack={() => setAnalysis(false)} readOnly />;
+  if (page === 'analise') return <Analysis data={data} onBack={() => setPage(null)} readOnly />;
+  if (page === 'ingressos') return <Tickets data={data} onBack={() => setPage(null)} readOnly />;
 
   // opções no mesmo horário: aparece a principal, com as outras citadas embaixo
   const items = (sel === 'trip' ? principals(data.activities) : collapseAlts(byDay[sel] || []).map((a, i) => ({ ...a, n: i + 1 })));
@@ -69,7 +71,12 @@ export default function ShareView({ token }) {
           </div>
         </div>
         <span className="spacer" />
-        <button className="ghost" onClick={() => setAnalysis(true)}>Análise de gastos</button>
+        {trip.share_money ? (
+          <>
+            <button className="ghost" onClick={() => setPage('analise')}>Gastos</button>
+            <button className="ghost" onClick={() => setPage('ingressos')}>Ingressos</button>
+          </>
+        ) : null}
         <span className="share-badge hide-sm">Somente leitura</span>
       </header>
 
