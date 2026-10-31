@@ -33,7 +33,7 @@ npm ci
 npm run dev      # abre em http://localhost:5173
 ```
 
-Requer **Node 22.13+**. Localmente os dados ficam em `data/planner.db`, que está no `.gitignore`.
+Requer **Node 24**. Localmente os dados ficam em `data/planner.db`, que está no `.gitignore`.
 
 ## O que tem
 
