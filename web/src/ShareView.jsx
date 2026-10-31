@@ -137,6 +137,7 @@ export default function ShareView({ token }) {
             stays={data.stays}
             cities={data.cities}
             stayByDay={sel === 'trip' ? null : stayFor(sel)}
+            checkout={sel === 'trip' ? null : data.stays.find((s) => s.check_out === sel && s !== stayFor(sel)) || null}
             selectedId={selectedId}
             onSelect={(id) => { setSelectedId(id); if (isMobile && id) sheet.setDetent('peek'); }}
             padBottom={isMobile && sheet.detent !== 'full' ? heightOf(sheet.detent, window.innerHeight - 56) : 0}
