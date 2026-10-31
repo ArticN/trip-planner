@@ -509,6 +509,12 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       setData((d) => ({ ...d, trip: saved }));
     } catch { say('Não consegui alterar o link'); }
   };
+  const setShareDiary = async (on) => {
+    try {
+      const saved = await api.saveTrip(tripId, { ...data.trip, share_diary: on ? 1 : 0 });
+      setData((d) => ({ ...d, trip: saved }));
+    } catch { say('Não consegui alterar o link'); }
+  };
   const deleteCheck = (id) => {
     const item = data.checklist.find((x) => x.id === id);
     if (item) softDelete(`Item removido: ${item.text}`, 'checklist', item, () => api.deleteCheck(id));
@@ -787,7 +793,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'look' && <AppearanceModal trip={trip} onTripAccent={(accent) => patchTrip({ accent })} onClose={() => setModal(null)} />}
       {modal === 'reminders' && <RemindersModal trip={trip} onSave={patchTrip} onCalendar={setCalendar} notify={notify} onNotify={async (on) => setNotifyState(await setNotify(on))} onClose={() => setModal(null)} />}
       {modal === 'offline' && <OfflineMapModal cities={data.cities} onClose={() => setModal(null)} />}
-      {modal === 'share' && <ShareModal trip={trip} onCreate={() => setShare(true)} onRemove={() => setShare(false)} onMoney={setShareMoney} onClose={() => setModal(null)} />}
+      {modal === 'share' && <ShareModal trip={trip} onCreate={() => setShare(true)} onRemove={() => setShare(false)} onMoney={setShareMoney} onDiary={setShareDiary} onClose={() => setModal(null)} />}
       {toast && !undo && <div className="toast">{toast}</div>}
       {undo && (
         <div className="toast undo-toast" role="status">

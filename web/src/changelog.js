@@ -15,6 +15,19 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.39',
+    date: '2026-10-31',
+    title: 'Diário vira álbum de fotos',
+    items: [
+      'O Diário agora é um álbum: as fotos vão sozinhas para a página do dia em que foram tiradas, já montadas num mosaico.',
+      'Em Editar, cada página é uma sequência de blocos que você monta como quiser: fotos (Mosaico, Grade, Destaque, Polaroides ou Filme) ou texto (Nota, Título ou Citação). Dá para subir, descer e apagar blocos e mudar a ordem das fotos.',
+      'Páginas livres: crie páginas extras sem dia (como “Melhores momentos”), mude o título ou o dia de qualquer página e mova uma foto de página ao abri-la.',
+      'Nova aba Fotos, com todas as fotos por dia, como o rolo da câmera. Ao abrir uma foto, deslize o dedo para passar para a próxima.',
+      'Compartilhar roteiro ganhou “Mostrar o diário de viagem no link”: quem tem o link vê o álbum e baixa as fotos, sem poder mudar nada.',
+      'O humor do dia e o canhoto do roteiro saíram. Os textos que você já tinha escrito viraram notas nas páginas.',
+    ],
+  },
+  {
     version: '1.38',
     date: '2026-10-31',
     title: 'Diário de viagem',

@@ -691,7 +691,7 @@ export function CitiesModal({ cities, onCreate, onSave, onDelete, onClose }) {
 
 // link de só leitura para mandar a quem viaja junto (sem notas, links, reservas, gastos e checklist);
 // com "mostrar gastos e ingressos" ligado, o link ganha a análise de gastos e a página de ingressos
-export function ShareModal({ trip, onCreate, onRemove, onMoney, onClose }) {
+export function ShareModal({ trip, onCreate, onRemove, onMoney, onDiary, onClose }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const url = trip.share_token ? `${window.location.origin}/#/s/${trip.share_token}` : '';
@@ -720,6 +720,15 @@ export function ShareModal({ trip, onCreate, onRemove, onMoney, onClose }) {
               <span>
                 <b>Mostrar gastos e ingressos no link</b>
                 <span className="muted small" style={{ display: 'block' }}>Quem tiver o link passa a ver a análise de gastos e a página de ingressos: custos, compras, notas das atividades e os itens de reserva do checklist. Códigos de reserva e anexos continuam escondidos.</span>
+              </span>
+            </label>
+          )}
+          {onDiary && (
+            <label className="check-line" style={{ marginTop: 12, alignItems: 'flex-start' }}>
+              <input type="checkbox" checked={!!trip.share_diary} disabled={busy} onChange={(e) => run(() => onDiary(e.target.checked))()} />
+              <span>
+                <b>Mostrar o diário de viagem no link</b>
+                <span className="muted small" style={{ display: 'block' }}>Quem tiver o link vê o álbum com as fotos, as legendas e os textos das páginas, sem poder mudar nada, e pode baixar as fotos.</span>
               </span>
             </label>
           )}

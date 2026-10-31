@@ -17,6 +17,10 @@ das atividades e hospedagens, as notas e links das atividades, as compras, os it
 Com isso o link ganha os botões **Gastos** (a [análise da viagem](dinheiro.md#análise-da-viagem)) e **Ingressos** (a
 [página de ingressos](organizacao.md#ingressos-e-reservas)), só para ver. Números de reserva e anexos continuam fora.
 
+**Mostrar o diário de viagem no link** (também desligado por padrão) adiciona o botão **Diário**: quem tem o link vê o
+[álbum](diario.md) com as fotos, as legendas e os textos das páginas, pode abrir e baixar as fotos, mas não muda nada.
+Desligar a opção bloqueia as fotos na hora, mesmo para quem já abriu o link.
+
 **Desativar link** invalida o endereço na hora. Criar de novo gera um link diferente.
 
 ## Backup
@@ -32,7 +36,7 @@ app (numa planilha, num script ou pedindo a uma IA) e importar de uma vez.
 
 ## Formato do JSON
 
-Um objeto com `trip`, `cities`, `stays`, `activities`, `checklist`, `ideas`, `days`, `purchases` e `journal` (o export também
+Um objeto com `trip`, `cities`, `stays`, `activities`, `checklist`, `ideas`, `days`, `purchases` e `pages` (o export também
 traz `files` e `photos`, só com os dados de cada arquivo, ignorados na importação). Obrigatórios: `trip.name`, `trip.start`, `trip.end` e a lista `activities` (pode ser
 vazia). Os `id` e `trip_id` são ignorados. Campos vazios podem ser omitidos.
 
@@ -131,13 +135,13 @@ Como se chega à atividade a partir da anterior do dia (na primeira do dia, a pa
 - Mais de um item em `rides` é uma baldeação. Os trechos a pé entre a atividade anterior, as estações e a atividade
   são calculados pelas ruas.
 
-### `checklist`, `ideas`, `days`, `purchases` e `journal`
+### `checklist`, `ideas`, `days`, `purchases` e `pages`
 
 - `checklist`: `text` (obrigatório), `grp` (grupo), `done`.
 - `ideas`: `title` (obrigatório), `kind`, `city`, `location`, `details`, `cost`, `lat`, `lng`, `notes`, `links`.
 - `days`: tema e anotações de cada dia: `day`, `title`, `notes`.
 - `purchases`: `title` (obrigatório), `store`, `city`, `day`, `price` (moeda da viagem), `grp`, `bought`, `exempt` (fora da cota), `notes`.
-- `journal`: o [diário](diario.md) de cada dia: `day`, `text` e `mood` (`incrivel`, `feliz`, `tranquilo`, `cansado`, `saudade`, `chuva` ou `fome`). As fotos não vão no backup.
+- `pages`: as páginas do [diário](diario.md): `day` (opcional), `title` e `blocks`. Um bloco de texto é `{ "type": "text", "style": "nota" | "titulo" | "citacao", "text": "…" }`; os blocos de fotos (`{ "type": "photos", "layout", "ids" }`) são ignorados na importação, porque as fotos não vão no backup. Backups da versão 1.38 trazem `journal` (`day`, `text`), que vira uma página com um bloco de nota.
 
 ### Backups antigos
 

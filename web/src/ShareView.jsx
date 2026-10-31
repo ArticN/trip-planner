@@ -8,6 +8,7 @@ import PinPanel from './PinPanel.jsx';
 import Metro from './Metro.jsx';
 import Analysis from './Analysis.jsx';
 import Tickets from './Tickets.jsx';
+import Journal from './Journal.jsx';
 import { KINDS, SLOTS, orderBySlots, principals, collapseAlts, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
 
 const noop = () => {};
@@ -18,7 +19,7 @@ export default function ShareView({ token }) {
   const [error, setError] = useState('');
   const [sel, setSel] = useState('trip');
   const [selectedId, setSelectedId] = useState(null);
-  const [page, setPage] = useState(null); // null | 'analise' | 'ingressos' (só com gastos liberados no link)
+  const [page, setPage] = useState(null); // null | 'analise' | 'ingressos' (só com gastos liberados no link) | 'diario' (só com o diário liberado)
   const sheet = useSheet('half');
   const isMobile = useIsMobile();
 
@@ -52,6 +53,7 @@ export default function ShareView({ token }) {
 
   if (page === 'analise') return <Analysis data={data} onBack={() => setPage(null)} onTickets={() => setPage('ingressos')} readOnly />;
   if (page === 'ingressos') return <Tickets data={data} onBack={() => setPage(null)} readOnly />;
+  if (page === 'diario') return <Journal data={data} onBack={() => setPage(null)} readOnly token={token} />;
 
   // opções no mesmo horário: aparece a principal, com as outras citadas embaixo
   const items = (sel === 'trip' ? principals(data.activities) : collapseAlts(byDay[sel] || []).map((a, i) => ({ ...a, n: i + 1 })));
@@ -71,6 +73,7 @@ export default function ShareView({ token }) {
           </div>
         </div>
         <span className="spacer" />
+        {trip.share_diary ? <button className="ghost" onClick={() => setPage('diario')}>Diário</button> : null}
         {trip.share_money ? (
           <>
             <button className="ghost" onClick={() => setPage('analise')}>Gastos</button>
