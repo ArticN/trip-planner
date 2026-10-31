@@ -8,7 +8,7 @@
   hospedagens (linha cheia com setas), os bate-voltas (tracejado) e as ideias. Os pontos das atividades só aparecem
   quando você aproxima. Tocar numa cidade aproxima nela.
 - **Mapa do dia**: as atividades numeradas na ordem do roteiro e o caminho entre elas. A pé fica pontilhado, de carro em
-  linha cheia, trem e metrô na cor da linha. Trechos com voo ou deslocamento aparecem como linha reta clara.
+  linha cheia, trem e metrô na cor da linha. Voos e trechos de viagem sem estações cadastradas aparecem como linha reta clara.
 - **Recorte**: o mapa abre direto na região da viagem e não deixa afastar até o mundo inteiro (fica mais leve). A
   exceção é o [dia de voo](voos.md#no-mapa-grande-do-dia).
 
@@ -63,6 +63,12 @@ caminho parte da hospedagem.
 No mapa, a linha aparece na cor dela com as estações marcadas, e os trechos a pé (até a estação, entre estações de uma
 baldeação e da estação até a atividade) seguem as ruas. No roteiro, a linha entre as atividades mostra cada parte e o
 total, ex.: "7min a pé · G Ginza, Ginza → Asakusa 18min · 7min a pé · 32min no total".
+
+Trechos de viagem entre cidades (atividade do tipo deslocamento, como shinkansen, trem expresso ou ônibus rodoviário)
+também mostram a linha quando têm as estações. A primeira atividade do dia sai da hospedagem: num dia de troca de cidade,
+da hospedagem do check-out. Se a primeira estação fica a mais de 5 km da hospedagem (ex.: chegada pelo aeroporto), a
+linha começa direto na estação de embarque. Antes de um deslocamento, a folga entre os horários só conta a caminhada até
+a estação, já que o trem é a própria atividade.
 
 Limitações: sem estações intermediárias, a linha é desenhada reta entre o embarque e o desembarque. As intermediárias
 só podem ser cadastradas pelo [backup JSON](compartilhar-e-backup.md#trem-e-metrô-campo-route) (campo `stops`).

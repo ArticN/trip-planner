@@ -16,6 +16,16 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.33',
+    date: '2026-10-31',
+    title: 'Trens entre cidades no mapa',
+    items: [
+      'Shinkansen, trem expresso e ônibus rodoviário com estações cadastradas agora aparecem no mapa na cor da linha, em vez de uma linha reta clara.',
+      'Em dia de troca de cidade, o trajeto da manhã sai do hotel do check-out, não do hotel novo.',
+      'Na chegada pelo aeroporto, a linha do trem começa no aeroporto, sem um trecho a pé desde o hotel.',
+    ],
+  },
+  {
     version: '1.32',
     date: '2026-10-30',
     title: 'Busca de lugares em romaji',
