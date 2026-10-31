@@ -38,8 +38,8 @@ Para criar outro exemplo, faça um arquivo parecido em `server/examples/` e regi
 ## Formato do backup
 
 O backup (`GET /api/trips/:id/export`) é um JSON com `trip`, `cities`, `stays`, `activities`, `checklist`, `ideas`, `days`,
-`files` e `purchases`. Ao importar (`POST /api/trips/import`), os `id` são ignorados e a viagem é criada de novo; os anexos
-não vão no backup. A referência de todos os campos, incluindo `alt` (opções no mesmo horário), `slot` (bloco do dia),
+`files`, `purchases`, `journal` e `photos`. Ao importar (`POST /api/trips/import`), os `id` são ignorados e a viagem é criada de novo; os anexos
+e as fotos do diário não vão no backup (só os dados de cada um). A referência de todos os campos, incluindo `alt` (opções no mesmo horário), `slot` (bloco do dia),
 `via` (escalas) e `route` (trem e metrô), está em [Compartilhar e backup](funcionalidades/compartilhar-e-backup.md#formato-do-json).
 
 ## Serviços externos
