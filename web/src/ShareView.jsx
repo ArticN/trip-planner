@@ -51,9 +51,13 @@ export default function ShareView({ token }) {
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>{error}</p></div>;
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
-  if (page === 'analise') return <Analysis data={data} onBack={() => setPage(null)} onTickets={() => setPage('ingressos')} readOnly />;
-  if (page === 'ingressos') return <Tickets data={data} onBack={() => setPage(null)} readOnly />;
-  if (page === 'diario') return <Journal data={data} onBack={() => setPage(null)} readOnly token={token} />;
+  // link sem o roteiro (ex.: o dos amigos, só com o diário): abre direto na parte liberada, sem voltar para o roteiro
+  const home = trip.share_plan ? null : trip.share_diary ? 'diario' : 'analise';
+  const at = page || home;
+  const back = at === home ? null : () => setPage(null);
+  if (at === 'analise') return <Analysis data={data} onBack={back} onTickets={() => setPage('ingressos')} readOnly />;
+  if (at === 'ingressos') return <Tickets data={data} onBack={back || (() => setPage(null))} readOnly />;
+  if (at === 'diario') return <Journal data={data} onBack={back} readOnly token={token} />;
 
   // opções no mesmo horário: aparece a principal, com as outras citadas embaixo
   const items = (sel === 'trip' ? principals(data.activities) : collapseAlts(byDay[sel] || []).map((a, i) => ({ ...a, n: i + 1 })));

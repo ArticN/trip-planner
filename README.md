@@ -50,7 +50,7 @@ Requer **Node 24**. Localmente os dados ficam em `data/planner.db`, que está no
 - **Diário de viagem**: álbum de fotos em páginas livres, com blocos de fotos (mosaico, grade, destaque, polaroides, filme) e de texto; cada foto vai sozinha para o dia em que foi tirada, e o álbum pode ir no link compartilhado.
 - **Modo hoje**: durante a viagem abre no dia atual, destaca a próxima atividade e oferece "Como chegar".
 - **Extras**: tempo previsto, câmbio automático, nascer e pôr do sol, Wikipédia, "Meu mapa" de países visitados, lembretes.
-- **Exportar**: PDF, arquivo `.ics` para a agenda e link só de leitura para compartilhar o roteiro.
+- **Exportar**: PDF, arquivo `.ics` para a agenda e links de visitante só de leitura, cada um com as partes que você escolher (roteiro, gastos, diário).
 - **Celular e offline**: instalável como app (PWA), consulta sem internet (roteiro, anexos e mapa baixado), tema claro/escuro e aparência ajustável.
 
 A seção "Novidades" da tela inicial (arquivo `web/src/changelog.js`) conta a história de cada versão.

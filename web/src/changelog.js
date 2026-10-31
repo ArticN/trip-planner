@@ -15,6 +15,17 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.41',
+    date: '2026-10-31',
+    title: 'Vários links de visitante',
+    items: [
+      'Compartilhar roteiro agora tem vários links, um para cada grupo de pessoas, cada um com nome e as partes que mostra: roteiro e mapa, gastos e ingressos, diário.',
+      'Atalhos prontos: Família (tudo), Amigos (só o diário) e Roteiro (só o roteiro e o mapa).',
+      'Um link só com o diário abre direto no álbum, sem atividades, hospedagens nem mapa. O que um link não libera nem chega ao navegador de quem abre.',
+      'Cada link pode trocar de endereço ou ser desativado sem afetar os outros. O link que você já tinha continua funcionando, com as mesmas opções.',
+    ],
+  },
+  {
     version: '1.40',
     date: '2026-10-31',
     title: 'Fotos que sabem onde foram tiradas, e vídeos no álbum',

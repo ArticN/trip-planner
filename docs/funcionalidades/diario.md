@@ -106,9 +106,11 @@ primeiras fotos em polaroides, o carimbo 旅 ("viagem") e quantas fotos, página
 
 ## Compartilhar
 
-No **⋯ › Compartilhar roteiro**, ligue **Mostrar o diário de viagem no link**. Quem tem o link ganha o botão **Diário**
-e vê o álbum como você vê fora do modo Editar, pode abrir e baixar as fotos, e não muda nada. Desligar a opção esconde o
-álbum e bloqueia as fotos na hora. Quem vê o álbum pelo link também vê a ficha das fotos, com o local onde cada uma foi tirada. Ver [Compartilhar e backup](compartilhar-e-backup.md#link-só-de-leitura).
+No **⋯ › Compartilhar roteiro**, marque **Diário de viagem** no link que quiser, ou crie um link **Amigos**, que mostra
+só o diário (sem roteiro nem gastos). Quem tem o link vê o álbum como você vê fora do modo Editar, pode abrir e baixar
+as fotos, e não muda nada. Desmarcar o diário ou desativar o link bloqueia as fotos na hora. Quem vê o álbum pelo link
+também vê a ficha das fotos, com o local onde cada uma foi tirada. Ver
+[Links de visitante](compartilhar-e-backup.md#links-de-visitante).
 
 ## Como as fotos são guardadas
 

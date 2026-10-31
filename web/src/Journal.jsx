@@ -335,7 +335,7 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
     <div className={`an dj${canEdit ? ' editing' : ''}${book ? ' booked' : ''}`} ref={scroller} {...onDropAll}>
       <div className="an-head">
         <header className="an-top">
-          <button className="icon-btn" onClick={onBack} title="Voltar ao roteiro" aria-label="Voltar ao roteiro">←</button>
+          {onBack && <button className="icon-btn" onClick={onBack} title="Voltar ao roteiro" aria-label="Voltar ao roteiro">←</button>}
           <div className="dj-top-title">
             <div className="brand-name">Diário de viagem</div>
             <div className="brand-sub">{trip.name}</div>

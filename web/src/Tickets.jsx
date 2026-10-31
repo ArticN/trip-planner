@@ -26,7 +26,7 @@ export default function Tickets({ data, onBack, readOnly = false, onToggle }) {
     <div className="an">
       <div className="an-head">
         <header className="an-top">
-          <button className="icon-btn" onClick={onBack} title="Voltar ao roteiro" aria-label="Voltar ao roteiro">←</button>
+          {onBack && <button className="icon-btn" onClick={onBack} title="Voltar ao roteiro" aria-label="Voltar ao roteiro">←</button>}
           <div>
             <div className="brand-name">Ingressos e reservas</div>
             <div className="brand-sub">{trip.name} · {fmtDay(trip.start)} a {fmtDay(trip.end)}</div>
