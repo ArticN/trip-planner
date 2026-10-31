@@ -17,6 +17,7 @@ export default function Analysis({ data, onBack, readOnly = false }) {
 
   return (
     <div className="an">
+      <div className="an-head">
       <header className="an-top">
         <button className="icon-btn" onClick={onBack} title="Voltar ao roteiro" aria-label="Voltar ao roteiro">←</button>
         <div>
@@ -29,6 +30,7 @@ export default function Analysis({ data, onBack, readOnly = false }) {
       <nav className="an-nav" aria-label="Seções da análise">
         {nav.map(([id, l]) => <a key={id} href={`#an-${id}`} onClick={(e) => { e.preventDefault(); document.getElementById(`an-${id}`)?.scrollIntoView({ behavior: 'smooth' }); }}>{l}</a>)}
       </nav>
+      </div>
 
       <main className="an-body">
         <section id="an-resumo">

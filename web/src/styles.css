@@ -1149,13 +1149,15 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 /* ── análise da viagem (página inteira). Cores das categorias: ordem fixa, validadas para os dois temas */
 :root { --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70; --cat-4: #c98500; --cat-5: #d55181; --cat-6: #008300; }
 :root[data-theme='light'] { --cat-1: #2a78d6; --cat-2: #eb6834; --cat-3: #1baf7a; --cat-4: #eda100; --cat-5: #e87ba4; --cat-6: #008300; }
-.an { min-height: 100dvh; background: var(--paper); color: var(--ink); }
-.an-top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--paper); border-bottom: 1px solid var(--line); }
+/* o body não rola (o app ocupa a tela toda); a análise rola dentro dela mesma, com topo e seções fixos */
+.an { height: 100%; overflow-y: auto; overscroll-behavior: contain; background: var(--paper); color: var(--ink); }
+.an-head { position: sticky; top: 0; z-index: 5; background: var(--paper); }
+.an-top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--paper); border-bottom: 1px solid var(--line); }
 .an-nav { display: flex; gap: 4px; overflow-x: auto; padding: 8px 16px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
 .an-nav a { flex: none; padding: 4px 12px; border-radius: var(--r-pill, 999px); color: var(--ink-2); text-decoration: none; font-size: 14px; }
 .an-nav a:hover { background: var(--raised); color: var(--ink); }
 .an-body { max-width: 980px; margin: 0 auto; padding: 8px 16px 64px; }
-.an-body section { padding: 24px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 64px; }
+.an-body section { padding: 24px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 112px; }
 .an-h { font-family: var(--serif); font-weight: 400; font-size: 24px; margin: 0 0 14px; }
 .an-hero { display: grid; gap: 4px; margin-bottom: 18px; }
 .an-hero b { font-family: var(--serif); font-weight: 400; font-size: clamp(36px, 8vw, 56px); line-height: 1.05; font-variant-numeric: tabular-nums; }
@@ -1215,6 +1217,8 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
   .an .bar-row { grid-template-columns: minmax(0, 1fr) 70px auto; }
 }
 @media print {
+  html, body, #root, .an { height: auto; overflow: visible; }
+  .an-head { position: static; }
   .an-top button, .an-nav, .an-tip { display: none; }
   .an-details { display: block; }
   .an-body section { break-inside: avoid-page; }

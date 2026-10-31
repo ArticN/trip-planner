@@ -16,6 +16,15 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.35',
+    date: '2026-10-31',
+    title: 'Análise rola de novo',
+    items: [
+      'A página de Análise volta a rolar com o mouse, o dedo e o teclado, com o título e o menu de seções sempre no topo.',
+      'Resumo, no menu de seções, volta ao início da página; a seta ← volta ao roteiro.',
+    ],
+  },
+  {
     version: '1.34',
     date: '2026-10-31',
     title: 'Análise da viagem',
