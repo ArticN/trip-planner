@@ -14,7 +14,7 @@ const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
 const BUY_FIELDS = ['title', 'store', 'city', 'day', 'price', 'grp', 'bought', 'exempt', 'notes', 'sort'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope', 'share_money'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope', 'share_money', 'share_diary'];
 
 // objetos (ex.: route com as estações) vão para o banco como JSON
 const clean = (v) => (v === '' || v === undefined ? null : v && typeof v === 'object' ? JSON.stringify(v) : v);
@@ -30,7 +30,6 @@ const insIdea = (tripId, row) => [`INSERT INTO ideas (trip_id,${IDEA_FIELDS.join
 const insCity = (tripId, row) => [`INSERT OR REPLACE INTO cities (trip_id,${CITY_FIELDS.join(',')}) VALUES (?,${marks(CITY_FIELDS)})`, [tripId, ...pick(row, CITY_FIELDS)]];
 const insBuy = (tripId, row) => [`INSERT INTO purchases (trip_id,${BUY_FIELDS.join(',')}) VALUES (?,${marks(BUY_FIELDS)})`, [tripId, ...pick({ ...row, bought: row.bought ? 1 : 0, exempt: row.exempt ? 1 : 0 }, BUY_FIELDS)]];
 const insDay = (tripId, row) => [`INSERT OR REPLACE INTO days (trip_id,${DAY_FIELDS.join(',')}) VALUES (?,${marks(DAY_FIELDS)})`, [tripId, ...pick(row, DAY_FIELDS)]];
-const insJournal = (tripId, row) => ['INSERT OR REPLACE INTO journal (trip_id, day, text, mood) VALUES (?,?,?,?)', [tripId, row.day, clean(row.text), clean(row.mood)]];
 const run1 = ([sql, args]) => db.run(sql, args);
 
 // ── esquema e migrações (roda uma vez por processo)
@@ -98,7 +97,8 @@ async function migrate() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
-    -- diário de viagem: o texto e o humor de cada dia, e as fotos (a foto e uma miniatura, as duas já reduzidas no aparelho)
+    -- diário de viagem: as fotos (a foto e uma miniatura, as duas já reduzidas no aparelho); journal é o formato da v1.38,
+    -- só lido uma vez para virar páginas do álbum (album_pages)
     CREATE TABLE IF NOT EXISTS journal (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
@@ -117,6 +117,32 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
   `);
 
+  // álbum do diário (v1.39): páginas livres com blocos de foto e de texto (JSON em blocks).
+  // Na primeira vez, o diário da v1.38 (texto por dia + fotos por dia) vira uma página por dia.
+  const hadAlbum = await hasTable('album_pages');
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS album_pages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      day TEXT, title TEXT, blocks TEXT, sort INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_album_trip ON album_pages(trip_id);
+  `);
+  if (!hadAlbum) {
+    const notes = await db.all('SELECT trip_id, day, text FROM journal WHERE text IS NOT NULL');
+    const pics = await db.all('SELECT id, trip_id, day FROM photos ORDER BY taken_at, id');
+    const pages = new Map();
+    const at = (t, d) => { const k = `${t}|${d || ''}`; if (!pages.has(k)) pages.set(k, { trip: t, day: d || null, text: null, ids: [] }); return pages.get(k); };
+    notes.forEach((n) => { at(n.trip_id, n.day).text = n.text; });
+    pics.forEach((p) => at(p.trip_id, p.day).ids.push(p.id));
+    const list = [...pages.values()].map((pg, i) => ['INSERT INTO album_pages (trip_id, day, title, blocks, sort) VALUES (?,?,?,?,?)', [pg.trip, pg.day, pg.day ? null : 'Fotos soltas', JSON.stringify([
+      ...(pg.ids.length ? [{ id: `b${i}p`, type: 'photos', layout: 'mosaico', ids: pg.ids }] : []),
+      ...(pg.text ? [{ id: `b${i}t`, type: 'text', style: 'nota', text: pg.text }] : []),
+    ]), i]]);
+    if (list.length) await db.batch(list);
+  }
+
   // colunas novas em bancos antigos
   const cols = async (t) => (await db.all(`PRAGMA table_info(${t})`)).map((c) => c.name);
   const addCols = async (table, list) => {
@@ -125,7 +151,7 @@ async function migrate() {
   };
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['via', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT'], ['slot', 'TEXT'], ['route', 'TEXT'], ['alt', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT'], ['share_money', 'INTEGER DEFAULT 0']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT'], ['share_money', 'INTEGER DEFAULT 0'], ['share_diary', 'INTEGER DEFAULT 0']]);
   await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
 
   if (legacy) {
@@ -190,7 +216,10 @@ async function createTripFull(b) {
   (b.ideas || []).forEach((x, i) => list.push(insIdea(id, { sort: i, ...x })));
   (b.purchases || []).forEach((x, i) => list.push(insBuy(id, { sort: i, ...x })));
   (b.days || []).filter((d) => d.day && (d.title || d.notes)).forEach((d) => list.push(insDay(id, d)));
-  (b.journal || []).filter((d) => d.day && (d.text || d.mood)).forEach((d) => list.push(insJournal(id, d)));
+  // diário: as fotos não vão no backup, então só os blocos de texto voltam (backup da v1.38: journal vira páginas)
+  const pages = Array.isArray(b.pages) ? b.pages : (b.journal || []).filter((d) => d.day && d.text).map((d) => ({ day: d.day, blocks: [{ type: 'text', style: 'nota', text: d.text }] }));
+  pages.map((p) => ({ ...p, blocks: cleanBlocks(p.blocks).filter((x) => x.type === 'text') })).filter((p) => p.blocks.length)
+    .forEach((p, i) => list.push(insPage(id, p, i)));
   const byDay = new Map();
   (b.activities || []).forEach((x) => {
     const row = { ...x, cost: x.cost ?? x.cost_jpy ?? null };
@@ -212,13 +241,26 @@ async function createTripFull(b) {
 }
 
 // apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
-const deleteTrip = (id) => db.batch(['files', 'photos', 'journal', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
+const deleteTrip = (id) => db.batch(['files', 'photos', 'journal', 'album_pages', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
 
 const PHOTO_META = 'id, day, caption, taken_at, w, h, size, sort, created_at';
+const parseBlocks = (v) => { try { const b = JSON.parse(v || '[]'); return Array.isArray(b) ? b : []; } catch { return []; } };
+const pageOut = (r) => ({ ...r, blocks: parseBlocks(r.blocks) });
+// blocos aceitos: fotos (ids + layout) e texto (estilo + texto); o resto é descartado
+const LAYOUTS = ['mosaico', 'grade', 'destaque', 'polaroides', 'filme'];
+const STYLES = ['nota', 'titulo', 'citacao'];
+const cleanBlocks = (list) => (Array.isArray(list) ? list : []).slice(0, 200).map((b, i) => {
+  const id = String(b?.id || `b${Date.now().toString(36)}${i}`).slice(0, 40);
+  if (b?.type === 'photos') return { id, type: 'photos', layout: LAYOUTS.includes(b.layout) ? b.layout : 'mosaico', ids: (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isInteger).slice(0, 500) };
+  if (b?.type === 'text') return { id, type: 'text', style: STYLES.includes(b.style) ? b.style : 'nota', text: String(b.text ?? '').slice(0, 20000) };
+  return null;
+}).filter(Boolean);
+const insPage = (tripId, p, sort) => ['INSERT INTO album_pages (trip_id, day, title, blocks, sort) VALUES (?,?,?,?,?)',
+  [tripId, /^\d{4}-\d{2}-\d{2}$/.test(String(p.day || '')) ? p.day : null, String(p.title || '').trim().slice(0, 200) || null, JSON.stringify(cleanBlocks(p.blocks)), sort]];
 async function getTrip(id) {
   const trip = await db.get('SELECT * FROM trips WHERE id = ?', [id]);
   if (!trip) return null;
-  const [cities, stays, activities, checklist, ideas, days, files, purchases, journal, photos] = await Promise.all([
+  const [cities, stays, activities, checklist, ideas, days, files, purchases, pageRows, photos] = await Promise.all([
     db.all('SELECT * FROM cities WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id', [id]),
     db.all('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id', [id]),
@@ -227,10 +269,10 @@ async function getTrip(id) {
     db.all('SELECT * FROM days WHERE trip_id = ? ORDER BY day', [id]),
     db.all('SELECT id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM purchases WHERE trip_id = ? ORDER BY sort, id', [id]),
-    db.all('SELECT day, text, mood FROM journal WHERE trip_id = ? ORDER BY day', [id]),
+    db.all('SELECT id, day, title, blocks, sort FROM album_pages WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all(`SELECT ${PHOTO_META} FROM photos WHERE trip_id = ? ORDER BY day, sort, taken_at, id`, [id]),
   ]);
-  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases, journal, photos };
+  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases, pages: pageRows.map(pageOut), photos };
 }
 
 const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MAX(sort), -1) AS m FROM ${table} WHERE ${where}`, args)).m + 1;
@@ -324,13 +366,16 @@ app.get('/api/share/:token', h(async (req, res) => {
   if (!row) return res.status(404).json({ error: 'link inválido ou desativado' });
   const d = await getTrip(row.id);
   const money = !!d.trip.share_money;
+  const diary = !!d.trip.share_diary;
   res.setHeader('Cache-Control', 'no-store');
   res.json({
-    trip: only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent', 'share_money', ...(money ? ['usd_rate', 'quota_usd'] : [])]),
+    trip: only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent', 'share_money', 'share_diary', ...(money ? ['usd_rate', 'quota_usd'] : [])]),
     cities: d.cities.map((c) => only(c, ['key', 'name', 'emoji', 'color', 'lat', 'lng'])),
     stays: d.stays.map((x) => only(x, ['id', 'city', 'name', 'check_in', 'check_out', 'lat', 'lng', ...(money ? ['cost'] : [])])),
     activities: d.activities.map((a) => only(a, money ? [...SHARE_ACT, ...SHARE_ACT_MONEY] : SHARE_ACT)),
     days: d.days.map((x) => only(x, ['day', 'title'])),
+    // com "mostrar o diário no link" ligado: as páginas do álbum e os dados das fotos (as fotos vêm de /api/share/:token/photos)
+    ...(diary ? { pages: d.pages, photos: d.photos } : {}),
     // com "mostrar gastos e ingressos no link" ligado: custos, compras e os itens de reserva da checklist (nunca códigos de reserva nem anexos)
     ...(money ? {
       purchases: d.purchases.map((x) => only(x, ['id', 'title', 'store', 'city', 'day', 'price', 'grp', 'exempt', 'bought'])),
@@ -338,6 +383,17 @@ app.get('/api/share/:token', h(async (req, res) => {
     } : {}),
   });
 }));
+
+// fotos do diário para quem tem o link (só com o diário liberado e só fotos desta viagem)
+const sharedPhoto = (col) => h(async (req, res) => {
+  const t = String(req.params.token || '');
+  const p = t.length >= 16 && (await db.get(`SELECT p.${col} AS data FROM photos p JOIN trips t ON t.id = p.trip_id WHERE t.share_token = ? AND t.share_diary = 1 AND p.id = ?`, [t, Number(req.params.pid)]));
+  if (!p?.data) return res.status(404).json({ error: 'foto não encontrada' });
+  photoHeaders(req, res);
+  res.end(Buffer.from(p.data));
+});
+app.get('/api/share/:token/photos/:pid', sharedPhoto('data'));
+app.get('/api/share/:token/photos/:pid/thumb', sharedPhoto('thumb'));
 
 app.use('/api', (req, res, next) => (authed(req) ? next() : res.status(401).json({ error: 'login necessário' })));
 
@@ -402,7 +458,7 @@ app.delete('/api/trips/:id', needTrip, h(async (req, res) => {
 
 app.post('/api/trips/:id/duplicate', needTrip, h(async (req, res) => {
   const d = await getTrip(req.tripId);
-  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null, rating: null, review: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })), purchases: d.purchases.map((x) => ({ ...x, bought: 0 })), journal: [] });
+  const id = await createTripFull({ ...d, trip: { ...d.trip, name: `${d.trip.name} (cópia)` }, activities: d.activities.map((a) => ({ ...a, done: 0, spent: null, rating: null, review: null })), checklist: d.checklist.map((c) => ({ ...c, done: 0 })), purchases: d.purchases.map((x) => ({ ...x, bought: 0 })), pages: [] });
   res.status(201).json(await getTrip(id));
 }));
 
@@ -598,18 +654,12 @@ app.delete('/api/files/:fid', h(async (req, res) => {
 
 // ── diário de viagem
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-// texto e humor do dia: body = { text, mood }; os dois vazios apagam
-app.put('/api/trips/:id/journal/:day', needTrip, h(async (req, res) => {
-  const day = req.params.day;
-  if (!DAY_RE.test(day)) return res.status(400).json({ error: 'dia inválido' });
-  const row = { day, text: String(req.body?.text ?? '').trim().slice(0, 20000) || null, mood: String(req.body?.mood ?? '').trim().slice(0, 20) || null };
-  if (!row.text && !row.mood) {
-    await db.run('DELETE FROM journal WHERE trip_id = ? AND day = ?', [req.tripId, day]);
-    return res.json({ day, text: null, mood: null });
-  }
-  await run1(insJournal(req.tripId, row));
-  res.json(row);
-}));
+function photoHeaders(req, res) {
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Content-Disposition', `${'download' in req.query ? 'attachment' : 'inline'}; filename="foto-${Number(req.params.pid)}.jpg"`);
+  res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+  res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
+}
 // foto nova: o corpo é a miniatura seguida da foto (X-Thumb-Length diz onde uma acaba), tudo numa requisição
 // só para caber no limite de 4,5 MB da Vercel; o aparelho já manda as duas reduzidas em JPEG
 app.post('/api/trips/:id/photos', needTrip, express.raw({ type: () => true, limit: MAX_FILE }), h(async (req, res) => {
@@ -631,12 +681,35 @@ app.post('/api/trips/:id/photos', needTrip, express.raw({ type: () => true, limi
 const sendPhoto = (col) => h(async (req, res) => {
   const p = await db.get(`SELECT ${col} AS data FROM photos WHERE id = ?`, [Number(req.params.pid)]);
   if (!p?.data) return res.status(404).json({ error: 'foto não encontrada' });
-  res.setHeader('Content-Type', 'image/jpeg');
-  res.setHeader('Content-Disposition', `${'download' in req.query ? 'attachment' : 'inline'}; filename="foto-${Number(req.params.pid)}.jpg"`);
-  res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
-  res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
+  photoHeaders(req, res);
   res.end(Buffer.from(p.data));
 });
+// páginas do álbum: body = { day, title, blocks, sort }
+app.post('/api/trips/:id/pages', needTrip, h(async (req, res) => {
+  const b = req.body || {};
+  const sort = Number.isFinite(Number(b.sort)) ? Number(b.sort) : await nextSort('album_pages', 'trip_id = ?', [req.tripId]);
+  const r = await run1(insPage(req.tripId, b, sort));
+  res.status(201).json(pageOut(await db.get('SELECT id, day, title, blocks, sort FROM album_pages WHERE id = ?', [r.lastInsertRowid])));
+}));
+app.put('/api/pages/:pid', h(async (req, res) => {
+  const pid = Number(req.params.pid);
+  const cur = await db.get('SELECT * FROM album_pages WHERE id = ?', [pid]);
+  if (!cur) return res.status(404).json({ error: 'página não encontrada' });
+  const b = req.body || {};
+  const [, args] = insPage(cur.trip_id, { day: 'day' in b ? b.day : cur.day, title: 'title' in b ? b.title : cur.title, blocks: 'blocks' in b ? b.blocks : parseBlocks(cur.blocks) }, Number.isFinite(Number(b.sort)) ? Number(b.sort) : cur.sort);
+  await db.run('UPDATE album_pages SET day = ?, title = ?, blocks = ?, sort = ? WHERE id = ?', [...args.slice(1), pid]);
+  res.json(pageOut(await db.get('SELECT id, day, title, blocks, sort FROM album_pages WHERE id = ?', [pid])));
+}));
+// apagar a página apaga as fotos dela (as que não aparecem em outra página)
+app.delete('/api/pages/:pid', h(async (req, res) => {
+  const pid = Number(req.params.pid);
+  const cur = await db.get('SELECT * FROM album_pages WHERE id = ?', [pid]);
+  if (!cur) return res.status(204).end();
+  const others = new Set((await db.all('SELECT blocks FROM album_pages WHERE trip_id = ? AND id != ?', [cur.trip_id, pid])).flatMap((r) => parseBlocks(r.blocks).flatMap((x) => x.ids || [])));
+  const ids = parseBlocks(cur.blocks).flatMap((x) => x.ids || []).filter((x) => !others.has(x));
+  await db.batch([...ids.map((x) => ['DELETE FROM photos WHERE id = ? AND trip_id = ?', [x, cur.trip_id]]), ['DELETE FROM album_pages WHERE id = ?', [pid]]]);
+  res.status(204).end();
+}));
 app.get('/api/photos/:pid', sendPhoto('data'));
 app.get('/api/photos/:pid/thumb', sendPhoto('thumb'));
 // legenda, dia e ordem: body = { caption?, day?, sort? }

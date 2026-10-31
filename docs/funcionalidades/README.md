@@ -17,7 +17,7 @@ de exemplo") ou importando [`examples/viagem-exemplo.json`](../../examples/viage
 | [Voos e trechos](voos.md) | Voos e trens com fuso · cartões de Ida e Volta · mapa-múndi do voo · escalas reconhecidas sozinhas (e como isso funciona) |
 | [Dinheiro](dinheiro.md) | Orçamento e análise da viagem · câmbio automático · gasto real e recibo · estatísticas · compras e a cota da Receita |
 | [Organização e agenda](organizacao.md) | Checklist · notas, links e anexos · ingressos e reservas · calendário · exportar .ics · lembretes · imprimir/PDF |
-| [Diário de viagem](diario.md) | Fotos por dia em polaroides · texto e humor do dia · como as fotos são guardadas · sem internet |
+| [Diário de viagem](diario.md) | Álbum de fotos em páginas · blocos de fotos (mosaico, grade, destaque, polaroides, filme) e de texto · compartilhar no link · como as fotos são guardadas |
 | [Compartilhar e backup](compartilhar-e-backup.md) | Link só de leitura · exportar e importar backup · formato do JSON (campos `alt`, `route`, `via`…) |
 | [O app no dia a dia](app.md) | Instalar no celular (PWA) · funcionar sem internet · celular x computador · atalhos · aparência · Novidades |
 

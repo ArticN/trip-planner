@@ -55,7 +55,9 @@ export const api = {
   deleteFile: (id) => req('DELETE', `/api/files/${id}`),
   fileUrl: (id) => `/api/files/${id}`,
   // diário de viagem: a miniatura e a foto vão juntas no corpo (X-Thumb-Length separa as duas)
-  saveJournal: (tripId, day, d) => req('PUT', `/api/trips/${tripId}/journal/${day}`, d),
+  createPage: (tripId, p) => req('POST', `/api/trips/${tripId}/pages`, p),
+  updatePage: (id, patch) => req('PUT', `/api/pages/${id}`, patch),
+  deletePage: (id) => req('DELETE', `/api/pages/${id}`),
   uploadPhoto: async (tripId, { thumb, full, day, taken, w, h }) => {
     const res = await fetch(`/api/trips/${tripId}/photos`, {
       method: 'POST',
