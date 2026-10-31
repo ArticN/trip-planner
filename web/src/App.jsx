@@ -15,7 +15,7 @@ const shareToken = () => window.location.hash.match(/^#\/s\/([\w-]{16,})/)?.[1] 
 
 export default function App() {
   const [share] = useState(shareToken);
-  if (share) return <ShareView token={share} />;
+  if (share) return <ShareView key={share} token={share} />;
   return <Planner />;
 }
 

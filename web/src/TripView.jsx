@@ -517,18 +517,6 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     const [, m, d] = (e.day || '').split('-');
     return createCheck({ grp: 'Reservas e ingressos', text: `${d && m ? `${d}/${m} ` : ''}${e.title}`, done: done ? 1 : 0 });
   };
-  const setShareMoney = async (on) => {
-    try {
-      const saved = await api.saveTrip(tripId, { ...data.trip, share_money: on ? 1 : 0 });
-      setData((d) => ({ ...d, trip: saved }));
-    } catch { say('Não consegui alterar o link'); }
-  };
-  const setShareDiary = async (on) => {
-    try {
-      const saved = await api.saveTrip(tripId, { ...data.trip, share_diary: on ? 1 : 0 });
-      setData((d) => ({ ...d, trip: saved }));
-    } catch { say('Não consegui alterar o link'); }
-  };
   const deleteCheck = (id) => {
     const item = data.checklist.find((x) => x.id === id);
     if (item) softDelete(`Item removido: ${item.text}`, 'checklist', item, () => api.deleteCheck(id));
@@ -569,11 +557,18 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     const r = on ? await api.calendar(tripId) : await api.uncalendar(tripId);
     setData((d) => ({ ...d, trip: { ...d.trip, cal_token: r.cal_token } }));
   };
-  const setShare = async (on) => {
-    try {
-      const r = on ? await api.share(tripId) : await api.unshare(tripId);
-      setData((d) => ({ ...d, trip: { ...d.trip, share_token: r.share_token } }));
-    } catch { say('Não consegui alterar o link'); }
+  // links de visitante (erros sobem para o modal mostrar)
+  const createShare = async (link) => {
+    const made = await api.createShare(tripId, link);
+    setData((d) => ({ ...d, shares: [...(d.shares || []), made] }));
+  };
+  const updateShare = async (link, patch) => {
+    const saved = await api.updateShare(link.id, patch);
+    setData((d) => ({ ...d, shares: (d.shares || []).map((x) => (x.id === saved.id ? saved : x)) }));
+  };
+  const removeShare = async (link) => {
+    await api.deleteShare(link.id);
+    setData((d) => ({ ...d, shares: (d.shares || []).filter((x) => x.id !== link.id) }));
   };
   const saveTrip = async (t) => {
     try {
@@ -814,7 +809,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'look' && <AppearanceModal trip={trip} onTripAccent={(accent) => patchTrip({ accent })} onClose={() => setModal(null)} />}
       {modal === 'reminders' && <RemindersModal trip={trip} onSave={patchTrip} onCalendar={setCalendar} notify={notify} onNotify={async (on) => setNotifyState(await setNotify(on))} onClose={() => setModal(null)} />}
       {modal === 'offline' && <OfflineMapModal cities={data.cities} onClose={() => setModal(null)} />}
-      {modal === 'share' && <ShareModal trip={trip} onCreate={() => setShare(true)} onRemove={() => setShare(false)} onMoney={setShareMoney} onDiary={setShareDiary} onClose={() => setModal(null)} />}
+      {modal === 'share' && <ShareModal trip={trip} links={data.shares || []} onCreate={createShare} onUpdate={updateShare} onRemove={removeShare} onClose={() => setModal(null)} />}
       {toast && !undo && <div className="toast">{toast}</div>}
       {undo && (
         <div className="toast undo-toast" role="status">

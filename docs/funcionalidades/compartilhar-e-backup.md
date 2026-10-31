@@ -2,26 +2,42 @@
 
 [← Índice](README.md)
 
-## Link só de leitura
+## Links de visitante
 
-Menu **⋯ › Compartilhar roteiro › Criar link**. Quem tiver o link vê o roteiro dia a dia, o mapa, o diagrama de metrô e
-as hospedagens (nome e datas), sem senha e sem poder editar. Use **Copiar**, **Enviar…** (no celular) ou
-**Abrir como visitante** para conferir.
+Menu **⋯ › Compartilhar roteiro**. Dá para ter **vários links**, um para cada grupo de pessoas, e cada link mostra só
+as partes que você escolher. Quem tem o link vê sem senha e não pode editar nada.
 
-O que **não** aparece no link: notas, links, anexos, números de reserva e de voo, custos e gastos, avaliações, o que
-já foi feito, checklist, compras e ideias. Das [opções no mesmo horário](roteiro.md#opções-no-mesmo-horário), aparece a
-principal, com as outras citadas embaixo. A cor própria da viagem também vale no link.
+Para começar, use um dos atalhos (cada um some depois de criado; dá para mudar tudo depois):
 
-**Mostrar gastos e ingressos no link** (no mesmo painel, desligado por padrão) libera para quem tem o link os custos
-das atividades e hospedagens, as notas e links das atividades, as compras, os itens de reserva da checklist e o câmbio.
-Com isso o link ganha os botões **Gastos** (a [análise da viagem](dinheiro.md#análise-da-viagem)) e **Ingressos** (a
-[página de ingressos](organizacao.md#ingressos-e-reservas)), só para ver. Números de reserva e anexos continuam fora.
+| Atalho | Mostra |
+| --- | --- |
+| **+ Família** | roteiro e mapa, gastos e ingressos, diário |
+| **+ Amigos** | só o diário |
+| **+ Roteiro** | só o roteiro e o mapa |
+| **+ Outro** | começa só com o roteiro |
 
-**Mostrar o diário de viagem no link** (também desligado por padrão) adiciona o botão **Diário**: quem tem o link vê o
-[álbum](diario.md) com as fotos, as legendas e os textos das páginas, pode abrir e baixar as fotos, mas não muda nada.
-Desligar a opção bloqueia as fotos na hora, mesmo para quem já abriu o link.
+Em cada link:
 
-**Desativar link** invalida o endereço na hora. Criar de novo gera um link diferente.
+- **Nome** (só você vê), o endereço com **Copiar**, **Enviar…** (no celular) e **Abrir como visitante** para conferir.
+- As partes que ele mostra (pelo menos uma fica marcada):
+  - **Roteiro e mapa**: o roteiro dia a dia, o mapa, o diagrama de metrô e as hospedagens (nome e datas). Das
+    [opções no mesmo horário](roteiro.md#opções-no-mesmo-horário), aparece a principal, com as outras citadas embaixo.
+  - **Gastos e ingressos**: os custos das atividades e hospedagens, as notas e links das atividades, as compras, os
+    itens de reserva da checklist e o câmbio, com os botões **Gastos** (a [análise da viagem](dinheiro.md#análise-da-viagem))
+    e **Ingressos** (a [página de ingressos](organizacao.md#ingressos-e-reservas)).
+  - **Diário de viagem**: o [álbum](diario.md) com as fotos, legendas, textos e vídeos; dá para abrir e baixar as fotos.
+- **Trocar endereço**: cria um endereço novo para o link; o antigo para de funcionar na hora.
+- **Desativar**: apaga o link; quem tem o endereço perde o acesso na hora. Os outros links continuam funcionando.
+
+Um link sem **Roteiro e mapa** abre direto no diário (ou nos gastos), sem mostrar atividades, hospedagens nem o mapa.
+No diário, as legendas automáticas ainda usam o nome das atividades em que as fotos foram tiradas: só essas atividades
+(nome, dia e horário) vão para esse link.
+
+O servidor só envia para cada link o que ele libera: o que está desmarcado não chega ao navegador de quem abre. Nunca
+aparecem em nenhum link: números de reserva e de voo, anexos, avaliações, o que já foi feito, o resto da checklist e as
+ideias. A cor própria da viagem vale em todos os links.
+
+O link único das versões anteriores virou o link **"Link do roteiro"**, com o mesmo endereço e as mesmas opções.
 
 ## Backup
 

@@ -46,7 +46,7 @@ export default function Analysis({ data, onBack, onTickets, readOnly = false }) 
     <div className="an">
       <div className="an-head">
         <header className="an-top">
-          <button className="icon-btn" onClick={onBack} title="Voltar ao roteiro" aria-label="Voltar ao roteiro">←</button>
+          {onBack && <button className="icon-btn" onClick={onBack} title="Voltar ao roteiro" aria-label="Voltar ao roteiro">←</button>}
           <div>
             <div className="brand-name">Análise da viagem</div>
             <div className="brand-sub">{data.trip.name} · {fmtDay(data.trip.start)} a {fmtDay(data.trip.end)}</div>

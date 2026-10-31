@@ -1699,3 +1699,15 @@ input.dj-lb-cap:focus-visible { outline: none; box-shadow: none; background: #f2
 .dj-video-pf { position: absolute; left: 10px; bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: #fff; background: rgba(0, 0, 0, .55); padding: 3px 8px; border-radius: 999px; }
 /* Instagram e TikTok têm cabeçalho e rodapé no player: um pouco mais altos que 9:16 */
 .dj-video.ig.vertical .dj-video-frame, .dj-video.tiktok.vertical .dj-video-frame { aspect-ratio: 9 / 19; }
+
+/* ── links de visitante (v1.41): um cartão por link */
+.share-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 12px 0; display: grid; gap: 10px; }
+.share-card-head { display: flex; gap: 8px; align-items: center; }
+.share-name { flex: 1; min-width: 0; font-weight: 600; font-size: 15px; }
+.share-parts { display: grid; gap: 8px; }
+.share-parts .check-line { align-items: flex-start; color: var(--ink); }
+.share-parts .check-line input { margin-top: 3px; }
+.share-hint { display: block; font-weight: 400; }
+.share-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.share-new { display: grid; gap: 8px; margin-top: 8px; }
+.share-new-btns { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -691,52 +691,81 @@ export function CitiesModal({ cities, onCreate, onSave, onDelete, onClose }) {
 
 // link de só leitura para mandar a quem viaja junto (sem notas, links, reservas, gastos e checklist);
 // com "mostrar gastos e ingressos" ligado, o link ganha a análise de gastos e a página de ingressos
-export function ShareModal({ trip, onCreate, onRemove, onMoney, onDiary, onClose }) {
+// links de visitante: vários por viagem, cada um com nome e as partes que mostra
+// (ex.: "Família" com roteiro, gastos e diário; "Amigos" só com o diário)
+const SHARE_PARTS = [
+  ['plan', 'Roteiro e mapa', 'Atividades, mapa e hospedagens (sem notas, links, códigos de reserva nem custos).'],
+  ['money', 'Gastos e ingressos', 'Análise de gastos, compras, custos e notas das atividades e os itens de reserva do checklist. Códigos de reserva e anexos continuam escondidos.'],
+  ['diary', 'Diário de viagem', 'O álbum com fotos, legendas, textos e vídeos. Dá para baixar as fotos. A ficha da foto mostra onde ela foi tirada.'],
+];
+export const SHARE_PRESETS = [
+  { name: 'Família', plan: 1, money: 1, diary: 1 },
+  { name: 'Amigos', plan: 0, money: 0, diary: 1 },
+  { name: 'Roteiro', plan: 1, money: 0, diary: 0 },
+];
+
+export function ShareModal({ trip, links = [], onCreate, onUpdate, onRemove, onClose }) {
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const run = (fn) => async () => { setBusy(true); setErr(''); try { await fn(); } catch (e) { setErr(e.message || 'Não deu certo'); } finally { setBusy(false); } };
+  const free = SHARE_PRESETS.filter((p) => !links.some((l) => l.name === p.name));
+  return (
+    <Modal title="Compartilhar roteiro" onClose={onClose} footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
+      <p className="muted">Cada link mostra só as partes que você escolher, sem precisar da senha e sem poder editar. Crie um para cada grupo de pessoas: dá para mudar o que cada um mostra ou desativar um sem afetar os outros.</p>
+      {links.map((l) => <ShareLinkCard key={l.id} trip={trip} link={l} busy={busy} run={run} onUpdate={onUpdate} onRemove={onRemove} />)}
+      <div className="share-new">
+        <b>{links.length ? 'Novo link' : 'Criar um link'}</b>
+        <div className="share-new-btns">
+          {free.map((p) => (
+            <button key={p.name} disabled={busy} onClick={run(() => onCreate(p))}>
+              + {p.name} <span className="muted small">({SHARE_PARTS.filter(([k]) => p[k]).map(([, l]) => l.split(' ')[0].toLowerCase()).join(', ')})</span>
+            </button>
+          ))}
+          <button disabled={busy} onClick={run(() => onCreate({ name: `Link ${links.length + 1}`, plan: 1, money: 0, diary: 0 }))}>+ Outro</button>
+        </div>
+      </div>
+      {err && <p className="error">{err}</p>}
+    </Modal>
+  );
+}
+
+function ShareLinkCard({ trip, link, busy, run, onUpdate, onRemove }) {
   const [copied, setCopied] = useState(false);
-  const url = trip.share_token ? `${window.location.origin}/#/s/${trip.share_token}` : '';
-  const run = (fn) => async () => { setBusy(true); try { await fn(); } finally { setBusy(false); } };
+  const [name, setName] = useState(link.name || '');
+  useEffect(() => { setName(link.name || ''); }, [link.name]);
+  const url = `${window.location.origin}/#/s/${link.token}`;
   const copy = async () => {
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* sem permissão: o campo fica selecionável */ }
   };
+  const count = SHARE_PARTS.filter(([k]) => link[k]).length;
   return (
-    <Modal title="Compartilhar roteiro" onClose={onClose} footer={<><span className="spacer" /><button onClick={onClose}>Fechar</button></>}>
-      <p className="muted">Quem tiver o link vê o roteiro, o mapa e as hospedagens, sem precisar da senha e sem poder editar. Notas, links, códigos de reserva, custos e o checklist não aparecem.</p>
-      {url ? (
-        <>
-          <div className="share-link">
-            <input readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Link do roteiro" />
-            <button className="primary" onClick={copy}>{copied ? 'Copiado' : 'Copiar'}</button>
-          </div>
-          <div className="row" style={{ marginTop: 12, gap: 8, display: 'flex', flexWrap: 'wrap' }}>
-            {navigator.share && <button onClick={() => navigator.share({ title: trip.name, url }).catch(() => {})}>Enviar…</button>}
-            <a className="btn-like" href={url} target="_blank" rel="noreferrer">Abrir como visitante</a>
-            <span className="spacer" />
-            <button className="danger" disabled={busy} onClick={run(onRemove)}>Desativar link</button>
-          </div>
-          {onMoney && (
-            <label className="check-line" style={{ marginTop: 16, alignItems: 'flex-start' }}>
-              <input type="checkbox" checked={!!trip.share_money} disabled={busy} onChange={(e) => run(() => onMoney(e.target.checked))()} />
-              <span>
-                <b>Mostrar gastos e ingressos no link</b>
-                <span className="muted small" style={{ display: 'block' }}>Quem tiver o link passa a ver a análise de gastos e a página de ingressos: custos, compras, notas das atividades e os itens de reserva do checklist. Códigos de reserva e anexos continuam escondidos.</span>
-              </span>
-            </label>
-          )}
-          {onDiary && (
-            <label className="check-line" style={{ marginTop: 12, alignItems: 'flex-start' }}>
-              <input type="checkbox" checked={!!trip.share_diary} disabled={busy} onChange={(e) => run(() => onDiary(e.target.checked))()} />
-              <span>
-                <b>Mostrar o diário de viagem no link</b>
-                <span className="muted small" style={{ display: 'block' }}>Quem tiver o link vê o álbum com as fotos, as legendas e os textos das páginas, sem poder mudar nada, e pode baixar as fotos.</span>
-              </span>
-            </label>
-          )}
-        </>
-      ) : (
-        <button className="primary" disabled={busy} onClick={run(onCreate)}>Criar link</button>
-      )}
-    </Modal>
+    <section className="share-card">
+      <div className="share-card-head">
+        <input className="share-name" value={name} maxLength={80} aria-label="Nome do link" placeholder="Nome do link"
+          onChange={(e) => setName(e.target.value)} onBlur={() => name.trim() && name !== link.name && run(() => onUpdate(link, { name }))()} />
+        <button className="ghost danger sm" disabled={busy} onClick={() => window.confirm(`Desativar o link "${link.name}"? Quem tem esse link perde o acesso na hora.`) && run(() => onRemove(link))()}>Desativar</button>
+      </div>
+      <div className="share-link">
+        <input readOnly value={url} onFocus={(e) => e.target.select()} aria-label={`Endereço do link ${link.name}`} />
+        <button className="primary" onClick={copy}>{copied ? 'Copiado' : 'Copiar'}</button>
+      </div>
+      <div className="share-parts">
+        {SHARE_PARTS.map(([k, label, hint]) => (
+          <label key={k} className="check-line" title={hint}>
+            <input type="checkbox" checked={!!link[k]} disabled={busy || (link[k] && count === 1)}
+              onChange={(e) => run(() => onUpdate(link, { [k]: e.target.checked ? 1 : 0 }))()} />
+            <span><b>{label}</b><span className="muted small share-hint">{hint}</span></span>
+          </label>
+        ))}
+      </div>
+      <div className="share-actions">
+        {navigator.share && <button className="sm" onClick={() => navigator.share({ title: trip.name, url }).catch(() => {})}>Enviar…</button>}
+        <a className="btn-like sm" href={url} target="_blank" rel="noreferrer">Abrir como visitante</a>
+        <span className="spacer" />
+        <button className="ghost sm" disabled={busy} title="Cria um endereço novo para este link; o antigo para de funcionar"
+          onClick={() => window.confirm('Trocar o endereço deste link? O endereço antigo para de funcionar e você precisa mandar o novo.') && run(() => onUpdate(link, { renew: true }))()}>Trocar endereço</button>
+      </div>
+    </section>
   );
 }
 

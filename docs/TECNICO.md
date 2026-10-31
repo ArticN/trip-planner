@@ -24,7 +24,9 @@ npm start        # serve o build e a API em http://localhost:3000
 
 `GET/POST /api/trips` · `GET/PUT/DELETE /api/trips/:id` · `POST /api/trips/:id/duplicate` · `GET /api/trips/:id/export` · `POST /api/trips/import` ·
 `POST /api/trips/:id/activities|stays|cities` · `PUT/DELETE /api/activities|stays|cities/:id` · `PUT /api/trips/:id/days/reorder` ·
-`GET /api/examples` · `POST /api/examples/:key` · `GET /api/share/:token` (link só leitura, sem login).
+`GET /api/examples` · `POST /api/examples/:key` · `GET /api/share/:token` (link de visitante, sem login; manda só as partes
+que o link libera) · `GET/POST /api/trips/:id/shares` · `PUT/DELETE /api/shares/:id` (links de visitante; `PUT` com
+`renew: true` troca o endereço).
 
 ## Viagem de exemplo
 

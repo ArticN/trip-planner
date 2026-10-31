@@ -14,7 +14,7 @@ const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
 const BUY_FIELDS = ['title', 'store', 'city', 'day', 'price', 'grp', 'bought', 'exempt', 'notes', 'sort'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope', 'share_money', 'share_diary'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope'];
 
 // objetos (ex.: route com as estações) vão para o banco como JSON
 const clean = (v) => (v === '' || v === undefined ? null : v && typeof v === 'object' ? JSON.stringify(v) : v);
@@ -156,6 +156,24 @@ async function migrate() {
   // metadados das fotos (v1.40): onde foi tirada, a atividade do roteiro e a câmera (JSON)
   await addCols('photos', [['lat', 'REAL'], ['lng', 'REAL'], ['activity_id', 'INTEGER'], ['meta', 'TEXT']]);
 
+  // vários links de visitante (v1.41): cada link tem nome, token e as partes que mostra.
+  // Na primeira vez, o link único da viagem (trips.share_token) vira um link com as mesmas opções e o mesmo endereço.
+  const hadLinks = await hasTable('share_links');
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS share_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE, name TEXT,
+      plan INTEGER DEFAULT 1, money INTEGER DEFAULT 0, diary INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_share_trip ON share_links(trip_id);
+  `);
+  if (!hadLinks) {
+    await db.exec(`INSERT OR IGNORE INTO share_links (trip_id, token, name, plan, money, diary)
+      SELECT id, share_token, 'Link do roteiro', 1, COALESCE(share_money, 0), COALESCE(share_diary, 0) FROM trips WHERE share_token IS NOT NULL`);
+  }
+
   if (legacy) {
     const kv = Object.fromEntries((await db.all('SELECT key, value FROM trip')).map((r) => [r.key, r.value]));
     const { lastInsertRowid: tid } = await db.run('INSERT INTO trips (name, subtitle, emoji, start, end, currency, home_currency, rate) VALUES (?,?,?,?,?,?,?,?)',
@@ -243,7 +261,7 @@ async function createTripFull(b) {
 }
 
 // apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
-const deleteTrip = (id) => db.batch(['files', 'photos', 'journal', 'album_pages', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
+const deleteTrip = (id) => db.batch(['files', 'photos', 'journal', 'album_pages', 'share_links', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
 
 const PHOTO_META = 'id, day, caption, taken_at, w, h, size, sort, created_at, lat, lng, activity_id, meta';
 const parseBlocks = (v) => { try { const b = JSON.parse(v || '[]'); return Array.isArray(b) ? b : []; } catch { return []; } };
@@ -288,7 +306,8 @@ async function getTrip(id) {
     db.all('SELECT id, day, title, blocks, sort FROM album_pages WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all(`SELECT ${PHOTO_META} FROM photos WHERE trip_id = ? ORDER BY day, sort, taken_at, id`, [id]),
   ]);
-  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases, pages: pageRows.map(pageOut), photos };
+  const shares = (await db.all('SELECT * FROM share_links WHERE trip_id = ? ORDER BY id', [id])).map(linkOut);
+  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases, pages: pageRows.map(pageOut), photos, shares };
 }
 
 const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MAX(sort), -1) AS m FROM ${table} WHERE ${where}`, args)).m + 1;
@@ -376,23 +395,32 @@ app.get('/api/cal/:token', h(async (req, res) => {
 const SHARE_ACT = ['id', 'day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'lat', 'lng', 'sort', 'start_tz', 'end_tz', 'from_code', 'to_code', 'via', 'slot', 'route', 'alt'];
 const SHARE_ACT_MONEY = ['cost', 'notes', 'links'];
 const only = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k] ?? null]));
+// o link de visitante: o servidor só manda as partes que aquele link libera (roteiro, gastos, diário)
+const shareLink = (t) => (String(t || '').length >= 16 ? db.get('SELECT * FROM share_links WHERE token = ?', [String(t)]) : null);
 app.get('/api/share/:token', h(async (req, res) => {
-  const t = String(req.params.token || '');
-  const row = t.length >= 16 && (await db.get('SELECT id FROM trips WHERE share_token = ?', [t]));
-  if (!row) return res.status(404).json({ error: 'link inválido ou desativado' });
-  const d = await getTrip(row.id);
-  const money = !!d.trip.share_money;
-  const diary = !!d.trip.share_diary;
+  const link = await shareLink(req.params.token);
+  if (!link) return res.status(404).json({ error: 'link inválido ou desativado' });
+  const d = await getTrip(link.trip_id);
+  const plan = !!link.plan;
+  const money = !!link.money;
+  const diary = !!link.diary;
+  // sem o roteiro, o diário ainda precisa do nome das atividades das fotos (para a legenda automática), e só delas
+  const photoActs = new Set(diary ? d.photos.map((p) => p.activity_id).filter(Boolean) : []);
+  const acts = plan || money ? d.activities.map((a) => only(a, money ? [...SHARE_ACT, ...SHARE_ACT_MONEY] : SHARE_ACT))
+    : d.activities.filter((a) => photoActs.has(a.id)).map((a) => only(a, ['id', 'day', 'start', 'end', 'city', 'title', 'kind']));
   res.setHeader('Cache-Control', 'no-store');
   res.json({
-    trip: only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent', 'share_money', 'share_diary', ...(money ? ['usd_rate', 'quota_usd'] : [])]),
+    trip: {
+      ...only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent', ...(money ? ['usd_rate', 'quota_usd'] : [])]),
+      share_plan: plan ? 1 : 0, share_money: money ? 1 : 0, share_diary: diary ? 1 : 0,
+    },
     cities: d.cities.map((c) => only(c, ['key', 'name', 'emoji', 'color', 'lat', 'lng'])),
-    stays: d.stays.map((x) => only(x, ['id', 'city', 'name', 'check_in', 'check_out', 'lat', 'lng', ...(money ? ['cost'] : [])])),
-    activities: d.activities.map((a) => only(a, money ? [...SHARE_ACT, ...SHARE_ACT_MONEY] : SHARE_ACT)),
+    stays: plan || money ? d.stays.map((x) => only(x, ['id', 'city', 'name', 'check_in', 'check_out', 'lat', 'lng', ...(money ? ['cost'] : [])])) : [],
+    activities: acts,
     days: d.days.map((x) => only(x, ['day', 'title'])),
-    // com "mostrar o diário no link" ligado: as páginas do álbum e os dados das fotos (as fotos vêm de /api/share/:token/photos)
+    // diário liberado: as páginas do álbum e os dados das fotos (as fotos vêm de /api/share/:token/photos)
     ...(diary ? { pages: d.pages, photos: d.photos } : {}),
-    // com "mostrar gastos e ingressos no link" ligado: custos, compras e os itens de reserva da checklist (nunca códigos de reserva nem anexos)
+    // gastos liberados: custos, compras e os itens de reserva da checklist (nunca códigos de reserva nem anexos)
     ...(money ? {
       purchases: d.purchases.map((x) => only(x, ['id', 'title', 'store', 'city', 'day', 'price', 'grp', 'exempt', 'bought'])),
       checklist: d.checklist.filter((c) => /reserv|ingress/i.test(`${c.grp || ''} ${c.text}`)).map((c) => only(c, ['id', 'grp', 'text', 'done'])),
@@ -400,10 +428,10 @@ app.get('/api/share/:token', h(async (req, res) => {
   });
 }));
 
-// fotos do diário para quem tem o link (só com o diário liberado e só fotos desta viagem)
+// fotos do diário para quem tem o link (só em link com o diário liberado e só fotos daquela viagem)
 const sharedPhoto = (col) => h(async (req, res) => {
   const t = String(req.params.token || '');
-  const p = t.length >= 16 && (await db.get(`SELECT p.${col} AS data FROM photos p JOIN trips t ON t.id = p.trip_id WHERE t.share_token = ? AND t.share_diary = 1 AND p.id = ?`, [t, Number(req.params.pid)]));
+  const p = t.length >= 16 && (await db.get(`SELECT p.${col} AS data FROM photos p JOIN share_links s ON s.trip_id = p.trip_id WHERE s.token = ? AND s.diary = 1 AND p.id = ?`, [t, Number(req.params.pid)]));
   if (!p?.data) return res.status(404).json({ error: 'foto não encontrada' });
   photoHeaders(req, res);
   res.end(Buffer.from(p.data));
@@ -482,17 +510,50 @@ app.get('/api/trips/:id/export', needTrip, h(async (req, res) => {
   const d = await getTrip(req.tripId);
   const file = `${d.trip.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'viagem'}.json`;
   res.setHeader('Content-Disposition', `attachment; filename="${file}"`);
-  res.json({ ...d, trip: { ...d.trip, share_token: undefined, cal_token: undefined } });
+  res.json({ ...d, shares: undefined, trip: { ...d.trip, share_token: undefined, cal_token: undefined } });
 }));
 
-app.post('/api/trips/:id/share', needTrip, h(async (req, res) => {
-  const t = crypto.randomBytes(18).toString('base64url');
-  await db.run('UPDATE trips SET share_token = ? WHERE id = ?', [t, req.tripId]);
-  res.json({ share_token: t });
+// ── links de visitante: vários por viagem, cada um com nome e as partes que mostra
+const linkOut = (r) => ({ id: r.id, token: r.token, name: r.name, plan: r.plan ? 1 : 0, money: r.money ? 1 : 0, diary: r.diary ? 1 : 0, created_at: r.created_at });
+const linkFields = (b, cur = {}) => {
+  const f = {
+    name: String(b.name ?? cur.name ?? '').trim().slice(0, 80) || 'Link',
+    plan: (b.plan ?? cur.plan ?? 1) ? 1 : 0,
+    money: (b.money ?? cur.money ?? 0) ? 1 : 0,
+    diary: (b.diary ?? cur.diary ?? 0) ? 1 : 0,
+  };
+  return f.plan || f.money || f.diary ? f : null;
+};
+const newToken = () => crypto.randomBytes(18).toString('base64url');
+app.get('/api/trips/:id/shares', needTrip, h(async (req, res) => {
+  res.json((await db.all('SELECT * FROM share_links WHERE trip_id = ? ORDER BY id', [req.tripId])).map(linkOut));
 }));
-app.delete('/api/trips/:id/share', needTrip, h(async (req, res) => {
-  await db.run('UPDATE trips SET share_token = NULL WHERE id = ?', [req.tripId]);
-  res.json({ share_token: null });
+app.post('/api/trips/:id/shares', needTrip, h(async (req, res) => {
+  const f = linkFields(req.body || {});
+  if (!f) return res.status(400).json({ error: 'escolha ao menos uma parte para mostrar' });
+  const r = await db.run('INSERT INTO share_links (trip_id, token, name, plan, money, diary) VALUES (?,?,?,?,?,?)', [req.tripId, newToken(), f.name, f.plan, f.money, f.diary]);
+  res.json(linkOut(await db.get('SELECT * FROM share_links WHERE id = ?', [Number(r.lastInsertRowid)])));
+}));
+const ownLink = async (req, res) => {
+  const row = await db.get('SELECT * FROM share_links WHERE id = ?', [Number(req.params.sid)]);
+  if (!row) { res.status(404).json({ error: 'link não encontrado' }); return null; }
+  return row;
+};
+app.put('/api/shares/:sid', h(async (req, res) => {
+  const row = await ownLink(req, res);
+  if (!row) return;
+  const f = linkFields(req.body || {}, row);
+  if (!f) return res.status(400).json({ error: 'escolha ao menos uma parte para mostrar' });
+  // novo endereço: o antigo para de funcionar na hora
+  const token = req.body?.renew ? newToken() : row.token;
+  await db.run('UPDATE share_links SET name = ?, plan = ?, money = ?, diary = ?, token = ? WHERE id = ?', [f.name, f.plan, f.money, f.diary, token, row.id]);
+  res.json(linkOut(await db.get('SELECT * FROM share_links WHERE id = ?', [row.id])));
+}));
+app.delete('/api/shares/:sid', h(async (req, res) => {
+  const row = await ownLink(req, res);
+  if (!row) return;
+  await db.run('DELETE FROM share_links WHERE id = ?', [row.id]);
+  res.json({ ok: true });
 }));
 
 app.post('/api/trips/:id/calendar', needTrip, h(async (req, res) => {
