@@ -220,7 +220,7 @@ async function createTripFull(b) {
   (b.days || []).filter((d) => d.day && (d.title || d.notes)).forEach((d) => list.push(insDay(id, d)));
   // diário: as fotos não vão no backup, então só os blocos de texto voltam (backup da v1.38: journal vira páginas)
   const pages = Array.isArray(b.pages) ? b.pages : (b.journal || []).filter((d) => d.day && d.text).map((d) => ({ day: d.day, blocks: [{ type: 'text', style: 'nota', text: d.text }] }));
-  pages.map((p) => ({ ...p, blocks: cleanBlocks(p.blocks).filter((x) => x.type === 'text' || (x.type === 'video' && x.yt)) })).filter((p) => p.blocks.length)
+  pages.map((p) => ({ ...p, blocks: cleanBlocks(p.blocks).filter((x) => x.type === 'text' || (x.type === 'video' && x.vid)) })).filter((p) => p.blocks.length)
     .forEach((p, i) => list.push(insPage(id, p, i)));
   const byDay = new Map();
   (b.activities || []).forEach((x) => {
@@ -251,12 +251,24 @@ const pageOut = (r) => ({ ...r, blocks: parseBlocks(r.blocks) });
 // blocos aceitos: fotos (ids + layout) e texto (estilo + texto); o resto é descartado
 const LAYOUTS = ['mosaico', 'grade', 'destaque', 'polaroides', 'filme'];
 const STYLES = ['nota', 'titulo', 'citacao'];
+// vídeo do álbum: o arquivo fica na plataforma; o bloco guarda só a plataforma e o código do vídeo
+const VIDEO_IDS = {
+  yt: /^[\w-]{11}$/,
+  vimeo: /^\d{6,12}(\/[0-9a-f]{6,20})?$/,
+  drive: /^[\w-]{20,80}$/,
+  ig: /^[\w-]{5,40}$/,
+  tiktok: /^\d{10,25}$/,
+};
 const cleanBlocks = (list) => (Array.isArray(list) ? list : []).slice(0, 200).map((b, i) => {
   const id = String(b?.id || `b${Date.now().toString(36)}${i}`).slice(0, 40);
   if (b?.type === 'photos') return { id, type: 'photos', layout: LAYOUTS.includes(b.layout) ? b.layout : 'mosaico', ids: (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isInteger).slice(0, 500) };
   if (b?.type === 'text') return { id, type: 'text', style: STYLES.includes(b.style) ? b.style : 'nota', text: String(b.text ?? '').slice(0, 20000) };
   // vídeo do YouTube: só o código do vídeo (11 caracteres); o arquivo fica no YouTube
-  if (b?.type === 'video') return { id, type: 'video', yt: /^[\w-]{11}$/.test(String(b.yt || '')) ? String(b.yt) : '', vertical: !!b.vertical, caption: String(b.caption ?? '').slice(0, 300) };
+  if (b?.type === 'video') {
+    const src = Object.hasOwn(VIDEO_IDS, b.src) ? b.src : 'yt';
+    const vid = VIDEO_IDS[src].test(String(b.vid || '')) ? String(b.vid) : '';
+    return { id, type: 'video', src, vid, vertical: !!b.vertical, caption: String(b.caption ?? '').slice(0, 300) };
+  }
   return null;
 }).filter(Boolean);
 const insPage = (tripId, p, sort) => ['INSERT INTO album_pages (trip_id, day, title, blocks, sort) VALUES (?,?,?,?,?)',
@@ -715,6 +727,24 @@ app.post('/api/trips/:id/pages', needTrip, h(async (req, res) => {
   const r = await run1(insPage(req.tripId, b, sort));
   res.status(201).json(pageOut(await db.get('SELECT id, day, title, blocks, sort FROM album_pages WHERE id = ?', [r.lastInsertRowid])));
 }));
+// link curto do TikTok (vt.tiktok.com/…, o que o app copia): segue os redirecionamentos para achar o código do vídeo.
+// Só para hosts do TikTok, para o servidor não virar um proxy aberto.
+const TIKTOK_HOST = /^(?:vt|vm|www|m)\.tiktok\.com$/i;
+app.post('/api/video/resolve', h(async (req, res) => {
+  let url;
+  try { url = new URL(String(req.body?.url || '')); } catch { return res.status(400).json({ error: 'link inválido' }); }
+  for (let i = 0; i < 5; i++) {
+    if (url.protocol !== 'https:' || !TIKTOK_HOST.test(url.hostname)) break;
+    const m = url.pathname.match(/\/video\/(\d{10,25})/);
+    if (m) return res.json({ src: 'tiktok', vid: m[1] });
+    const r = await fetch(url, { method: 'HEAD', redirect: 'manual', signal: AbortSignal.timeout(6000) }).catch(() => null);
+    const loc = r?.headers.get('location');
+    if (!loc) break;
+    url = new URL(loc, url);
+  }
+  res.status(404).json({ error: 'não achei o vídeo nesse link' });
+}));
+
 app.put('/api/pages/:pid', h(async (req, res) => {
   const pid = Number(req.params.pid);
   const cur = await db.get('SELECT * FROM album_pages WHERE id = ?', [pid]);

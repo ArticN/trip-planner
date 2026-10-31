@@ -31,7 +31,7 @@ Toque em **Editar** (vira **Pronto** quando terminar; tudo salva sozinho). Cada 
   - **Filme**: uma tira de negativo que rola para o lado.
 - **Bloco de texto**, em três estilos: **Nota** (letra de mão em papel pautado), **Título** (grande, centralizado) e
   **Citação** (itálico, com uma barra vermelha).
-- **Bloco de vídeo** do YouTube, **Horizontal** ou **Vertical** (Shorts). Ver [Vídeos](#vídeos).
+- **Bloco de vídeo** (YouTube, Vimeo, Google Drive, Instagram ou TikTok), **Horizontal** ou **Vertical**. Ver [Vídeos](#vídeos).
 
 No modo Editar:
 
@@ -75,18 +75,28 @@ EXIF; o app guarda à parte só esses dados.
 
 ## Vídeos
 
-Os vídeos ficam **no YouTube**, não no app: lá eles mantêm a resolução original (até 4K), o espaço não tem limite e o
-banco do app não enche. Um minuto de vídeo 4K do celular tem uns 300 a 400 MB, e o servidor do app só aceita 4,5 MB por
-envio.
+Os vídeos ficam **numa plataforma de vídeo**, não no app: lá eles mantêm a resolução original, e o banco do app não
+enche. Um minuto de vídeo 4K do celular tem uns 300 a 400 MB, e o servidor do app só aceita 4,5 MB por envio. O
+armazenamento de arquivos da Vercel (Blob) no plano grátis tem 1 GB e 10 GB de download por mês, o que dá uns 3 minutos
+de 4K.
 
-1. Suba o vídeo pelo app do YouTube como **Não listado** (só quem tem o link vê).
-2. Toque em **Compartilhar › Copiar link**.
-3. No álbum, em **Editar**, toque em **+ Vídeo** e cole o link. Links de Shorts já entram como **Vertical**.
+| Plataforma | Como deixar o vídeo | Observações |
+| --- | --- | --- |
+| **YouTube** (recomendado) | **Não listado**: só quem tem o link vê | Resolução original (até 4K), espaço ilimitado, mostra a capa. Links de Shorts entram como Vertical. |
+| **Vimeo** | Público ou "Não listado" (o link traz um código extra, que o app guarda) | Plano grátis com limite de espaço. |
+| **Google Drive** | Compartilhar › "Qualquer pessoa com o link" | Bom para quem já faz backup no Google. O player do Drive toca em qualidade menor e vídeos grandes demoram para processar. |
+| **Instagram** | Reel ou post de conta **pública** | O player traz o cabeçalho e a legenda do Instagram. |
+| **TikTok** | Vídeo de conta **pública** | Links curtos (`vt.tiktok.com/…`, o que o app copia) funcionam: o servidor descobre o vídeo. |
 
-O álbum mostra a capa com ▶ e só carrega o player ao tocar (o YouTube no modo de privacidade reforçada, sem cookies até
-dar play). O bloco tem legenda opcional, **Trocar vídeo** e **abrir no YouTube**. Funciona no link de visitante e vai no
-backup (só o código do vídeo). Limites: precisa de internet para tocar, e o vídeo não entra no mapa nem é ligado a uma
-atividade (o YouTube não informa onde nem quando foi gravado).
+1. No app da plataforma, toque em **Compartilhar › Copiar link**.
+2. No álbum, em **Editar**, toque em **+ Vídeo** e cole o link.
+
+O álbum mostra a capa (YouTube e Drive) ou a cor da plataforma, com ▶ e o nome dela, e só carrega o player ao tocar (no
+YouTube, o modo de privacidade reforçada, sem cookies até dar play). O bloco tem legenda opcional, **Horizontal** ou
+**Vertical**, **Trocar vídeo** e **abrir no …**. Funciona no link de visitante e vai no backup (só a plataforma e o
+código do vídeo). Google Fotos não entra: ele não oferece player para outros sites. Limites: precisa de internet para
+tocar; se o vídeo for apagado ou ficar privado na plataforma, some do álbum; e o vídeo não entra no mapa nem é ligado a
+uma atividade (as plataformas não informam onde nem quando foi gravado).
 
 ## O visual
 

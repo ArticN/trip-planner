@@ -1686,7 +1686,7 @@ input.dj-lb-cap:focus-visible { outline: none; box-shadow: none; background: #f2
 .dj-video.vertical .dj-video-frame { width: min(340px, 100%); aspect-ratio: 9 / 16; transform: rotate(.8deg); }
 .dj-video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .dj-video-cover { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 0; background: #222 center / cover no-repeat; cursor: pointer; display: grid; place-items: center; }
-.dj-video-play { width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; padding-left: 5px; font-size: 26px; color: #fff; background: rgba(200, 30, 30, .9); box-shadow: 0 4px 18px rgba(0, 0, 0, .45); transition: transform .15s; }
+.dj-video-play { width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; padding-left: 5px; font-size: 26px; color: #fff; background: var(--pf, #e62117); box-shadow: 0 4px 18px rgba(0, 0, 0, .45); transition: transform .15s; }
 .dj-video-cover:hover .dj-video-play { transform: scale(1.08); }
 .dj-video figcaption { font-family: var(--hand); font-size: 24px; color: var(--ink, inherit); text-align: center; }
 .dj-video-edit { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; width: 100%; }
@@ -1695,3 +1695,7 @@ input.dj-lb-cap:focus-visible { outline: none; box-shadow: none; background: #f2
 .dj-video-new input { width: 100%; }
 .dj-video-new p { margin: 0; }
 .dj-video-new .dj-warn { color: #e0893a; }
+.dj-video-cover.plain { background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--pf) 70%, #fff 0%), #151515 75%); }
+.dj-video-pf { position: absolute; left: 10px; bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: #fff; background: rgba(0, 0, 0, .55); padding: 3px 8px; border-radius: 999px; }
+/* Instagram e TikTok têm cabeçalho e rodapé no player: um pouco mais altos que 9:16 */
+.dj-video.ig.vertical .dj-video-frame, .dj-video.tiktok.vertical .dj-video-frame { aspect-ratio: 9 / 19; }

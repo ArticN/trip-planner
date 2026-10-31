@@ -24,7 +24,7 @@ export const CHANGELOG = [
       'Ficha da foto (ⓘ Info): local com altitude e link para o mapa, a atividade (dá para trocar), câmera, lente e exposição.',
       'Fotos no mapa: miniaturas onde cada foto foi tirada e, no mapa do dia, o caminho que você fez de verdade. O botão Fotos liga e desliga. O painel da atividade mostra as fotos dela.',
       'A aba Fotos avisa quais fotos vieram sem localização e como ligar isso na câmera do Galaxy.',
-      'Novo bloco de vídeo: cole o link de um vídeo ou Short do YouTube (pode ser “Não listado”). O vídeo fica no YouTube, na resolução original, e toca dentro do álbum e no link de visitante.',
+      'Novo bloco de vídeo: cole o link de um vídeo do YouTube (pode ser “Não listado”), Vimeo, Google Drive, Instagram ou TikTok. O vídeo fica na plataforma, na resolução original, e toca dentro do álbum e no link de visitante.',
     ],
   },
   {

@@ -55,6 +55,7 @@ export const api = {
   deleteFile: (id) => req('DELETE', `/api/files/${id}`),
   fileUrl: (id) => `/api/files/${id}`,
   // diário de viagem: a miniatura e a foto vão juntas no corpo (X-Thumb-Length separa as duas)
+  resolveVideo: (url) => req('POST', '/api/video/resolve', { url }),
   createPage: (tripId, p) => req('POST', `/api/trips/${tripId}/pages`, p),
   updatePage: (id, patch) => req('PUT', `/api/pages/${id}`, patch),
   deletePage: (id) => req('DELETE', `/api/pages/${id}`),

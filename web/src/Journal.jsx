@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
+import { PLATFORMS, parseVideo, videoOf, embedUrl, pageUrl, coverUrls } from './video.js';
 import { preparePhoto } from './photos.js';
 import { rangeDays, fmtDay, fmtDayLong, nowIn, daysBetween, principals } from './util.js';
 import { matchActivity, autoCaption, techSheet, hasPlace } from './photoMeta.js';
@@ -35,7 +36,7 @@ const handFont = () => {
   document.head.appendChild(l);
 };
 
-const blockHasContent = (b) => (b.type === 'photos' ? b.ids.length > 0 : b.type === 'video' ? !!b.yt : !!b.text?.trim());
+const blockHasContent = (b) => (b.type === 'photos' ? b.ids.length > 0 : b.type === 'video' ? !!videoOf(b) : !!b.text?.trim());
 
 export default function Journal({ data, setData = null, onBack, readOnly = false, token = null, initialPhoto = null }) {
   const { trip } = data;
@@ -319,7 +320,7 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
       onBlocks={(fn) => setBlocks(p, fn)}
       onAddPhotos={(files, blockId) => addFiles(files, { pageId: p.id, blockId })}
       onAddText={(at) => { const id = newId(); setFocusBlock(id); setBlocks(p, (bl) => [...bl.slice(0, at), { id, type: 'text', style: 'nota', text: '' }, ...bl.slice(at)]); }}
-      onAddVideo={(at) => { const id = newId(); setFocusBlock(id); setBlocks(p, (bl) => [...bl.slice(0, at), { id, type: 'video', yt: '', vertical: false, caption: '' }, ...bl.slice(at)]); }}
+      onAddVideo={(at) => { const id = newId(); setFocusBlock(id); setBlocks(p, (bl) => [...bl.slice(0, at), { id, type: 'video', src: '', vid: '', vertical: false, caption: '' }, ...bl.slice(at)]); }}
       onAddPhotoBlock={(at) => { const id = newId(); setBlocks(p, (bl) => [...bl.slice(0, at), { id, type: 'photos', layout: 'grade', ids: [] }, ...bl.slice(at)]); return id; }}
       onDropBlockPhotos={dropPhotos}
       onDelete={() => deletePage(p)}
@@ -607,55 +608,57 @@ function Photos({ block, photosById, url, caption, edit, onOpen, onReorder }) {
   );
 }
 
-// vídeo do YouTube: o vídeo fica no YouTube (resolução cheia, sem ocupar o banco do app);
+// vídeo: o arquivo fica no YouTube, Vimeo, Google Drive, Instagram ou TikTok (resolução cheia, sem ocupar o banco do app);
 // o álbum mostra a capa e só carrega o player quando você toca no ▶
-const youTubeId = (text) => {
-  const s = String(text || '').trim();
-  if (/^[\w-]{11}$/.test(s)) return { yt: s };
-  const m = s.match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([\w-]{11})/i);
-  return m ? { yt: m[1], vertical: /\/shorts\//i.test(s) } : null;
-};
-
 function VideoBlock({ block, edit, autoFocus, onChange }) {
   const [playing, setPlaying] = useState(false);
   const [link, setLink] = useState('');
-  const [bad, setBad] = useState(false);
+  const [msg, setMsg] = useState(null); // { bad, text }
   const [cap, setCap] = useState(block.caption || '');
   const ref = useRef(null);
+  const v = videoOf(block);
+  const key = v ? `${v.src}:${v.vid}` : '';
   useEffect(() => { setCap(block.caption || ''); }, [block.caption]);
-  useEffect(() => { if (autoFocus && edit && !block.yt) ref.current?.focus(); }, [autoFocus, edit, block.yt]);
-  useEffect(() => { setPlaying(false); }, [block.yt, edit]);
-  const take = (v) => {
-    setLink(v);
-    const r = youTubeId(v);
-    setBad(!!v.trim() && !r);
-    if (r) { onChange({ yt: r.yt, ...(r.vertical ? { vertical: true } : {}) }); setLink(''); }
+  useEffect(() => { if (autoFocus && edit && !v) ref.current?.focus(); }, [autoFocus, edit, key]);
+  useEffect(() => { setPlaying(false); }, [key, edit]);
+  const take = async (text) => {
+    setLink(text);
+    let r = parseVideo(text);
+    if (r?.short) {
+      setMsg({ text: 'Abrindo o link do TikTok…' });
+      r = await api.resolveVideo(r.short).then((x) => ({ ...x, vertical: true })).catch(() => null);
+      if (!r) { setMsg({ bad: true, text: 'Não consegui abrir esse link do TikTok. Abra o vídeo no navegador e copie o endereço completo.' }); return; }
+    }
+    if (!r) { setMsg(text.trim() ? { bad: true, text: 'Não reconheci esse link. Use um link do YouTube, Vimeo, Google Drive, Instagram ou TikTok.' } : null); return; }
+    setMsg(null);
+    setLink('');
+    onChange({ src: r.src, vid: r.vid, vertical: !!r.vertical });
   };
-  if (edit && !block.yt) {
+  if (edit && !v) {
     return (
       <div className="dj-video-new">
-        <input ref={ref} type="url" inputMode="url" value={link} placeholder="Cole o link do YouTube (vídeo ou Short)" aria-label="Link do YouTube"
+        <input ref={ref} type="url" inputMode="url" value={link} placeholder="Cole o link do vídeo" aria-label="Link do vídeo"
           onChange={(e) => take(e.target.value)} />
-        <p className={`small ${bad ? 'dj-warn' : 'muted'}`}>
-          {bad ? 'Esse link não parece ser de um vídeo do YouTube.' : 'Suba o vídeo no app do YouTube como “Não listado” (só quem tem o link vê), toque em Compartilhar › Copiar link e cole aqui.'}
+        <p className={`small ${msg?.bad ? 'dj-warn' : 'muted'}`}>
+          {msg?.text || <>Vale <b>YouTube</b> (pode ser “Não listado”), <b>Vimeo</b>, <b>Google Drive</b> (compartilhado com “qualquer pessoa com o link”), <b>Instagram</b> e <b>TikTok</b> (conta pública). No app, toque em Compartilhar › Copiar link e cole aqui.</>}
         </p>
       </div>
     );
   }
-  if (!block.yt) return null;
-  const ratio = block.vertical ? 'vertical' : 'wide';
+  if (!v) return null;
+  const pf = PLATFORMS[v.src];
+  const covers = coverUrls(v, block.vertical);
   return (
-    <figure className={`dj-video ${ratio}`}>
+    <figure className={`dj-video ${block.vertical ? 'vertical' : 'wide'} ${v.src}`}>
       <div className="dj-video-frame">
         {playing ? (
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${block.yt}?autoplay=1&rel=0&playsinline=1&modestbranding=1`}
-            title={block.caption || 'Vídeo do YouTube'} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen
-          />
+          <iframe src={embedUrl(v)} title={block.caption || `Vídeo do ${pf.name}`}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
         ) : (
-          <button className="dj-video-cover" onClick={() => setPlaying(true)} aria-label={`Assistir${block.caption ? `: ${block.caption}` : ' o vídeo'}`}
-            style={{ backgroundImage: `url(https://i.ytimg.com/vi/${block.yt}/${block.vertical ? 'oar2' : 'hqdefault'}.jpg), url(https://i.ytimg.com/vi/${block.yt}/hqdefault.jpg)` }}>
+          <button className={`dj-video-cover${covers.length ? '' : ' plain'}`} onClick={() => setPlaying(true)} aria-label={`Assistir${block.caption ? `: ${block.caption}` : ' o vídeo'} (${pf.name})`}
+            style={{ '--pf': pf.color, ...(covers.length ? { backgroundImage: covers.map((u) => `url(${u})`).join(', ') } : {}) }}>
             <span className="dj-video-play" aria-hidden="true">▶</span>
+            <span className="dj-video-pf">{pf.name}</span>
           </button>
         )}
       </div>
@@ -663,8 +666,8 @@ function VideoBlock({ block, edit, autoFocus, onChange }) {
         <div className="dj-video-edit">
           <input value={cap} maxLength={300} placeholder="Legenda (opcional)" aria-label="Legenda do vídeo"
             onChange={(e) => setCap(e.target.value)} onBlur={() => cap !== (block.caption || '') && onChange({ caption: cap })} />
-          <button className="sm ghost" onClick={() => onChange({ yt: '' })}>Trocar vídeo</button>
-          <a className="small" href={`https://youtu.be/${block.yt}`} target="_blank" rel="noreferrer">abrir no YouTube</a>
+          <button className="sm ghost" onClick={() => onChange({ src: '', vid: '' })}>Trocar vídeo</button>
+          <a className="small" href={pageUrl(v)} target="_blank" rel="noreferrer">abrir no {pf.name}</a>
         </div>
       ) : block.caption ? <figcaption>{block.caption}</figcaption> : null}
     </figure>
