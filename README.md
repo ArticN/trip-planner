@@ -84,7 +84,6 @@ server/examples/       viagem de exemplo fictícia (carregável pela API)
 examples/              a mesma viagem de exemplo como backup JSON, para importar na tela inicial
 web/src/               front-end React (Home, TripView, DayPanel, MapView, Modals…)
 docs/                  guia de instalação, funcionalidades, detalhes técnicos e capturas
-.claude/skills/        skills de design usadas pelo Claude durante o desenvolvimento
 ```
 
 Detalhes da API estão em [docs/TECNICO.md](docs/TECNICO.md); o formato do backup (incluindo os campos `alt` e `route`), em
@@ -95,9 +94,9 @@ Detalhes da API estão em [docs/TECNICO.md](docs/TECNICO.md); o formato do backu
 Tudo foi construído em conversas com o Claude, versão por versão (são mais de 25, listadas em "Novidades"). Algumas coisas
 que ajudaram e que você pode reaproveitar se quiser continuar o projeto do mesmo jeito:
 
-- **Skills de design em `.claude/skills/`**: o Claude Code lê essas instruções antes de mexer na interface. O visual (preto
-  chapado, tipografia Instrument Sans/Serif, uma cor de destaque) segue a `design-taste-frontend`. Para checar a interface:
-  `node .claude/skills/design-taste-frontend/scripts/lint.mjs --app web/src`.
+- **Skills de design**: o visual (preto chapado, tipografia Instrument Sans/Serif, uma cor de destaque) seguiu as skills
+  [`design-taste-frontend`](https://github.com/leonxlnx/taste-skill) e [`impeccable`](https://github.com/pbakaus/impeccable).
+  Elas não vêm no repositório; instale-as no seu Claude Code se quiser usá-las.
 - **Pedidos pequenos e concretos** ("o mapa fica preso num canto quando o voo sai do Brasil") funcionaram melhor que pedidos grandes.
 - **Uma entrada no changelog a cada entrega**, escrita para quem usa o app, deixou fácil acompanhar o que mudou.
 
@@ -106,7 +105,7 @@ que ajudaram e que você pode reaproveitar se quiser continuar o projeto do mesm
 - [AdventureLog](https://github.com/seanmorley15/AdventureLog) (GPL-3.0): inspiração para várias funções (hospedagens completas,
   ideias sem data, checklist, compartilhamento). Nenhum código dele foi copiado, só ideias.
 - Skills [`design-taste-frontend`](https://github.com/leonxlnx/taste-skill) (MIT, Leonxlnx) e
-  [`impeccable`](https://github.com/pbakaus/impeccable) (Apache-2.0, Paul Bakaus), incluídas em `.claude/skills/` com as licenças originais.
+  [`impeccable`](https://github.com/pbakaus/impeccable) (Apache-2.0, Paul Bakaus), usadas como guia do visual.
 - Dados de mapa © colaboradores do [OpenStreetMap](https://www.openstreetmap.org/copyright), estilos do [OpenFreeMap](https://openfreemap.org),
   fronteiras e estados do [Natural Earth](https://www.naturalearthdata.com) (domínio público).
 - Feito com [Claude](https://claude.ai) e [Claude Code](https://claude.com/claude-code).

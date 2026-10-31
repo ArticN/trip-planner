@@ -116,8 +116,7 @@ Os dados locais ficam em `data/planner.db`, que o git ignora. Sem `APP_PASSWORD`
 
 O app foi todo feito conversando com o Claude, e dá para continuar assim. Abra a pasta do projeto no
 [Claude Code](https://claude.com/claude-code) e peça em português o que você quer mudar ("quero um campo de nota em
-cada hospedagem", "troca a cor de destaque padrão para verde"). As skills de design em `.claude/skills/` já estão no
-repositório e o Claude as usa ao mexer na interface.
+cada hospedagem", "troca a cor de destaque padrão para verde").
 
 Teste com `npm run dev`. Quando gostar, faça commit e push: a Vercel publica sozinha a cada push na branch `main`.
 Se preferir revisar antes, trabalhe numa branch separada e abra um pull request; a Vercel cria um link de prévia para cada um.

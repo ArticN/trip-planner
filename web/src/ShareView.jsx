@@ -50,7 +50,7 @@ export default function ShareView({ token }) {
   if (error) return <div className="splash"><h1><Mark size={44} /></h1><p>{error}</p></div>;
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
-  if (page === 'analise') return <Analysis data={data} onBack={() => setPage(null)} readOnly />;
+  if (page === 'analise') return <Analysis data={data} onBack={() => setPage(null)} onTickets={() => setPage('ingressos')} readOnly />;
   if (page === 'ingressos') return <Tickets data={data} onBack={() => setPage(null)} readOnly />;
 
   // opções no mesmo horário: aparece a principal, com as outras citadas embaixo

@@ -33,16 +33,26 @@ pensada para quem quer ver a viagem toda de uma vez, como a família. Quem abre 
 [link de compartilhamento](compartilhar-e-backup.md) vê a mesma página pelo botão **Gastos**, se a opção **Mostrar
 gastos e ingressos no link** estiver ligada (sem ela, o link não leva custos e a página sairia zerada).
 
-- **Resumo**: o total planejado na sua moeda (e na da viagem), a média por dia, por noite de hotel e de comida por
-  dia, quanto das compras conta na cota da Receita, e um aviso com o que ainda está sem preço.
-- **Para onde vai o dinheiro**: hospedagem, voos, transporte, comida, passeios e compras, em barra e em tabela.
-- **Por dia** e **por cidade**: colunas por dia (passe o mouse ou toque para ver o detalhe; "Ver em tabela" abre os
-  números) e um cartão por cidade com noites, dias e a média por dia.
-- **Hospedagem**: cada hotel com datas, noites, preço por noite e total.
-- **Comida**: média por café, almoço e jantar, as refeições mais caras e a lista completa, com a faixa de preço quando
-  há mais de uma opção e a marca de reserva.
-- **Passeios**, **Transporte** (por tipo e as viagens entre cidades), **Compras** (por grupo e na cota) e
-  **Reservas** (os itens de reserva e ingresso da checklist, feitos ou não).
+Cada seção abre com um gráfico. Passe o mouse, toque ou navegue com o teclado numa barra, coluna ou quadrado para
+ver o detalhe; os números completos ficam em **Ver em tabela**.
+
+- **Resumo**: o total planejado na sua moeda (e na da viagem), um aviso curto com o que ainda está sem preço, a média
+  por dia, por noite de hotel e de comida por dia, e quanto das compras conta na cota da Receita.
+- **Para onde vai o dinheiro**: uma barra dividida por categoria (hospedagem, voos, transporte, comida, passeios e
+  compras) com a porcentagem de cada uma, e um quadro por categoria com o valor nas duas moedas.
+- **Por dia**: o dia mais caro, o mais barato e a média, e um gráfico de colunas (cada cor é uma categoria) com a
+  linha da média e, embaixo, a faixa das cidades de cada trecho da viagem.
+- **Por cidade**: uma barra por cidade na mesma escala, dividida por categoria, com noites e a média por dia.
+- **Hospedagem**: linha do tempo com cada hotel nas noites dele (a cor é a da cidade) e o preço por noite.
+- **Comida**: média por café, almoço, jantar e lanche; a faixa entre escolher sempre a opção mais barata ou a mais
+  cara de cada refeição, com o plano marcado; um mapa de calor das refeições dia a dia (cor mais forte, mais caro; no
+  celular, um dia por linha); e as refeições mais caras. A lista completa fica em **Todas as refeições**.
+- **Passeios**: quantos são pagos e de graça, o mais caro e os ingressos mais caros em barras.
+- **Transporte**: gasto por tipo (com trechos e tempo a bordo) e as viagens entre cidades, da mais cara para a mais
+  barata.
+- **Compras**: o medidor da cota da Receita e o gasto por grupo.
+- **Reservas**: quantas reservas da checklist já foram feitas, com um atalho para a página de
+  [ingressos e reservas](organizacao.md#ingressos-e-reservas).
 - **Imprimir ou salvar PDF** gera uma versão para papel.
 
 Como a conta é feita:

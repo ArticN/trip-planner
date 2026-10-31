@@ -7,3 +7,5 @@ dist
 .vercel
 *.db
 *.db-*
+.claude/
+CLAUDE.md
