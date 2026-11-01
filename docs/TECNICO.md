@@ -28,6 +28,10 @@ npm start        # serve o build e a API em http://localhost:3000
 que o link libera) · `GET/POST /api/trips/:id/shares` · `PUT/DELETE /api/shares/:id` (links de visitante; `PUT` com
 `renew: true` troca o endereço).
 
+`GET /api/setup` responde sem login e sem depender do banco: `{ db: "ok" | "missing" | "token" | "error", detail, password, hosted }`.
+O front-end usa para mostrar a tela de configuração (banco não ligado ou recusando o token) e o aviso de app publicado sem senha.
+Na Vercel, quando a API nem carrega (falta `TURSO_DATABASE_URL`), quem responde é `api/index.js`.
+
 ## Viagem de exemplo
 
 `server/examples/exemplo.js` define uma viagem fictícia (Japão em 8 dias). Ela pode ser carregada de dois jeitos:

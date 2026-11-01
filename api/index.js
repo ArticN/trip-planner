@@ -11,7 +11,13 @@ try {
 
 export default function handler(req, res) {
   if (app) return app(req, res);
-  res.statusCode = 500;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  // a tela de configuração do front-end lê /api/setup para explicar o que falta
+  if (req.url?.startsWith('/api/setup')) {
+    const detail = String(loadError?.message || '');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.end(JSON.stringify({ db: /TURSO_DATABASE_URL/.test(detail) ? 'missing' : 'error', detail, password: !!process.env.APP_PASSWORD, hosted: true }));
+  }
+  res.statusCode = 500;
   res.end(JSON.stringify({ error: `a API não iniciou: ${loadError?.message}` }));
 }
