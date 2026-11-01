@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Home from './Home.jsx';
 import TripView from './TripView.jsx';
 import Login from './Login.jsx';
+import Setup, { NoPasswordBar } from './Setup.jsx';
 import ShareView from './ShareView.jsx';
 import { api } from './api.js';
 
@@ -33,6 +34,12 @@ function Planner() {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
+  // instalação nova sem banco ou sem senha: explica o que falta em vez de mostrar erro técnico
+  const [setup, setSetup] = useState(null);
+  useEffect(() => {
+    fetch('/api/setup').then((r) => (r.ok ? r.json() : null)).then(setSetup).catch(() => {});
+  }, []);
+
   useEffect(() => {
     api.session().then((s) => setAuth(s.ok ? 'ok' : 'login')).catch(() => setAuth('ok'));
     const need = () => setAuth('login');
@@ -54,9 +61,10 @@ function Planner() {
   }, [route.tripId]);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
 
+  if (setup && setup.db !== 'ok') return <Setup info={setup} />;
   if (auth === 'checking') return null;
   if (auth === 'login') return <Login onDone={() => { setAuth('ok'); refresh(); }} />;
   const banner = !online && <div className="offline-bar" role="status" title="Sem internet: vendo a última versão salva; edições não são salvas">Sem internet<span className="hide-sm">: vendo a última versão salva; edições não são salvas</span></div>;
-  if (route.tripId == null) return <>{banner}<Home version={version} onOpen={openTrip} onChanged={refresh} /></>;
+  if (route.tripId == null) return <>{banner}{setup?.hosted && !setup.password && <NoPasswordBar />}<Home version={version} onOpen={openTrip} onChanged={refresh} /></>;
   return <>{banner}<TripView key={route.tripId} tripId={route.tripId} sel={route.sel} onNavigate={navigate} onHome={goHome} onTripsChanged={refresh} /></>;
 }

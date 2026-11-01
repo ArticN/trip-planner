@@ -11,6 +11,16 @@ O Trip Planner é um PWA: abre em tela cheia, com ícone próprio, como um app.
 
 Mais detalhes no [guia de hospedagem](../GUIA.md#4-use-no-celular).
 
+## Tela de configuração
+
+Numa instalação nova, se o banco não estiver ligado (faltam `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN`) ou recusar o
+token, o app mostra no lugar de tudo uma tela que diz o que falta e onde clicar na Vercel e no Turso, com o botão
+**Já fiz, verificar de novo**. Quando o app está publicado sem `APP_PASSWORD`, a tela inicial mostra um aviso no topo
+até a senha ser criada. Passo a passo no [guia de hospedagem](../GUIA.md#deu-errado).
+
+Limitação: a tela só reconhece problemas do banco. Se a Vercel nem consegue publicar o site (deploy com erro), quem
+mostra o motivo é a própria Vercel, na aba Deployments.
+
 ## Sem internet
 
 Na versão publicada (ou com `npm run build && npm start`; o `npm run dev` não liga essa parte), o app guarda no

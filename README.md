@@ -19,21 +19,30 @@ O app é seu: você hospeda de graça (Vercel e Turso), protege com uma senha e 
 
 ## Quero o meu
 
-O caminho completo, do zero até o link no celular, está em **[docs/GUIA.md](docs/GUIA.md)**. Em resumo:
+Não precisa saber programar. O **[guia passo a passo](docs/GUIA.md)** foi escrito para quem nunca mexeu com código:
+são três contas grátis (GitHub, Turso e Vercel, todas com login pelo GitHub), uns 20 minutos de cliques e nenhum
+programa para instalar. Em resumo:
 
-1. Faça um fork (ou cópia) deste repositório.
-2. Crie um banco grátis no [Turso](https://turso.tech) e guarde a URL e o token.
-3. Importe o repositório na [Vercel](https://vercel.com), crie as variáveis `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` e `APP_PASSWORD` e faça o deploy.
-4. Abra o link, entre com a sua senha e crie a sua viagem (ou importe o exemplo para conhecer o app).
+1. Faça um **fork** deste repositório (uma cópia no seu GitHub).
+2. Crie um banco grátis no [Turso](https://turso.tech) e anote a URL e o token.
+3. Importe o fork na [Vercel](https://vercel.com/new), cole a URL, o token e uma senha nas variáveis
+   `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` e `APP_PASSWORD`, e clique em Deploy.
+4. Abra o link, entre com a senha e crie a sua viagem (ou carregue o roteiro de exemplo para conhecer o app).
 
-Para só experimentar no computador:
+Se faltar alguma coisa, o próprio app mostra uma tela explicando o que configurar. Travou mesmo assim? Em
+[Pedir ajuda ao Claude](docs/AJUDA-CLAUDE.md) há textos prontos para colar no Claude, inclusive um que transforma o
+roteiro que você já tem (Notion, planilha, anotações) num arquivo para importar.
+
+Depois de pronto, não há nada para manter: para receber as novidades, é um clique em **Sync fork** no GitHub.
+
+Para rodar no computador (requer **Node 24**):
 
 ```bash
 npm ci
 npm run dev      # abre em http://localhost:5173
 ```
 
-Requer **Node 24**. Localmente os dados ficam em `data/planner.db`, que está no `.gitignore`.
+Localmente os dados ficam em `data/planner.db`, que está no `.gitignore`.
 
 ## O que tem
 
@@ -60,7 +69,8 @@ A seção "Novidades" da tela inicial (arquivo `web/src/changelog.js`) conta a h
 - **[Funcionalidades](docs/funcionalidades/README.md)**: tudo o que o app faz e como usar cada coisa, passo a passo, com dicas,
   limitações e como funcionam por baixo as partes menos óbvias (como o reconhecimento das escalas do voo). Cada versão
   nova no changelog atualiza a página da área que mudou.
-- **[Guia de hospedagem](docs/GUIA.md)**: do fork ao link no celular, com Turso e Vercel.
+- **[Guia de hospedagem](docs/GUIA.md)**: do fork ao link no celular, com Turso e Vercel, escrito para quem não programa.
+- **[Pedir ajuda ao Claude](docs/AJUDA-CLAUDE.md)**: textos prontos para destravar a instalação, importar o seu roteiro ou mudar o app.
 - **[Detalhes técnicos](docs/TECNICO.md)**: variáveis de ambiente, scripts e API.
 
 ## Stack

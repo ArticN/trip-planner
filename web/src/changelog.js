@@ -15,6 +15,16 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.42',
+    date: '2026-11-01',
+    title: 'Instalação guiada',
+    items: [
+      'Quem publica o próprio planner e esquece de ligar o banco, ou cola o token errado, vê uma tela em português dizendo o que falta e onde clicar na Vercel e no Turso, em vez de um erro técnico.',
+      'Um planner publicado sem senha mostra um aviso no topo da tela inicial até a senha ser criada.',
+      'O guia de instalação foi reescrito para quem não programa e ganhou textos prontos para pedir ajuda ao Claude, inclusive um que transforma um roteiro já escrito num arquivo para importar.',
+    ],
+  },
+  {
     version: '1.41',
     date: '2026-10-31',
     title: 'Vários links de visitante',

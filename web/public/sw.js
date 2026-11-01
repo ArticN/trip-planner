@@ -85,7 +85,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return; // edições vão sempre direto para o servidor
   const url = new URL(req.url);
   if (url.origin === location.origin) {
-    if (url.pathname === '/api/session') return; // login nunca vem do cache
+    if (url.pathname === '/api/session' || url.pathname === '/api/setup') return; // login e diagnóstico nunca vêm do cache
     if (url.pathname.startsWith('/api/files/') || /^\/api\/(share\/[\w-]+\/)?photos\//.test(url.pathname)) { e.respondWith(cacheFirst(req, FILES)); return; }
     if (url.pathname.startsWith('/api/')) { e.respondWith(networkFirst(req, API)); return; }
     if (req.mode === 'navigate') { e.respondWith(networkFirst(req, APP).catch(() => caches.match('/'))); return; }

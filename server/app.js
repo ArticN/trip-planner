@@ -326,6 +326,19 @@ app.use(express.json({ limit: '5mb' }));
 // rotas async: erros viram 500 em vez de derrubar o processo
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+// diagnóstico da instalação, antes do login e sem depender do banco: a tela de configuração
+// do front-end usa isto para explicar em português o que falta (banco ou senha)
+app.get('/api/setup', h(async (_req, res) => {
+  let db = 'ok';
+  let detail = '';
+  try { await prepare(); } catch (e) {
+    detail = describe(e);
+    db = /\b401\b|unauthori[sz]ed|forbidden|\b403\b|token/i.test(detail) ? 'token' : 'error';
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ db, detail, password: !!process.env.APP_PASSWORD, hosted: !!process.env.VERCEL });
+}));
+
 // espera o banco estar pronto (na Vercel cada instância nova passa por aqui uma vez)
 app.use('/api', h(async (_req, _res, next) => {
   await prepare().catch((e) => { throw Object.assign(new Error(describe(e)), { publicMessage: `não consegui acessar o banco: ${describe(e)}` }); });
