@@ -68,7 +68,6 @@ A seção "Novidades" da tela inicial (arquivo `web/src/changelog.js`) conta a h
   limitações e como funcionam por baixo as partes menos óbvias (como o reconhecimento das escalas do voo). Cada versão
   nova no changelog atualiza a página da área que mudou.
 - **[Guia de hospedagem](docs/GUIA.md)**: do fork ao link no celular, com Turso e Vercel, escrito para quem não programa.
-- **[Pedir ajuda ao Claude](docs/AJUDA-CLAUDE.md)**: textos prontos para destravar a instalação, importar o seu roteiro ou mudar o app.
 - **[Detalhes técnicos](docs/TECNICO.md)**: variáveis de ambiente, scripts e API.
 
 ## Stack
@@ -98,17 +97,6 @@ docs/                  guia de instalação, funcionalidades, detalhes técnicos
 Detalhes da API estão em [docs/TECNICO.md](docs/TECNICO.md); o formato do backup (incluindo os campos `alt` e `route`), em
 [Compartilhar e backup](docs/funcionalidades/compartilhar-e-backup.md#formato-do-json).
 
-## Como foi feito
-
-Tudo foi construído em conversas com o Claude, versão por versão (são mais de 25, listadas em "Novidades"). Algumas coisas
-que ajudaram e que você pode reaproveitar se quiser continuar o projeto do mesmo jeito:
-
-- **Skills de design**: o visual (preto chapado, tipografia Instrument Sans/Serif, uma cor de destaque) seguiu as skills
-  [`design-taste-frontend`](https://github.com/leonxlnx/taste-skill) e [`impeccable`](https://github.com/pbakaus/impeccable).
-  Elas não vêm no repositório; instale-as no seu Claude Code se quiser usá-las.
-- **Pedidos pequenos e concretos** ("o mapa fica preso num canto quando o voo sai do Brasil") funcionaram melhor que pedidos grandes.
-- **Uma entrada no changelog a cada entrega**, escrita para quem usa o app, deixou fácil acompanhar o que mudou.
-
 ## Créditos
 
 - [AdventureLog](https://github.com/seanmorley15/AdventureLog) (GPL-3.0): inspiração para várias funções (hospedagens completas,
@@ -117,7 +105,6 @@ que ajudaram e que você pode reaproveitar se quiser continuar o projeto do mesm
   [`impeccable`](https://github.com/pbakaus/impeccable) (Apache-2.0, Paul Bakaus), usadas como guia do visual.
 - Dados de mapa © colaboradores do [OpenStreetMap](https://www.openstreetmap.org/copyright), estilos do [OpenFreeMap](https://openfreemap.org),
   fronteiras e estados do [Natural Earth](https://www.naturalearthdata.com) (domínio público).
-- Feito com [Claude](https://claude.ai) e [Claude Code](https://claude.com/claude-code).
 
 ## Licença
 
