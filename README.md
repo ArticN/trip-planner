@@ -29,9 +29,7 @@ programa para instalar. Em resumo:
    `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` e `APP_PASSWORD`, e clique em Deploy.
 4. Abra o link, entre com a senha e crie a sua viagem (ou carregue o roteiro de exemplo para conhecer o app).
 
-Se faltar alguma coisa, o próprio app mostra uma tela explicando o que configurar. Travou mesmo assim? Em
-[Pedir ajuda ao Claude](docs/AJUDA-CLAUDE.md) há textos prontos para colar no Claude, inclusive um que transforma o
-roteiro que você já tem (Notion, planilha, anotações) num arquivo para importar.
+Se faltar alguma coisa, o próprio app mostra uma tela explicando o que configurar. 
 
 Depois de pronto, não há nada para manter: para receber as novidades, é um clique em **Sync fork** no GitHub.
 
