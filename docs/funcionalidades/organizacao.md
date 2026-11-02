@@ -52,6 +52,33 @@ Limitações: a separação lê as palavras das notas, então uma nota sem nenhu
 checklist é ligado à atividade do mesmo dia com mais palavras em comum no título; sem data no começo do texto
 ("09/11 …"), ele aparece sozinho.
 
+## Notas de viagem
+
+**Notas** no topo da viagem (em telas menores e no celular, **Notas de viagem** no menu ⋯) abre uma página de dicas
+por assunto: como funciona o transporte, onde sacar dinheiro, etiqueta, números de emergência, o que muda no mês da
+viagem. Serve para o que vale para a viagem inteira; o que é de um dia ou de uma atividade continua nas notas do dia e
+da atividade.
+
+- **Guia pronto**: com a página vazia, **Carregar este guia** traz um guia inteiro de uma vez. O primeiro é **Japão
+  viajando sozinho** (70 notas em 15 assuntos, pesquisadas em guias, sites oficiais e relatos de viajantes, com as
+  fontes em cada nota). Depois de carregado, cada nota é uma nota comum: dá para editar, apagar ou fixar.
+  **Carregar o que falta**, no fim da página, traz de novo só as notas que a viagem não tem (compara assunto e título).
+- **Marcas**: cada nota pode ter uma marca. **Consenso** é o que quase todo guia e relato repete; **Opinião** é dica de
+  alguns viajantes ou questão de gosto; **Atenção** é regra, mudança recente ou algo que dá problema se esquecer
+  (ganha uma faixa colorida).
+- **Fixadas**: a estrela leva a nota para o topo da página, para achar rápido os telefones de emergência, por exemplo.
+- **Buscar e filtrar**: a busca procura no título, no texto e no assunto, sem ligar para acentos; os botões filtram por
+  marca ou só as fixadas. A barra de assuntos no topo pula para cada grupo.
+- **Escrever**: **Nova nota** (ou **+ Nota** ao lado de um assunto) abre o editor com título, assunto, marca, texto e
+  links. No texto, uma linha começada por "- " vira item de lista e endereços viram links.
+- **Excluir** mostra o aviso "Desfazer" por alguns segundos, caso tenha sido sem querer.
+
+As notas vêm junto com a viagem: abrem sem internet no aparelho que já abriu a viagem (editar continua precisando de
+conexão), vão no backup JSON e na cópia ao duplicar, e nunca aparecem no link de visitante. A página também imprime.
+
+Limitações: os guias prontos ficam no código do app (pasta `server/guides/`), então preços e regras são os do dia em
+que o guia foi escrito; confira nas fontes. Carregar um guia precisa de internet.
+
 ## Calendário
 
 Menu **⋯ › Calendário** (ou no pé da visão geral). Três visões:

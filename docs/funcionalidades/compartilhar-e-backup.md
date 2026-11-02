@@ -52,7 +52,7 @@ app (numa planilha, num script ou pedindo a uma IA) e importar de uma vez.
 
 ## Formato do JSON
 
-Um objeto com `trip`, `cities`, `stays`, `activities`, `checklist`, `ideas`, `days`, `purchases` e `pages` (o export também
+Um objeto com `trip`, `cities`, `stays`, `activities`, `checklist`, `ideas`, `days`, `purchases`, `pages` e `notes` (o export também
 traz `files` e `photos`, só com os dados de cada arquivo, ignorados na importação). Obrigatórios: `trip.name`, `trip.start`, `trip.end` e a lista `activities` (pode ser
 vazia). Os `id` e `trip_id` são ignorados. Campos vazios podem ser omitidos.
 
@@ -151,11 +151,12 @@ Como se chega à atividade a partir da anterior do dia (na primeira do dia, a pa
 - Mais de um item em `rides` é uma baldeação. Os trechos a pé entre a atividade anterior, as estações e a atividade
   são calculados pelas ruas.
 
-### `checklist`, `ideas`, `days`, `purchases` e `pages`
+### `checklist`, `ideas`, `days`, `purchases`, `pages` e `notes`
 
 - `checklist`: `text` (obrigatório), `grp` (grupo), `done`.
 - `ideas`: `title` (obrigatório), `kind`, `city`, `location`, `details`, `cost`, `lat`, `lng`, `notes`, `links`.
 - `days`: tema e anotações de cada dia: `day`, `title`, `notes`.
+- `notes`: as [notas de viagem](organizacao.md#notas-de-viagem): `title` (obrigatório), `grp` (assunto), `body` (texto; linhas com "- " viram lista), `tag` (`consenso`, `opiniao` ou `atencao`), `links` (como nas atividades) e `pinned` (fixada).
 - `purchases`: `title` (obrigatório), `store`, `city`, `day`, `price` (moeda da viagem), `grp`, `bought`, `exempt` (fora da cota), `notes`.
 - `pages`: as páginas do [diário](diario.md): `day` (opcional), `title` e `blocks`. Um bloco de texto é `{ "type": "text", "style": "nota" | "titulo" | "citacao", "text": "…" }`; um bloco de vídeo é `{ "type": "video", "src": "yt" | "vimeo" | "drive" | "ig" | "tiktok", "vid": "<código do vídeo na plataforma>", "vertical": true | false, "caption": "…" }`; os blocos de fotos (`{ "type": "photos", "layout", "ids" }`) são ignorados na importação, porque as fotos não vão no backup. Backups da versão 1.38 trazem `journal` (`day`, `text`), que vira uma página com um bloco de nota.
 

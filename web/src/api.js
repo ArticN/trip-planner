@@ -88,6 +88,12 @@ export const api = {
   createPurchase: (tripId, x) => req('POST', `/api/trips/${tripId}/purchases`, x),
   updatePurchase: (id, patch) => req('PUT', `/api/purchases/${id}`, patch),
   deletePurchase: (id) => req('DELETE', `/api/purchases/${id}`),
+  // notas de viagem
+  guides: () => req('GET', '/api/guides'),
+  loadGuide: (tripId, key) => req('POST', `/api/trips/${tripId}/notes/guide/${encodeURIComponent(key)}`),
+  createNote: (tripId, x) => req('POST', `/api/trips/${tripId}/notes`, x),
+  updateNote: (id, patch) => req('PUT', `/api/notes/${id}`, patch),
+  deleteNote: (id) => req('DELETE', `/api/notes/${id}`),
   // ideias
   createIdea: (tripId, x) => req('POST', `/api/trips/${tripId}/ideas`, x),
   updateIdea: (id, patch) => req('PUT', `/api/ideas/${id}`, patch),

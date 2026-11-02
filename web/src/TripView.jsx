@@ -11,6 +11,7 @@ import Metro from './Metro.jsx';
 import Analysis from './Analysis.jsx';
 import Tickets from './Tickets.jsx';
 import Journal from './Journal.jsx';
+import Notes from './Notes.jsx';
 import { hasPlace, autoCaption } from './photoMeta.js';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
@@ -180,7 +181,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   }, [geoPhotos, data?.activities, data?.cities]);
 
   const step = useCallback((delta) => {
-    if (sel === 'trip' || sel === 'analise' || sel === 'ingressos' || sel === 'diario') return;
+    if (sel === 'trip' || sel === 'analise' || sel === 'ingressos' || sel === 'diario' || sel === 'notas') return;
     const i = days.indexOf(sel) + delta;
     if (i >= 0 && i < days.length) go(days[i]);
   }, [sel, days, go]);
@@ -190,7 +191,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       if (e.key === 'Escape' && picking) { setPicking(false); return; }
       const tag = document.activeElement?.tagName;
       if (modal || editing || ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
-      if (sel === 'analise' || sel === 'ingressos' || sel === 'diario') return; // páginas cheias têm os próprios atalhos
+      if (sel === 'analise' || sel === 'ingressos' || sel === 'diario' || sel === 'notas') return; // páginas cheias têm os próprios atalhos
       if (e.key === '/' || (e.key === 'k' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); setModal('search'); return; }
       if (e.key === 'ArrowLeft') step(-1);
       if (e.key === 'ArrowRight') step(1);
@@ -596,6 +597,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
   if (sel === 'analise') return <Analysis data={data} onBack={() => go('trip')} onTickets={() => go('ingressos')} />;
   if (sel === 'ingressos') return <Tickets data={data} onBack={() => go('trip')} onToggle={toggleTicket} />;
+  if (sel === 'notas') return <Notes data={data} setData={setData} onBack={() => go('trip')} />;
   if (sel === 'diario') return <Journal key={openPhoto || 'album'} data={data} setData={setData} initialPhoto={openPhoto} onBack={() => { setOpenPhoto(null); go('trip'); }} />;
 
   const now = nowIn(trip.tz);
@@ -626,6 +628,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <button className="ghost hide-sm" onClick={() => go('analise')}>Análise</button>
         <button className="ghost hide-sm" onClick={() => go('ingressos')}>Ingressos</button>
         <button className="ghost hide-sm" onClick={() => go('diario')}>Diário</button>
+        <button className="ghost hide-sm hide-md" onClick={() => go('notas')}>Notas</button>
         <button className="ghost hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
         <button className="ghost hide-sm" onClick={() => setModal('shopping')}>Compras</button>
         <details className="menu">
@@ -636,6 +639,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button className="only-sm" onClick={() => go('analise')}>Análise</button>
             <button className="only-sm" onClick={() => go('ingressos')}>Ingressos</button>
             <button className="only-sm" onClick={() => go('diario')}>Diário</button>
+            <button className="only-md" onClick={() => go('notas')}>Notas de viagem</button>
             <button className="only-sm" onClick={() => setModal('checklist')}>Checklist</button>
             <button className="only-sm" onClick={() => setModal('shopping')}>Compras</button>
             <button onClick={() => setModal('look')}>Aparência</button>

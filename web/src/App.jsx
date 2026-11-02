@@ -6,9 +6,9 @@ import Setup, { NoPasswordBar } from './Setup.jsx';
 import ShareView from './ShareView.jsx';
 import { api } from './api.js';
 
-// rotas por hash: #/ (viagens) · #/t/<id> (visão geral) · #/t/<id>/<aaaa-mm-dd> (dia) · #/t/<id>/analise · #/t/<id>/ingressos · #/t/<id>/diario
+// rotas por hash: #/ (viagens) · #/t/<id> (visão geral) · #/t/<id>/<aaaa-mm-dd> (dia) · #/t/<id>/analise · #/t/<id>/ingressos · #/t/<id>/diario · #/t/<id>/notas
 function parseHash() {
-  const m = window.location.hash.replace(/^#\/?/, '').match(/^t\/(\d+)(?:\/(\d{4}-\d{2}-\d{2}|analise|ingressos|diario))?$/);
+  const m = window.location.hash.replace(/^#\/?/, '').match(/^t\/(\d+)(?:\/(\d{4}-\d{2}-\d{2}|analise|ingressos|diario|notas))?$/);
   return m ? { tripId: Number(m[1]), sel: m[2] || 'trip' } : { tripId: null, sel: 'trip' };
 }
 

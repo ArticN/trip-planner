@@ -636,6 +636,9 @@ div.ms-pop { padding: 10px 12px; }
 /* ── celular: alternar roteiro / mapa */
 .only-sm { display: none; }
 @media (max-width: 900px) { .menu-pop .only-sm { display: block; } }
+/* telas médias: o topo da viagem não cabe todos os atalhos; os menos usados vão para o menu ⋯ */
+.only-md { display: none; }
+@media (max-width: 1100px) { .hide-md { display: none !important; } .menu-pop .only-md { display: block; } }
 
 /* ── tela inicial: destaque */
 .featured { padding: 28px 28px 24px; margin-bottom: 28px; background: var(--card); border-radius: 24px; display: grid; gap: 6px; }
@@ -1357,6 +1360,44 @@ button.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink);
 @media print {
   .tk-filter, .tk-check input { display: none; }
   .tk-row { break-inside: avoid; }
+}
+
+/* ── notas de viagem (usa a base da página de análise) */
+.nt .an-body section { padding: 28px 0; }
+.nt-tools { display: grid; gap: 10px; border-bottom: 0 !important; padding-bottom: 0 !important; }
+.nt-tools input[type='search'] { max-width: 520px; }
+.nt-h { display: flex; align-items: baseline; gap: 8px; }
+.nt-h .an-h { flex: 1; }
+.nt-h button { font-size: 13px; padding: 4px 10px; }
+.nt-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 12px; align-items: start; }
+.nt-card { background: var(--card); border: 1px solid var(--edge); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 8px; min-width: 0; scroll-margin-top: 120px; }
+.nt-card.t-atencao { border-left: 3px solid var(--cat-2); }
+.nt-card-h { display: flex; align-items: center; gap: 8px; margin: -4px -6px 0 0; }
+.nt-card-h h3 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.3; }
+.nt-tag { flex: none; font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--ctl); color: var(--ink-2); white-space: nowrap; }
+.nt-tag.t-consenso { border-color: color-mix(in srgb, var(--cat-3) 60%, transparent); color: var(--cat-3); }
+.nt-tag.t-opiniao { border-color: color-mix(in srgb, var(--cat-1) 60%, transparent); color: var(--cat-1); }
+.nt-tag.t-atencao { border-color: color-mix(in srgb, var(--cat-2) 60%, transparent); color: var(--cat-2); }
+.nt-pin { color: var(--muted); }
+.nt-pin.on { color: var(--cat-4); }
+.nt-body { font-size: 14px; line-height: 1.55; color: var(--ink); overflow-wrap: anywhere; }
+.nt-body p { margin: 0 0 6px; }
+.nt-body ul { margin: 0 0 6px; padding-left: 18px; display: grid; gap: 3px; }
+.nt-body > :last-child { margin-bottom: 0; }
+.nt-src { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.nt-src span { color: var(--muted); }
+.nt-edit { grid-column: 1 / -1; }
+.nt-pin-field { display: flex !important; align-items: center; gap: 8px; }
+.nt-pin-field input { width: auto; min-height: 0; }
+.nt-edit-actions { display: flex; gap: 8px; align-items: center; }
+.nt-new { border-bottom: 0 !important; }
+.nt-guides { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; margin-bottom: 14px; }
+.nt-guide p.small { margin: 0; color: var(--ink-2); }
+.nt-guide button { justify-self: start; }
+@media print {
+  .nt-tools, .nt-h button, .nt-card-h .icon-btn, .nt-foot { display: none; }
+  .nt-list { display: block; }
+  .nt-card { break-inside: avoid; margin-bottom: 8px; }
 }
 
 /* ── Diário de viagem: álbum em páginas de caderno. Papel pontilhado, carimbo (hanko) com a data, fita washi na
