@@ -2,10 +2,13 @@ import crypto from 'node:crypto';
 import express from 'express';
 import { db } from './db.js';
 import * as exemplo from './examples/exemplo.js';
+import * as japaoSolo from './guides/japao-solo.js';
 import { buildIcs } from '../web/src/ics.js';
 
 // viagens de exemplo que o usuário pode carregar na tela inicial
 const EXAMPLES = { exemplo };
+// guias prontos de notas de viagem (aba Notas → "Carregar guia")
+const GUIDES = { [japaoSolo.GUIDE.key]: japaoSolo };
 
 const ACT_FIELDS = ['day', 'end_day', 'start', 'end', 'city', 'title', 'kind', 'location', 'details', 'transport', 'cost', 'lat', 'lng', 'sort', 'done', 'notes', 'links', 'start_tz', 'end_tz', 'ref', 'from_code', 'to_code', 'via', 'spent', 'rating', 'review', 'slot', 'route', 'alt'];
 const STAY_FIELDS = ['city', 'name', 'address', 'check_in', 'check_out', 'lat', 'lng', 'notes', 'check_in_time', 'check_out_time', 'booking', 'cost', 'link'];
@@ -13,6 +16,8 @@ const CITY_FIELDS = ['key', 'name', 'emoji', 'color', 'lat', 'lng'];
 const CHECK_FIELDS = ['grp', 'text', 'done', 'sort'];
 const IDEA_FIELDS = ['title', 'kind', 'city', 'location', 'details', 'cost', 'lat', 'lng', 'notes', 'links', 'sort'];
 const DAY_FIELDS = ['day', 'title', 'notes'];
+const NOTE_FIELDS = ['grp', 'title', 'body', 'tag', 'links', 'pinned', 'sort'];
+const NOTE_TAGS = ['consenso', 'opiniao', 'atencao'];
 const BUY_FIELDS = ['title', 'store', 'city', 'day', 'price', 'grp', 'bought', 'exempt', 'notes', 'sort'];
 const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope'];
 
@@ -29,6 +34,8 @@ const insCheck = (tripId, row) => [`INSERT INTO checklist (trip_id,${CHECK_FIELD
 const insIdea = (tripId, row) => [`INSERT INTO ideas (trip_id,${IDEA_FIELDS.join(',')}) VALUES (?,${marks(IDEA_FIELDS)})`, [tripId, ...pick({ kind: 'sight', ...row }, IDEA_FIELDS)]];
 const insCity = (tripId, row) => [`INSERT OR REPLACE INTO cities (trip_id,${CITY_FIELDS.join(',')}) VALUES (?,${marks(CITY_FIELDS)})`, [tripId, ...pick(row, CITY_FIELDS)]];
 const insBuy = (tripId, row) => [`INSERT INTO purchases (trip_id,${BUY_FIELDS.join(',')}) VALUES (?,${marks(BUY_FIELDS)})`, [tripId, ...pick({ ...row, bought: row.bought ? 1 : 0, exempt: row.exempt ? 1 : 0 }, BUY_FIELDS)]];
+// nota de viagem: tag só entre as conhecidas; fixada vira 0/1
+const insNote = (tripId, row) => [`INSERT INTO notes (trip_id,${NOTE_FIELDS.join(',')}) VALUES (?,${marks(NOTE_FIELDS)})`, [tripId, ...pick({ ...row, tag: NOTE_TAGS.includes(row.tag) ? row.tag : null, pinned: row.pinned ? 1 : 0 }, NOTE_FIELDS)]];
 const insDay = (tripId, row) => [`INSERT OR REPLACE INTO days (trip_id,${DAY_FIELDS.join(',')}) VALUES (?,${marks(DAY_FIELDS)})`, [tripId, ...pick(row, DAY_FIELDS)]];
 const run1 = ([sql, args]) => db.run(sql, args);
 
@@ -115,6 +122,14 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_files_trip ON files(trip_id);
     CREATE INDEX IF NOT EXISTS idx_act_trip_day ON activities(trip_id, day, sort);
     CREATE INDEX IF NOT EXISTS idx_stays_trip ON stays(trip_id);
+    -- notas de viagem (v1.43): dicas por assunto, escritas à mão ou vindas de um guia pronto (links em JSON)
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      grp TEXT, title TEXT NOT NULL, body TEXT, tag TEXT, links TEXT,
+      pinned INTEGER DEFAULT 0, sort INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_notes_trip ON notes(trip_id);
   `);
 
   // álbum do diário (v1.39): páginas livres com blocos de foto e de texto (JSON em blocks).
@@ -235,6 +250,7 @@ async function createTripFull(b) {
   (b.checklist || []).forEach((c, i) => list.push(insCheck(id, { sort: i, ...c })));
   (b.ideas || []).forEach((x, i) => list.push(insIdea(id, { sort: i, ...x })));
   (b.purchases || []).forEach((x, i) => list.push(insBuy(id, { sort: i, ...x })));
+  (b.notes || []).filter((x) => x?.title).forEach((x, i) => list.push(insNote(id, { sort: i, ...x })));
   (b.days || []).filter((d) => d.day && (d.title || d.notes)).forEach((d) => list.push(insDay(id, d)));
   // diário: as fotos não vão no backup, então só os blocos de texto voltam (backup da v1.38: journal vira páginas)
   const pages = Array.isArray(b.pages) ? b.pages : (b.journal || []).filter((d) => d.day && d.text).map((d) => ({ day: d.day, blocks: [{ type: 'text', style: 'nota', text: d.text }] }));
@@ -261,7 +277,7 @@ async function createTripFull(b) {
 }
 
 // apaga a viagem e tudo dela (sem depender de ON DELETE CASCADE, que nem todo banco remoto liga)
-const deleteTrip = (id) => db.batch(['files', 'photos', 'journal', 'album_pages', 'share_links', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
+const deleteTrip = (id) => db.batch(['files', 'photos', 'journal', 'album_pages', 'share_links', 'activities', 'stays', 'cities', 'checklist', 'ideas', 'days', 'purchases', 'notes'].map((t) => [`DELETE FROM ${t} WHERE trip_id = ?`, [id]]).concat([['DELETE FROM trips WHERE id = ?', [id]]]));
 
 const PHOTO_META = 'id, day, caption, taken_at, w, h, size, sort, created_at, lat, lng, activity_id, meta';
 const parseBlocks = (v) => { try { const b = JSON.parse(v || '[]'); return Array.isArray(b) ? b : []; } catch { return []; } };
@@ -294,7 +310,7 @@ const insPage = (tripId, p, sort) => ['INSERT INTO album_pages (trip_id, day, ti
 async function getTrip(id) {
   const trip = await db.get('SELECT * FROM trips WHERE id = ?', [id]);
   if (!trip) return null;
-  const [cities, stays, activities, checklist, ideas, days, files, purchases, pageRows, photos] = await Promise.all([
+  const [cities, stays, activities, checklist, ideas, days, files, purchases, pageRows, photos, notes] = await Promise.all([
     db.all('SELECT * FROM cities WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM stays WHERE trip_id = ? ORDER BY check_in, id', [id]),
     db.all('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id', [id]),
@@ -305,9 +321,10 @@ async function getTrip(id) {
     db.all('SELECT * FROM purchases WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT id, day, title, blocks, sort FROM album_pages WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all(`SELECT ${PHOTO_META} FROM photos WHERE trip_id = ? ORDER BY day, sort, taken_at, id`, [id]),
+    db.all('SELECT * FROM notes WHERE trip_id = ? ORDER BY sort, id', [id]),
   ]);
   const shares = (await db.all('SELECT * FROM share_links WHERE trip_id = ? ORDER BY id', [id])).map(linkOut);
-  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases, pages: pageRows.map(pageOut), photos, shares };
+  return { trip, cities, stays, activities, checklist, ideas, days, files, purchases, pages: pageRows.map(pageOut), photos, notes, shares };
 }
 
 const nextSort = async (table, where, args) => (await db.get(`SELECT COALESCE(MAX(sort), -1) AS m FROM ${table} WHERE ${where}`, args)).m + 1;
@@ -615,6 +632,50 @@ app.put('/api/checklist/:cid', h(async (req, res) => {
 }));
 app.delete('/api/checklist/:cid', h(async (req, res) => {
   await db.run('DELETE FROM checklist WHERE id = ?', [Number(req.params.cid)]);
+  res.status(204).end();
+}));
+
+// ── notas de viagem: dicas por assunto, editáveis; um guia pronto pode ser carregado de uma vez
+const noteRow = (b, cur = {}) => {
+  const row = { ...cur, ...b };
+  return {
+    ...row,
+    title: String(row.title ?? '').trim().slice(0, 200),
+    grp: String(row.grp ?? '').trim().slice(0, 80) || null,
+    body: String(row.body ?? '').slice(0, 20000) || null,
+    links: Array.isArray(row.links) ? row.links.filter((l) => l?.url).slice(0, 20).map((l) => ({ label: String(l.label || '').slice(0, 120), url: String(l.url).slice(0, 2000) })) : row.links,
+  };
+};
+app.get('/api/guides', (_req, res) => {
+  res.json(Object.values(GUIDES).map((m) => ({ ...m.GUIDE, count: m.NOTES.length, groups: [...new Set(m.NOTES.map((x) => x.grp))] })));
+});
+app.post('/api/trips/:id/notes', needTrip, h(async (req, res) => {
+  const b = noteRow(req.body || {});
+  if (!b.title) return res.status(400).json({ error: 'title é obrigatório' });
+  const r = await run1(insNote(req.tripId, { ...b, sort: await nextSort('notes', 'trip_id = ?', [req.tripId]) }));
+  res.status(201).json(await db.get('SELECT * FROM notes WHERE id = ?', [r.lastInsertRowid]));
+}));
+// carrega um guia: entram só as notas que a viagem ainda não tem (mesmo assunto e título), então dá para carregar de novo sem duplicar
+app.post('/api/trips/:id/notes/guide/:key', needTrip, h(async (req, res) => {
+  const m = Object.hasOwn(GUIDES, req.params.key) ? GUIDES[req.params.key] : null;
+  if (!m) return res.status(404).json({ error: 'guia não encontrado' });
+  const have = new Set((await db.all('SELECT grp, title FROM notes WHERE trip_id = ?', [req.tripId])).map((x) => `${x.grp || ''}|${x.title}`));
+  const start = await nextSort('notes', 'trip_id = ?', [req.tripId]);
+  const add = m.NOTES.filter((x) => !have.has(`${x.grp || ''}|${x.title}`));
+  if (add.length) await db.batch(add.map((x, i) => insNote(req.tripId, { ...x, sort: start + i })));
+  res.status(201).json({ added: add.length, notes: await db.all('SELECT * FROM notes WHERE trip_id = ? ORDER BY sort, id', [req.tripId]) });
+}));
+app.put('/api/notes/:nid', h(async (req, res) => {
+  const cur = await db.get('SELECT * FROM notes WHERE id = ?', [Number(req.params.nid)]);
+  if (!cur) return res.status(404).json({ error: 'não encontrado' });
+  const row = noteRow(req.body || {}, cur);
+  if (!row.title) return res.status(400).json({ error: 'title é obrigatório' });
+  const [, args] = insNote(cur.trip_id, row);
+  await db.run(`UPDATE notes SET ${setList(NOTE_FIELDS)} WHERE id = ?`, [...args.slice(1), cur.id]);
+  res.json(await db.get('SELECT * FROM notes WHERE id = ?', [cur.id]));
+}));
+app.delete('/api/notes/:nid', h(async (req, res) => {
+  await db.run('DELETE FROM notes WHERE id = ?', [Number(req.params.nid)]);
   res.status(204).end();
 }));
 

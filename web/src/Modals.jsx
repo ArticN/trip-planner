@@ -166,7 +166,7 @@ function RouteField({ value, onChange, fxCur }) {
 }
 
 // links (comprovantes, ingressos, sites), guardados como JSON
-function LinksField({ value, onChange }) {
+export function LinksField({ value, onChange }) {
   const links = parseLinks(value);
   const [url, setUrl] = useState('');
   const [label, setLabel] = useState('');

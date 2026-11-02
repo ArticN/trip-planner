@@ -15,6 +15,17 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.43',
+    date: '2026-11-02',
+    title: 'Notas de viagem',
+    items: [
+      'Nova página Notas, no topo da viagem (ou no menu ⋯): dicas por assunto que valem para a viagem toda, como transporte, dinheiro, etiqueta e números de emergência.',
+      'Guia pronto “Japão viajando sozinho”: 70 notas em 15 assuntos, pesquisadas em guias, sites oficiais e relatos de viajantes, com as fontes em cada uma. Inclui o novo tax free de novembro de 2026, o JR Pass mais caro, as folhas de outono e dicas de Tóquio, Nikko, Kawaguchiko, Nagoya, Takayama, Kyoto e Osaka.',
+      'Cada nota diz se é consenso, opinião ou atenção (regra ou mudança recente). Dá para buscar, filtrar, fixar no topo, editar, apagar e escrever as suas.',
+      'As notas abrem sem internet no aparelho que já abriu a viagem, vão no backup e ficam fora do link de visitante.',
+    ],
+  },
+  {
     version: '1.42',
     date: '2026-11-01',
     title: 'Instalação guiada',
