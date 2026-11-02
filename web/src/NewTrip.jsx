@@ -140,11 +140,17 @@ export default function NewTripWizard({ onCreate, onClose }) {
   };
   const fc = { ...autoCodes, ...codes };
   const apName = (c) => (airports?.[c]?.[2] || c).replace(/\s*\(.*\)$/, '');
+  // dois aeroportos da mesma cidade (GRU e CGH, em São Paulo): não é um voo, é a cidade onde você já está
+  const sameArea = (x, y) => {
+    const a = airports?.[x];
+    const b = airports?.[y];
+    return !!(a && b) && (a[0] - b[0]) ** 2 + ((a[1] - b[1]) * Math.cos((a[0] * Math.PI) / 180)) ** 2 < 0.8 ** 2; // ~90 km
+  };
 
   const year = (start || today).slice(0, 4);
   const autoName = domestic
     ? `${listPt(picked.slice(0, 2).map((c) => c.name)) || countryName(home)} ${year}`
-    : `${listPt(abroad.slice(0, 3).map(countryName))}${abroad.length > 3 ? ' e mais' : ''} ${year}`;
+    : `${abroad.length > 3 ? `${abroad.slice(0, 3).map(countryName).join(', ')} e mais` : listPt(abroad.map(countryName))} ${year}`;
   const homeCur = homeInfo?.cur || 'BRL';
   const auto = {
     name: countries.length ? autoName : '',
@@ -175,7 +181,7 @@ export default function NewTripWizard({ onCreate, onClose }) {
   const flightActs = flights && fc.from && fc.to && start && end ? [
     { day: start, title: `Voo de ida ${apName(fc.from)} → ${apName(fc.to)}`, from: fc.from, to: fc.to, tzA: homeTz, tzB: f.tz },
     ...(fc.back ? [{ day: end, title: `Voo de volta ${apName(fc.back)} → ${apName(fc.from)}`, from: fc.back, to: fc.from, tzA: f.tz, tzB: homeTz }] : []),
-  ].filter((x) => x.from !== x.to).map((x) => ({
+  ].filter((x) => x.from !== x.to && !sameArea(x.from, x.to)).map((x) => ({
     day: x.day, title: x.title, kind: 'flight', city: 'transito', transport: '✈️ Avião',
     location: `${apName(x.from)} (${x.from}) → ${apName(x.to)} (${x.to})`, from_code: x.from, to_code: x.to,
     start_tz: x.tzA || null, end_tz: x.tzB || null,

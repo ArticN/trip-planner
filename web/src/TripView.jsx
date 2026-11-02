@@ -171,6 +171,33 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     onNavigate(target);
   }, [onNavigate]);
   const showPhoto = (id) => { setOpenPhoto(id); go('diario'); };
+
+  // a faixa de dias rola sozinha até o dia aberto (em viagens longas o dia de hoje ficava fora da tela)
+  const stripRef = useRef(null);
+  const loaded = !!data;
+  useEffect(() => {
+    const strip = stripRef.current;
+    const chip = strip?.querySelector('.dchip.on');
+    if (!chip) return;
+    const s = strip.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    if (c.left >= s.left && c.right <= s.right) return;
+    strip.scrollTo({ left: strip.scrollLeft + (c.left - s.left) - (s.width - c.width) / 2 });
+  }, [sel, loaded]);
+
+  // menu "Mais opções": fecha com Esc ou tocando fora (antes ficava aberto por cima de outras telas)
+  const menuRef = useRef(null);
+  useEffect(() => {
+    const close = (e) => {
+      const m = menuRef.current;
+      if (!m?.open) return;
+      if (e.type === 'keydown' ? e.key === 'Escape' : !m.contains(e.target)) m.removeAttribute('open');
+    };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', close);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', close); };
+  }, []);
+  useEffect(() => { menuRef.current?.removeAttribute('open'); }, [sel]);
   useEffect(() => { if (sel !== 'diario') setOpenPhoto(null); }, [sel]);
 
   // fotos com GPS: no mapa da viagem todas, no mapa do dia só as do dia (com o caminho feito)
@@ -631,7 +658,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         <button className="ghost hide-sm hide-md" onClick={() => go('notas')}>Notas</button>
         <button className="ghost hide-sm" onClick={() => setModal('checklist')}>Checklist</button>
         <button className="ghost hide-sm" onClick={() => setModal('shopping')}>Compras</button>
-        <details className="menu">
+        <details className="menu" ref={menuRef}>
           <summary aria-label="Mais opções" title="Mais opções"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></summary>
           <div className="menu-pop" onClick={(e) => e.currentTarget.parentElement.removeAttribute('open')}>
             <button className="only-sm" onClick={() => setModal('stays')}>Hospedagens</button>
@@ -660,7 +687,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       <div className="main" data-detent={sheet.detent}>
         <aside className="side" ref={sheet.ref}>
           <SheetHandle detent={sheet.detent} handleProps={sheet.handleProps} onKey={() => sheet.setDetent((d) => (d === 'full' ? 'half' : d === 'half' ? 'full' : 'half'))} />
-          <nav className="strip" aria-label="Dias da viagem">
+          <nav className="strip" aria-label="Dias da viagem" ref={stripRef}>
             <button className={`dchip trip${sel === 'trip' ? ' on' : ''}`} onClick={() => go('trip')}><b>Geral</b></button>
             {daysInfo.map((d, i) => {
               // trilho de metrô sob os dias: cor da cidade onde você dorme; estação quando muda de cidade
