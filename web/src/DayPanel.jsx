@@ -1,5 +1,5 @@
 import { Stars } from './Stars.jsx';
-import { parseLinks, linkLabel, LinkText } from './Extras.jsx';
+import { parseLinks, linkLabel, LinkText, safeUrl } from './Extras.jsx';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { Icon } from './icons.jsx';
@@ -320,7 +320,7 @@ export default function DayPanel({
                 <span>
                   {stay.booking ? `Reserva ${stay.booking}` : ''}
                   {stay.booking && stay.link ? ' · ' : ''}
-                  {stay.link ? <a href={stay.link} target="_blank" rel="noreferrer">ver reserva</a> : null}
+                  {safeUrl(stay.link) ? <a href={safeUrl(stay.link)} target="_blank" rel="noreferrer">ver reserva</a> : null}
                 </span>
               )}
             </div>

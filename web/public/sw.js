@@ -12,8 +12,19 @@ const FILES = 'files-v1';
 const OFFLINE = 'maps-offline'; // mapas baixados de propósito ("Baixar mapa offline"): nunca são apagados sozinhos
 const MAX_TILES = 3000;
 
+// arquivos do app que precisam estar no aparelho mesmo sem nunca terem sido abertos (mapa, telas carregadas
+// sob demanda): a lista vem do build (precache.json); o que falhar é guardado depois, quando for usado
+async function precache() {
+  const c = await caches.open(APP);
+  await c.addAll(['/', '/manifest.webmanifest', '/icon.svg']);
+  let list = [];
+  try { list = await (await fetch('/precache.json', { cache: 'no-store' })).json(); } catch { return []; }
+  await Promise.all(list.map(async (u) => { if (!(await c.match(u))) await c.add(u).catch(() => {}); }));
+  return list;
+}
+
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(APP).then((c) => c.addAll(['/', '/manifest.webmanifest', '/icon.svg'])).then(() => self.skipWaiting()));
+  e.waitUntil(precache().catch(() => {}).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -25,10 +36,19 @@ self.addEventListener('activate', (e) => {
 const isTile = (url) => /tile\.openstreetmap\.org|tiles\.openfreemap\.org|opentopomap\.org|arcgisonline\.com/.test(url.hostname);
 const isFont = (url) => /fonts\.(googleapis|gstatic)\.com/.test(url.hostname);
 
-async function networkFirst(req, cacheName) {
+// com cópia guardada, internet lenta não trava a tela: depois de `wait` ms usa a cópia (a resposta da rede
+// ainda atualiza a cópia quando chegar)
+async function networkFirst(req, cacheName, wait = 0) {
   const cache = await caches.open(cacheName);
   try {
-    const res = await fetch(req);
+    const net = fetch(req);
+    const hit0 = wait ? await cache.match(req, { ignoreVary: true }) : null;
+    if (hit0) {
+      net.then((r) => { if (r.ok) cache.put(req, r.clone()); }).catch(() => {});
+      const res = await Promise.race([net.then((r) => r.clone()), new Promise((r) => setTimeout(() => r(null), wait))]);
+      return res || hit0;
+    }
+    const res = await net;
     if (res.ok) cache.put(req, res.clone());
     return res;
   } catch (err) {
@@ -86,9 +106,10 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin === location.origin) {
     if (url.pathname === '/api/session' || url.pathname === '/api/setup') return; // login e diagnóstico nunca vêm do cache
+    if (req.headers.get('X-TP-Live')) return; // viagens: a cópia offline fica no IndexedDB do app (offline/sync.js)
     if (url.pathname.startsWith('/api/files/') || /^\/api\/(share\/[\w-]+\/)?photos\//.test(url.pathname)) { e.respondWith(cacheFirst(req, FILES)); return; }
-    if (url.pathname.startsWith('/api/')) { e.respondWith(networkFirst(req, API)); return; }
-    if (req.mode === 'navigate') { e.respondWith(networkFirst(req, APP).catch(() => caches.match('/'))); return; }
+    if (url.pathname.startsWith('/api/')) { e.respondWith(networkFirst(req, API, 6000)); return; }
+    if (req.mode === 'navigate') { e.respondWith(networkFirst(req, APP, 4000).catch(() => caches.match('/'))); return; }
     if (url.pathname.startsWith('/assets/')) { e.respondWith(cacheFirst(req, APP)); return; }
     e.respondWith(networkFirst(req, APP));
     return;
@@ -97,7 +118,7 @@ self.addEventListener('fetch', (e) => {
   if (isFont(url)) e.respondWith(cacheFirst(req, APP));
 });
 
-// ao sair da conta, apaga os dados guardados
+// apaga os dados guardados (só quando o app pede de propósito; as edições pendentes ficam no IndexedDB, não aqui)
 self.addEventListener('message', (e) => {
   if (e.data === 'clear-data') { caches.delete(API); caches.delete(FILES); }
 });

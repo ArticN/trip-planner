@@ -130,6 +130,8 @@ async function migrate() {
       pinned INTEGER DEFAULT 0, sort INTEGER DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS idx_notes_trip ON notes(trip_id);
+    -- edições já recebidas (X-Op-Id): a fila offline reenvia quando não teve resposta, e o servidor não repete
+    CREATE TABLE IF NOT EXISTS op_log (id TEXT PRIMARY KEY, status INTEGER, body TEXT, at INTEGER);
   `);
 
   // álbum do diário (v1.39): páginas livres com blocos de foto e de texto (JSON em blocks).
@@ -488,6 +490,73 @@ app.get('/api/share/:token/photos/:pid/thumb', sharedPhoto('thumb'));
 
 app.use('/api', (req, res, next) => (authed(req) ? next() : res.status(401).json({ error: 'login necessário' })));
 
+// ── validação básica das edições: datas no formato do app, números que são números, textos sem tamanho absurdo.
+// Campos ausentes ou vazios passam (o app manda null para limpar).
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_TEXT = 100000;
+const RULES = [
+  [/^\/api\/(trips\/\d+\/activities|activities\/-?\d+)$/, { date: ['day', 'end_day'], num: ['cost', 'spent', 'sort', 'rating'], lat: ['lat'], lng: ['lng'] }],
+  [/^\/api\/(trips\/\d+\/stays|stays\/-?\d+)$/, { date: ['check_in', 'check_out'], num: ['cost'], lat: ['lat'], lng: ['lng'] }],
+  [/^\/api\/(trips\/\d+\/ideas|ideas\/-?\d+)$/, { num: ['cost', 'sort'], lat: ['lat'], lng: ['lng'] }],
+  [/^\/api\/(trips\/\d+\/purchases|purchases\/-?\d+)$/, { date: ['day'], num: ['price', 'sort'] }],
+  [/^\/api\/(trips\/\d+\/checklist|checklist\/-?\d+|trips\/\d+\/notes|notes\/-?\d+)$/, { num: ['sort'] }],
+  [/^\/api\/(trips\/\d+\/cities|cities\/-?\d+)$/, { lat: ['lat'], lng: ['lng'] }],
+  [/^\/api\/trips(\/\d+)?$/, { date: ['start', 'end'], num: ['rate', 'usd_rate', 'quota_usd', 'remind_min', 'remind_flight_min'] }],
+];
+const empty = (v) => v === null || v === undefined || v === '';
+const isNum = (v) => empty(v) || (typeof v === 'number' && Number.isFinite(v)) || (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)));
+function invalid(body, rule) {
+  for (const f of rule.date || []) if (!empty(body[f]) && !(typeof body[f] === 'string' && DATE_RE.test(body[f]))) return `${f}: data inválida (use AAAA-MM-DD)`;
+  for (const f of [...(rule.num || []), ...(rule.lat || []), ...(rule.lng || [])]) if (!isNum(body[f])) return `${f}: precisa ser um número`;
+  for (const f of rule.lat || []) if (!empty(body[f]) && Math.abs(Number(body[f])) > 90) return `${f}: latitude fora do mapa`;
+  for (const f of rule.lng || []) if (!empty(body[f]) && Math.abs(Number(body[f])) > 180) return `${f}: longitude fora do mapa`;
+  for (const [k, v] of Object.entries(body)) if (typeof v === 'string' && v.length > MAX_TEXT) return `${k}: texto grande demais`;
+  return null;
+}
+app.use('/api', (req, res, next) => {
+  if ((req.method !== 'POST' && req.method !== 'PUT') || !req.body || typeof req.body !== 'object' || Buffer.isBuffer(req.body)) return next();
+  const rule = RULES.find(([re]) => re.test(req.path.startsWith('/api') ? req.path : `/api${req.path}`))?.[1];
+  const err = rule && invalid(req.body, rule);
+  return err ? res.status(400).json({ error: err }) : next();
+});
+
+// ── edição que chega duas vezes (fila offline reenviando depois de perder a resposta): responde o mesmo de antes.
+// O id é gravado antes de rodar a edição; se a mesma edição chegar enquanto a primeira ainda roda, a segunda
+// recebe 409 e a fila tenta de novo depois. Só respostas de sucesso ficam guardadas (erro libera o id).
+const OP_ID = /^[\w-]{8,64}$/;
+const OP_STALE_MS = 2 * 60 * 1000;
+const OP_KEEP_MS = 45 * 24 * 3600 * 1000;
+app.use('/api', h(async (req, res, next) => {
+  const opId = req.get('X-Op-Id');
+  if (req.method === 'GET' || !opId || !OP_ID.test(opId)) return next();
+  const at = Date.now();
+  let r = await db.run('INSERT OR IGNORE INTO op_log (id, status, body, at) VALUES (?, NULL, NULL, ?)', [opId, at]);
+  if (!r.changes) {
+    const seen = await db.get('SELECT status, body, at FROM op_log WHERE id = ?', [opId]);
+    if (seen?.status) {
+      res.setHeader('X-Op-Replay', '1');
+      return seen.body == null ? res.status(seen.status).end() : res.status(seen.status).type('json').send(seen.body);
+    }
+    // ficou "em andamento" sem terminar (a função caiu no meio): libera depois de um tempo
+    if (seen && at - seen.at < OP_STALE_MS) return res.status(409).json({ error: 'esta edição ainda está sendo salva; tente de novo' });
+    await db.run('UPDATE op_log SET at = ? WHERE id = ?', [at, opId]);
+  }
+  if (Math.random() < 0.02) db.run('DELETE FROM op_log WHERE at < ?', [at - OP_KEEP_MS]).catch(() => {});
+  const end = res.end.bind(res);
+  let done = false;
+  res.end = (chunk, ...rest) => {
+    if (done) return end(chunk, ...rest);
+    done = true;
+    const ok = res.statusCode >= 200 && res.statusCode < 300;
+    const body = chunk == null ? null : Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk);
+    const sql = ok ? ['UPDATE op_log SET status = ?, body = ? WHERE id = ?', [res.statusCode, body, opId]] : ['DELETE FROM op_log WHERE id = ?', [opId]];
+    // grava antes de responder: se a resposta se perder, o reenvio encontra o resultado
+    db.run(...sql).catch((e) => console.error('op_log:', e)).finally(() => end(chunk, ...rest));
+    return res;
+  };
+  next();
+}));
+
 // resolve :id → viagem existente (404 se não houver)
 app.param('id', (req, _res, next, v) => { req.tripId = Number(v); next(); });
 const needTrip = h(async (req, res, next) => ((await db.get('SELECT 1 AS ok FROM trips WHERE id = ?', [req.tripId])) ? next() : res.status(404).json({ error: 'viagem não encontrada' })));
@@ -805,7 +874,7 @@ app.post('/api/:kind(activities|ideas)/:oid/files', express.raw({ type: () => tr
   const kind = req.get('x-file-kind') === 'receipt' ? 'receipt' : 'doc'; // recibo do gasto real ou documento
   const r = await db.run('INSERT INTO files (trip_id, activity_id, idea_id, name, type, size, data, kind) VALUES (?,?,?,?,?,?,?,?)',
     [owner.trip_id, isAct ? owner.id : null, isAct ? null : owner.id, name, type, data.length, data, kind]);
-  res.status(201).json(await db.get('SELECT id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE id = ?', [r.lastInsertRowid]));
+  res.status(201).json(await db.get('SELECT id, trip_id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE id = ?', [r.lastInsertRowid]));
 }));
 app.get('/api/files/:fid', h(async (req, res) => {
   const f = await db.get('SELECT name, type, data FROM files WHERE id = ?', [Number(req.params.fid)]);

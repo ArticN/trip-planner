@@ -59,7 +59,7 @@ Localmente os dados ficam em `data/planner.db`, que está no `.gitignore`.
 - **Modo hoje**: durante a viagem abre no dia atual, destaca a próxima atividade e oferece "Como chegar".
 - **Extras**: tempo previsto, câmbio automático, nascer e pôr do sol, Wikipédia, "Meu mapa" de países visitados, lembretes.
 - **Exportar**: PDF, arquivo `.ics` para a agenda e links de visitante só de leitura, cada um com as partes que você escolher (roteiro, gastos, diário).
-- **Celular e offline**: instalável como app (PWA), consulta sem internet (roteiro, anexos e mapa baixado), tema claro/escuro e aparência ajustável.
+- **Celular e offline**: instalável como app (PWA), consulta e edição sem internet (todas as viagens, anexos e mapa baixado, com sincronização e backups automáticos no aparelho), tema claro/escuro e aparência ajustável.
 
 A seção "Novidades" da tela inicial (arquivo `web/src/changelog.js`) conta a história de cada versão.
 

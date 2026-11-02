@@ -23,42 +23,67 @@ mostra o motivo é a própria Vercel, na aba Deployments.
 
 ## Sem internet
 
-Na versão publicada (ou com `npm run build && npm start`; o `npm run dev` não liga essa parte), o app guarda no
-aparelho uma cópia do que você já abriu com internet. Sem conexão, nada chega à Vercel nem ao Turso: tudo vem dessa
-cópia, que é de cada aparelho (o celular e o computador têm cada um a sua).
+Na versão publicada (ou com `npm run build && npm start`; o `npm run dev` não liga o service worker, que guarda os arquivos
+do app, mas a cópia das viagens e a fila de edições funcionam nele também), o app guarda **no aparelho** (IndexedDB) uma cópia de todas as suas
+viagens. Sem conexão, tudo vem dessa cópia, que é de cada aparelho (o celular e o computador têm cada um a sua).
 
 O que funciona sem internet:
 
-- **Abrir o app**, a lista de viagens e **cada viagem que você já abriu com internet**, na versão da última vez que
-  ela foi aberta. A viagem em destaque na tela inicial também fica guardada. Uma faixa "Sem internet" avisa no topo.
-- **Anexos** (ingressos, passagens): ao abrir uma viagem com internet, o app baixa todos os anexos dela para o aparelho.
+- **Abrir o app, a lista de viagens e qualquer viagem**: com internet, o app guarda sozinho todas as viagens no
+  aparelho (não só as abertas) e atualiza a cópia a cada vez que você abre. Internet lenta não trava a tela: depois de
+  alguns segundos o app mostra a cópia e troca pela versão nova quando ela chegar.
+- **Editar**: marcar como feito, mudar ou criar atividades, hospedagens, checklist, compras, notas, ideias, anotações
+  do dia, ordem do dia, páginas do diário e dados da viagem. A edição aparece na hora e fica numa fila guardada no
+  aparelho (sobrevive a fechar o app). Quando a internet volta, a fila é enviada sozinha, na ordem.
+- **Anexos** (ingressos, passagens): o app baixa para o aparelho os anexos das viagens em andamento e das próximas.
 - **Mapa**: os trechos que você já viu ficam guardados (até cerca de 3 mil). Para ter uma região inteira, use o
-  [mapa offline](mapa.md#mapa-offline).
+  [mapa offline](mapa.md#mapa-offline). As telas do mapa ficam guardadas na instalação do app.
 - **Mapa-múndi dos voos**: sempre funciona, porque os aeroportos e os países vêm dentro do app.
 - **Tempo de deslocamento** entre atividades: as rotas a pé já consultadas ficam guardadas; as novas aparecem como
   estimativa (com "~").
 
-O que não funciona:
+A faixa embaixo (no celular, em cima) mostra o estado: "Sem internet", "N edições esperando", "Enviando…" ou
+"edições não foram salvas". Tocar nela abre **Dados no aparelho** (também no menu ⋯ › Dados offline e backups).
 
-- **Viagem que nunca foi aberta neste aparelho**: mostra "Não consegui abrir esta viagem".
-- **Editar**: sem internet, criar, mudar, excluir ou anexar dá erro e a tela volta para a versão salva. As edições
-  não ficam guardadas para depois: espere a conexão voltar.
-- O que depende de serviços externos: previsão do tempo, câmbio, busca de lugares, "Perto daqui" e Wikipédia.
-- **Sair** da conta apaga a cópia guardada (dados e anexos; os mapas baixados ficam).
+O que precisa de internet: criar, duplicar, importar ou apagar viagem; enviar anexos e fotos; links de visitante e
+agenda; previsão do tempo, câmbio, busca de lugares, "Perto daqui" e Wikipédia. Sem conexão, esses botões avisam
+"Isso precisa de internet".
+
+### Como as edições ficam seguras
+
+- **Sem repetir**: cada edição leva um código. Se a internet cair depois que o servidor salvou, mas antes da resposta
+  chegar, o reenvio não cria nada em dobro.
+- **Nada some calado**: se o servidor recusar uma edição (por exemplo, o item foi apagado no computador enquanto o
+  celular estava offline), ela vai para **Não foram salvas**, com o motivo, e fica guardada até você escolher
+  **Tentar de novo**, **Descartar** ou **Baixar estas edições (JSON)**.
+- **Dois aparelhos**: a edição offline manda só os campos que você mudou. Se o mesmo campo foi mudado no outro aparelho,
+  vale a edição deste, e o valor que estava lá aparece em **Mudado nos dois aparelhos** e fica no backup "antes de
+  sincronizar".
+- **Sessão expirada**: a fila espera; depois de entrar com a senha de novo, ela continua.
+- O app pede ao navegador para guardar os dados de forma permanente (não apagar quando faltar espaço). O painel diz
+  se o navegador aceitou e quanto espaço o app usa.
+
+### Backups no aparelho
+
+O app guarda uma versão de cada viagem quando ela muda (no máximo a cada 6 horas) e sempre antes de enviar edições
+feitas offline; ficam as 20 mais recentes de cada viagem. Em **Dados no aparelho › Backups automáticos** dá para
+**Baixar** qualquer versão (o mesmo JSON do "Exportar backup", sem os códigos secretos dos links) ou **Restaurar como
+cópia**, que cria uma viagem nova com aquela versão (a atual não muda). Em **Viagens guardadas**, **Baixar backup**
+salva a cópia atual mesmo sem internet. Fotos e anexos não entram no backup.
 
 ### Antes de viajar
 
 Com Wi-Fi, no aparelho que vai usar na viagem:
 
 1. Instale o app ([como](#instalar-no-celular)) e use sempre pelo ícone. No iPhone, o app instalado guarda os dados
-   separado do Safari, então o que você abriu no Safari não vale para o ícone (e o Safari pode apagar dados de sites
-   que você não abre há alguns dias).
-2. Abra cada viagem que vai querer consultar. Se mudar algo no computador depois, abra de novo no celular para
-   atualizar a cópia.
+   separado do Safari, então o que você abriu no Safari não vale para o ícone.
+2. Abra o app uma vez com internet e espere alguns segundos: ele guarda todas as viagens. Confira em
+   **Dados no aparelho › Viagens guardadas** (o botão **Atualizar agora** força).
 3. Baixe o [mapa offline](mapa.md#mapa-offline) das cidades.
 
 Para testar: ponha o celular em modo avião, feche o app de vez e abra de novo pelo ícone. A faixa "Sem internet"
-aparece, a viagem abre e os anexos abrem com um toque.
+aparece, a viagem abre, os anexos abrem com um toque e dá para marcar uma atividade como feita. Tire do modo avião:
+a faixa some quando a edição chega ao servidor.
 
 ## Celular e computador
 

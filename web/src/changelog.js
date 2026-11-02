@@ -15,6 +15,18 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.46',
+    date: '2026-11-02',
+    title: 'Funciona e edita sem internet',
+    items: [
+      'Todas as viagens ficam guardadas no aparelho (celular e computador), não só as que você já abriu. Sem internet, ou com internet lenta, o app abre com essa cópia.',
+      'Dá para editar sem internet: marcar como feito, criar e mudar atividades, checklist, compras, notas, hospedagens e o diário. As edições ficam guardadas no aparelho e são enviadas sozinhas quando a internet volta.',
+      'Nada se perde: edição que o servidor recusar fica em “Não foram salvas” para tentar de novo ou baixar, e se o mesmo campo foi mudado em outro aparelho o valor de lá fica registrado.',
+      'Backups automáticos no aparelho (até 20 versões por viagem), para baixar ou restaurar como cópia. Tudo em menu ⋯ › Dados offline e backups.',
+      'A faixa de estado mostra “Sem internet”, “edições esperando” ou “Enviando…”; tocar nela abre os detalhes.',
+    ],
+  },
+  {
     version: '1.45',
     date: '2026-11-02',
     title: 'Nova viagem guiada',

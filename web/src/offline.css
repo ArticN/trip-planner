@@ -1,0 +1,19 @@
+/* barra de estado offline (botão) e painel "Dados no aparelho" */
+button.offline-bar { font: inherit; font-size: 13px; cursor: pointer; line-height: 1.3; }
+button.offline-bar:hover { filter: brightness(1.05); }
+.offline-bar.info { border-color: var(--line); background: var(--card); color: var(--ink-2); }
+.offline-bar.bad { border-color: var(--danger-line); background: var(--danger-bg); color: var(--danger); }
+.offp { display: grid; gap: 8px; padding: 4px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.offp:last-child { border-bottom: 0; margin-bottom: 0; }
+.offp h4 { margin: 0; font-size: 15px; font-weight: 600; }
+.offp p { margin: 0; }
+.offp > button { justify-self: start; }
+.offp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.offp-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-box); overflow-wrap: anywhere; }
+.offp-list li > span:first-child { min-width: 0; flex: 1 1 220px; }
+.offp-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.offp-bk summary { cursor: pointer; padding: 6px 0; }
+.offp-bk .offp-list { margin-top: 6px; }
+.warn-txt { color: var(--warn); }
+.bad-txt { color: var(--danger); }
+.offp button.sm { padding: 3px 10px; font-size: 13px; }

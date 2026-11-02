@@ -5,6 +5,7 @@ import Login from './Login.jsx';
 import Setup, { NoPasswordBar } from './Setup.jsx';
 import ShareView from './ShareView.jsx';
 import { api } from './api.js';
+import { SyncBar } from './OfflinePanel.jsx';
 
 // rotas por hash: #/ (viagens) · #/t/<id> (visão geral) · #/t/<id>/<aaaa-mm-dd> (dia) · #/t/<id>/analise · #/t/<id>/ingressos · #/t/<id>/diario · #/t/<id>/notas
 function parseHash() {
@@ -41,7 +42,9 @@ function Planner() {
   }, []);
 
   useEffect(() => {
-    api.session().then((s) => setAuth(s.ok ? 'ok' : 'login')).catch(() => setAuth('ok'));
+    // sem internet (ou internet lenta) abre com a cópia do aparelho; se a sessão tiver expirado, o servidor pede login depois
+    const slow = setTimeout(() => setAuth((a) => (a === 'checking' ? 'ok' : a)), 6000);
+    api.session().then((s) => setAuth(s.ok ? 'ok' : 'login')).catch(() => setAuth((a) => (a === 'checking' ? 'ok' : a))).finally(() => clearTimeout(slow));
     const need = () => setAuth('login');
     window.addEventListener('auth-required', need);
     return () => window.removeEventListener('auth-required', need);
@@ -63,8 +66,9 @@ function Planner() {
 
   if (setup && setup.db !== 'ok') return <Setup info={setup} />;
   if (auth === 'checking') return null;
-  if (auth === 'login') return <Login onDone={() => { setAuth('ok'); refresh(); }} />;
-  const banner = !online && <div className="offline-bar" role="status" title="Sem internet: vendo a última versão salva; edições não são salvas">Sem internet<span className="hide-sm">: vendo a última versão salva; edições não são salvas</span></div>;
+  if (auth === 'login') return <Login onDone={() => { setAuth('ok'); refresh(); window.dispatchEvent(new Event('auth-ok')); }} />;
+  // sem internet, enviando edições, edições não salvas: a barra abre o painel "Dados no aparelho"
+  const banner = <SyncBar online={online} authed={auth === 'ok'} />;
   if (route.tripId == null) return <>{banner}{setup?.hosted && !setup.password && <NoPasswordBar />}<Home version={version} onOpen={openTrip} onChanged={refresh} /></>;
   return <>{banner}<TripView key={route.tripId} tripId={route.tripId} sel={route.sel} onNavigate={navigate} onHome={goHome} onTripsChanged={refresh} /></>;
 }
