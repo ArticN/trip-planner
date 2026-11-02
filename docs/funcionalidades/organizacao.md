@@ -74,8 +74,7 @@ da atividade.
   links. No texto, uma linha começada por "- " vira item de lista e endereços viram links.
 - **Excluir** mostra o aviso "Desfazer" por alguns segundos, caso tenha sido sem querer.
 
-As notas vêm junto com a viagem: abrem sem internet no aparelho que já abriu a viagem (editar continua precisando de
-conexão), vão no backup JSON e na cópia ao duplicar, e nunca aparecem no link de visitante. A página também imprime.
+As notas vêm junto com a viagem: abrem e podem ser editadas sem internet (ver [sem internet](app.md#sem-internet)), vão no backup JSON e na cópia ao duplicar, e nunca aparecem no link de visitante. A página também imprime.
 
 Limitações: os guias prontos ficam no código do app (pasta `server/guides/`), então preços e regras são os do dia em
 que o guia foi escrito; confira nas fontes. Carregar um guia precisa de internet.

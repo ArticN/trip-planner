@@ -44,6 +44,8 @@ O link único das versões anteriores virou o link **"Link do roteiro"**, com o 
 - **Exportar**: menu **⋯ › Exportar backup (JSON)** baixa um arquivo com a viagem inteira.
 - **Importar**: na tela inicial, **Importar backup**, e escolha o arquivo. A viagem é criada de novo, como uma viagem nova
   (não substitui nenhuma existente).
+- **Backups automáticos no aparelho**: o app guarda sozinho até 20 versões de cada viagem no próprio aparelho, que
+  dá para baixar ou restaurar como cópia, mesmo sem internet. Ver [backups no aparelho](app.md#backups-no-aparelho).
 
 O backup leva viagem, cidades, hospedagens, atividades (com opções, trechos de trem e escalas), checklist, ideias,
 temas do dia e compras. **Não leva os anexos** (só a lista com os nomes) nem os links de compartilhamento e de agenda,

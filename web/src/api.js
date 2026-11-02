@@ -1,7 +1,10 @@
-async function req(method, url, body) {
+import { sync } from './offline/index.js';
+
+// pedidos ao servidor: a leitura das viagens e as edições passam pela cópia do aparelho e pela fila
+// de edições sem internet (offline/sync.js); o resto (login, links, envios de arquivo) vai direto
+async function direct(method, url, body) {
   const res = await fetch(url, {
     method,
-    keepalive: method === 'DELETE', // exclusão adiada ainda chega ao servidor se a página fechar
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -12,15 +15,16 @@ async function req(method, url, body) {
   }
   return res.status === 204 ? null : res.json();
 }
+const req = (method, url, body) => (method === 'GET' ? direct(method, url, body) : sync.request(method, url, body));
 
 export const api = {
   // acesso
-  session: () => req('GET', '/api/session'),
-  login: (password) => req('POST', '/api/login', { password }),
-  logout: () => req('POST', '/api/logout'),
+  session: () => direct('GET', '/api/session'),
+  login: (password) => direct('POST', '/api/login', { password }),
+  logout: () => direct('POST', '/api/logout'),
   // viagens
-  trips: () => req('GET', '/api/trips'),
-  trip: (id) => req('GET', `/api/trips/${id}`),
+  trips: () => sync.getTrips(),
+  trip: (id) => sync.getTrip(Number(id)),
   createTrip: (t) => req('POST', '/api/trips', t),
   saveTrip: (id, patch) => req('PUT', `/api/trips/${id}`, patch),
   deleteTrip: (id) => req('DELETE', `/api/trips/${id}`),
@@ -51,7 +55,9 @@ export const api = {
     });
     if (res.status === 401) window.dispatchEvent(new Event('auth-required'));
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `erro ${res.status}`);
-    return res.json();
+    const row = await res.json();
+    sync.noteCreated('files', row.trip_id ?? file.tripId ?? null, row).catch(() => {});
+    return row;
   },
   deleteFile: (id) => req('DELETE', `/api/files/${id}`),
   fileUrl: (id) => `/api/files/${id}`,
@@ -70,7 +76,9 @@ export const api = {
     });
     if (res.status === 401) window.dispatchEvent(new Event('auth-required'));
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `erro ${res.status}`);
-    return res.json();
+    const row = await res.json();
+    sync.noteCreated('photos', Number(tripId), row).catch(() => {});
+    return row;
   },
   updatePhoto: (id, patch) => req('PUT', `/api/photos/${id}`, patch),
   deletePhoto: (id) => req('DELETE', `/api/photos/${id}`),

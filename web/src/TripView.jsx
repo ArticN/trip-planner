@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OSM_LANG, osmName } from './osmName.js';
 import { api } from './api.js';
+import { useTripChanged } from './offline/index.js';
+import { openOfflinePanel } from './OfflinePanel.jsx';
 import MapView from './MapView.jsx';
 import { setTripAccent } from './theme.js';
 import AppearanceModal from './Look.jsx';
@@ -78,6 +80,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     try { setData(await api.trip(tripId)); setError(''); } catch (e) { setError(String(e.message || e)); }
   }, []);
   useEffect(() => { setData(null); reload(); }, [reload]);
+  // edições feitas sem internet foram enviadas (ids definitivos) ou chegou uma versão mais nova: atualiza a tela
+  useTripChanged(tripId, reload);
 
   // das opções no mesmo horário, só a principal conta no orçamento, nas estatísticas, na agenda e no PDF
   const acts = useMemo(() => principals(data?.activities || []), [data]);
@@ -649,6 +653,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button onClick={() => setModal('calendar')}>Calendário</button>
             <button onClick={() => setModal('share')}>Compartilhar roteiro</button>
             <button onClick={() => setModal('offline')}>Mapa offline</button>
+            <button onClick={openOfflinePanel}>Dados offline e backups</button>
             <button onClick={() => setModal('reminders')}>Lembretes</button>
             <button onClick={() => window.print()}>Imprimir ou salvar PDF</button>
             <button onClick={() => downloadIcs(trip, acts, cityMap)}>Exportar para agenda (.ics)</button>

@@ -5,9 +5,11 @@ import { buildIcs } from './ics.js';
 import { KINDS, KIND_KEYS, hasCoords, haversine, fmtKm, fmtDay, fmtDayLong, dayNum, dayWeek, daysBetween, actTz, endDayOf, zonedMs, toMin } from './util.js';
 
 // ── links de uma atividade: guardados como JSON [{ label, url }]
+// só links http(s), e-mail e telefone: um "javascript:" vindo de um backup importado não vira link clicável
+export const safeUrl = (u) => (typeof u === 'string' && /^(https?:|mailto:|tel:)/i.test(u.trim()) ? u.trim() : null);
 export function parseLinks(v) {
   if (!v) return [];
-  try { const l = JSON.parse(v); return Array.isArray(l) ? l.filter((x) => x && x.url) : []; } catch { return []; }
+  try { const l = typeof v === 'string' ? JSON.parse(v) : v; return Array.isArray(l) ? l.filter((x) => x && safeUrl(x.url)) : []; } catch { return []; }
 }
 export const linkLabel = (l) => l.label || l.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
 
