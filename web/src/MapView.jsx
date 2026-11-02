@@ -7,6 +7,7 @@ import { accentColor } from './theme.js';
 import { Icon, iconSvg } from './icons.jsx';
 import { travelLegs, parseRoute, rideColor, rideLabel, dayStart, isStraightTravel } from './travel.js';
 import { loadAirports, flightRoute } from './flights.js';
+import { loadCountries, polys } from './geo.js';
 
 const WORLD_CENTER = [20, 0];
 const BASE_KEY = 'trip-planner-basemap';
@@ -160,7 +161,7 @@ function drawLeg(group, l, accent) {
 export default function MapView({
   mode, items, alts = [], onAltPick, stays, cities, stayByDay, checkout = null, selectedId, onSelect, onEdit, editPositions, onMove,
   picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
-  photos = [], photoThumb, onPhoto,
+  photos = [], photoThumb, onPhoto, countries = '',
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
@@ -253,6 +254,38 @@ export default function MapView({
     map.setMaxBounds(region.pad(1.2));
     map.setMinZoom(Math.max(2, map.getBoundsZoom(region.pad(0.8)) - 1));
   }, [regionKey, flightKey]);
+
+  // países do destino (escolhidos na criação da viagem): contorno discreto por baixo de tudo e, enquanto a viagem
+  // não tem nenhum ponto com posição, o mapa abre enquadrando o país (a maior porção de terra, sem ilhas distantes)
+  useEffect(() => {
+    const map = mapRef.current;
+    const list = String(countries || '').split(',').filter(Boolean);
+    if (!map || !list.length) return undefined;
+    let layer = null;
+    let off = false;
+    loadCountries().then((features) => {
+      if (off || !mapRef.current) return;
+      const fs = features.filter((f) => list.includes(f.properties.a));
+      if (!fs.length) return;
+      const color = accentColor();
+      const empty = !regionOf(cities, stays, items);
+      // o contorno é simplificado (bom para ver o país inteiro): com pontos na viagem, só aparece com o mapa afastado, senão corta o litoral
+      layer = L.geoJSON(fs, { interactive: false, style: { color, weight: 1.2, opacity: 0.6, dashArray: '4 4', fill: true, fillColor: color, fillOpacity: 0.05 } });
+      const sync = () => { const show = empty || map.getZoom() <= 6; if (show && !map.hasLayer(layer)) { layer.addTo(map); layer.bringToBack(); } else if (!show && map.hasLayer(layer)) layer.remove(); };
+      map.on('zoomend', sync);
+      layer._sync = sync;
+      if (empty) {
+        let b = null;
+        fs.forEach((f) => {
+          const big = polys(f.geometry).map((p) => L.latLngBounds(p[0].map(([x, y]) => [y, x]))).sort((x, y) => (y.getNorth() - y.getSouth()) * (y.getEast() - y.getWest()) - (x.getNorth() - x.getSouth()) * (x.getEast() - x.getWest()))[0];
+          if (big) b = b ? b.extend(big) : big;
+        });
+        if (b) map.fitBounds(b, { animate: false, padding: [30, 30] });
+      }
+      sync();
+    }).catch(() => {});
+    return () => { off = true; if (layer) { map.off('zoomend', layer._sync); layer.remove(); } };
+  }, [countries, regionKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── redesenha camadas quando os dados mudam
   useEffect(() => {

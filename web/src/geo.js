@@ -83,7 +83,9 @@ export function useTripPlace(trip, cities) {
   const located = useMemo(() => (cities || []).filter((c) => c.key !== 'transito' && c.lat != null && c.lng != null), [cities]);
   useEffect(() => { api.settings().then((s) => setHome(s.home_country || null)).catch(() => {}); }, []);
   useEffect(() => { if (located.length && !features) loadCountries().then(setFeatures).catch(() => {}); }, [located.length, features]);
-  const where = useMemo(() => (features ? located.map((c) => countryAt(features, c.lat, c.lng)) : []), [features, located]);
+  // países escolhidos na criação da viagem (trips.countries) somam com os das cidades; sem cidades, decidem sozinhos
+  const chosen = useMemo(() => String(trip?.countries || '').split(',').filter(Boolean), [trip?.countries]);
+  const where = useMemo(() => [...chosen, ...(features ? located.map((c) => countryAt(features, c.lat, c.lng)) : [])], [features, located, chosen]);
   const auto = home && where.length ? (where.every((a) => a === home) ? 'domestic' : 'international') : null;
   const scope = trip?.scope || auto || 'international';
   const domestic = scope === 'domestic';

@@ -5,6 +5,8 @@ import { parseLinks, linkLabel } from './Extras.jsx';
 import { AttachmentsField } from './Attachments.jsx';
 import { RIDE_MODES } from './travel.js';
 import { SCOPES } from './geo.js';
+import CountryPicker from './CountryPicker.jsx';
+import { COUNTRY_INFO, countryList } from './countries.js';
 import { KINDS, KIND_KEYS, SLOTS, TRANSPORTS, CURRENCIES, TIMEZONES, localTz, hasCoords, fmtDay } from './util.js';
 
 export function Modal({ title, onClose, children, wide, footer }) {
@@ -582,6 +584,16 @@ export function TripModal({ trip, place, onSave, onDelete, onDuplicate, onClose 
         </div>
         <label>Início<input type="date" value={d.start || ''} onChange={(e) => set({ start: e.target.value, end: d.end && d.end >= e.target.value ? d.end : e.target.value })} /></label>
         <label>Fim<input type="date" min={d.start || undefined} value={d.end || ''} onChange={(e) => set({ end: e.target.value })} /></label>
+        <div className="full trip-countries">
+          <span className="cover-label">Países de destino</span>
+          <CountryPicker value={countryList(d.countries)} home={place?.home} onChange={(list) => {
+            // trocou o destino: moeda e fuso acompanham o primeiro país de fora (dá para mudar logo abaixo)
+            const a = list.find((x) => x !== place?.home);
+            const info = COUNTRY_INFO[a];
+            const was = COUNTRY_INFO[countryList(d.countries).find((x) => x !== place?.home)];
+            set({ countries: list.join(','), ...(info && info !== was ? { currency: info.cur, tz: info.tz } : {}) });
+          }} />
+        </div>
         <label className="full">Tipo de viagem
           <select value={d.scope || ''} onChange={(e) => set({ scope: e.target.value || null })}>
             <option value="">Automático{place?.auto ? ` (${SCOPES[place.auto].toLowerCase()})` : ''}</option>

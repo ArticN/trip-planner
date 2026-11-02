@@ -15,6 +15,18 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.45',
+    date: '2026-11-02',
+    title: 'Nova viagem guiada',
+    items: [
+      '“+ Nova viagem” virou um assistente em 4 passos: destino, datas, o que já criar e revisão.',
+      'Escolha o país (ou vários) e o resto vem sozinho: moeda, câmbio do dia, fuso, tipo nacional ou internacional, nome e bandeira.',
+      'Já cria as cidades mais visitadas do país, os voos de ida e volta com o trajeto no mapa, notas sobre o destino (idioma, tomadas e adaptador, emergência, trânsito) e uma checklist básica.',
+      'O mapa mostra o contorno do país de destino e, sem nada marcado ainda, abre enquadrado nele. Em Editar viagem dá para trocar os países.',
+      'Funciona sem internet: os dados de cerca de 60 países vêm no app; só a cotação do dia espera a conexão.',
+    ],
+  },
+  {
     version: '1.44',
     date: '2026-11-02',
     title: 'Guia do Japão maior',
