@@ -7,7 +7,7 @@
 export const GUIDE = {
   key: 'japao-solo',
   title: 'Japão viajando sozinho',
-  description: 'Transporte, dinheiro, internet, comida, etiqueta, templos, tax free, saúde, emergências, novembro e dicas por cidade (Tóquio, Nikko, Kawaguchiko, Nagoya, Takayama, Kyoto e Osaka).',
+  description: 'Primeiros dias, como se comunicar, transporte, dinheiro, apps, restaurantes, dia a dia, serviços, etiqueta, templos, tax free, remédios e farmácia, emergências, novembro e dicas por cidade (Tóquio, Nikko, Kawaguchiko, Nagoya, Takayama, Kyoto e Osaka).',
   updated: '2026-11-02',
 };
 
@@ -40,12 +40,29 @@ const S = {
   vjw: L('Visit Japan Web', 'https://www.vjw.digital.go.jp/'),
   smartex: L('smartEX (Shinkansen)', 'https://smart-ex.jp/en/'),
   safeTravel: L('JNTO: Japan Safe Travel', 'https://www.jnto.go.jp/safety-tips/eng/'),
+  jntoMed: L('JNTO: guia para quem fica doente', 'https://www.jnto.go.jp/emergency/eng/mi_guide.html'),
+  himawari: L('Tóquio: Himawari (informação médica)', 'https://www.hokeniryo.metro.tokyo.lg.jp/iryo/iryo_hoken/medical_info_eng/himawari'),
+  otc: L('Japan Unwritten: remédios de farmácia', 'https://www.japanunwritten.com/2025/11/essential-medicines-and-remedies-in-japan.html'),
+  otc2: L('Japan Travel: remédios mais comuns', 'https://en.japantravel.com/article/most-common-otc-drugs-in-japan/72611'),
+  pharmacy: L('Travelers Hospital: farmácia para turistas', 'https://travelershospital.com/en/column/japan-pharmacy-guide-tourists'),
+  arrival: L('Japlanease: chegando ao Japão', 'https://japlanease.com/japan-airport-arrival-guide/'),
+  restMistakes: L('Erros de turista em restaurantes', 'https://yourmileagemayvary.com/2026/06/24/restaurant-mistakes-tourists-make-in-japan-and-the-etiquette-locals-notice/'),
+  apps: L('Coto Academy: 22 apps para o Japão', 'https://cotoacademy.com/must-have-travel-apps-for-japan-guide/'),
+  wish: L('O que eu queria saber antes (relato)', 'https://rustyselectricdreams.substack.com/p/what-i-wish-i-knew-before-going-to'),
+  dos: L('Two Wandering Soles: 35 dicas', 'https://www.twowanderingsoles.com/?p=351841'),
+  fodors: L('Fodor’s: o que saber antes', 'https://www.fodors.com/world/asia/japan/experiences/news/photos/important-things-to-know-before-traveling-to-japan'),
+  laundry: L('Tokyo Cheapo: lavanderia', 'https://tokyocheapo.com/living/laundry-on-the-go-a-guide-to-keeping-your-clothes-clean-while-traveling-japan/'),
 };
 
 // n(grupo, tag, título, texto, fontes, fixada)
 const n = (grp, tag, title, body, links = [], pinned = false) => ({ grp, tag, title, body: body.trim(), links, pinned: pinned ? 1 : 0 });
 
 const ANTES = 'Antes de embarcar';
+const FIRST = 'Primeiros dias';
+const TALK = 'Como se comunicar';
+const DAILY = 'Dia a dia';
+const SERV = 'Serviços e situações do dia';
+const MEDS = 'Remédios e farmácia';
 const SOLO = 'Viajando sozinho';
 const TRANSP = 'Transporte';
 const MONEY = 'Dinheiro e pagamentos';
@@ -82,6 +99,34 @@ A tomada japonesa é do tipo A (dois pinos chatos) e a rede é de 100 V.
 - Mapa offline das cidades no Google Maps e o japonês offline no Google Tradutor.
 - Foto do passaporte numa nuvem e com alguém de confiança no Brasil.`, [S.solo]),
 
+  // ── primeiros dias
+  n(FIRST, 'consenso', 'No aeroporto, na ordem', `
+- Imigração: QR code do Visit Japan Web (print salvo), foto e digitais. Depois, pegue a mala e passe na alfândega com o segundo QR code.
+- Ainda no saguão: saque ienes no caixa do Seven Bank, compre o cartão IC (Welcome Suica em Narita e Haneda) e ative o eSIM.
+- Se for de trem para a cidade, compre a passagem no balcão ou na máquina; muita gente prefere o ônibus (limousine bus) quando o hotel fica longe da estação, por causa da mala.
+- Chegou cansado demais para carregar mala no metrô? Os balcões de entrega no saguão mandam a mala para o hotel, chegando no mesmo dia ou no seguinte.`, [S.arrival], true),
+  n(FIRST, 'opiniao', 'Jet lag: o primeiro dia', `
+São 12 horas de fuso. O que mais funciona nos relatos:
+- Ficar acordado até umas 21h no primeiro dia, mesmo morto de sono, e pegar sol de manhã nos primeiros dias.
+- Primeiro dia leve, perto do hotel: conbini, um lámen, uma volta no bairro.
+- Acordar às 4h da manhã nos primeiros dias é normal. Use isso: templos, mercados e mirantes vazios bem cedo.
+- Beba bastante água no voo e evite álcool.`, [S.wish]),
+  n(FIRST, 'consenso', 'Primeiro passeio pelo bairro do hotel', `
+Vale gastar meia hora no primeiro dia para descobrir o básico em volta do hotel:
+- O conbini mais perto (café da manhã, caixa eletrônico, lixeira) e a farmácia (drugstore).
+- A estação e qual saída dá no hotel.
+- Um lugar para comer barato e aberto até tarde (gyudon, lámen).
+- A lavanderia de moedas mais próxima, se o hotel não tiver.
+Tire um print do mapa com o hotel marcado.`),
+  n(FIRST, 'consenso', 'Kit que fica na mochila todo dia', `
+- Passaporte (é obrigatório andar com ele), cartão IC, dinheiro e um porta-moedas.
+- Powerbank e cabo.
+- Lencinho de mão (hankachi): muitos banheiros não têm papel para secar as mãos.
+- Um saquinho para lixo, lenço de papel e álcool em gel.
+- Guarda-chuva dobrável (o de conbini custa uns ¥500 se esquecer).
+- Uma garrafinha de água: água da torneira é potável.
+- Meia sem furo: em templos, restaurantes com tatame e provadores você tira o sapato.`, [S.fodors, S.wish]),
+
   // ── viajando sozinho
   n(SOLO, 'consenso', 'O Japão é um dos países mais fáceis para viajar sozinho', `
 É seguro, o transporte é pontual e muita coisa foi pensada para uma pessoa só: balcões em restaurantes, quartos de solteiro, karaokê individual (hitokara). Ninguém estranha quem come ou passeia sozinho.`, [S.solo, S.soloDining]),
@@ -96,6 +141,24 @@ Relato muito comum de quem foi: o maior arrependimento é ter enchido demais os 
 - Um "sumimasen, hitori desu" (com licença, sou só eu) abre a porta de qualquer restaurante.`, [S.solo]),
   n(SOLO, 'consenso', 'Alguém no Brasil sabendo do roteiro', `
 Mande o roteiro para a família (o link de visitante do planner serve para isso) e combine um horário para dar sinal de vida. Separe os cartões: um na carteira, outro na mala ou no hotel.`),
+
+  // ── como se comunicar
+  n(TALK, 'consenso', 'Sem japonês dá, com o tradutor certo', `
+Inglês é pouco falado fora de hotéis e lugares turísticos, mas placas de trem e estação têm inglês quase sempre.
+- Google Tradutor: baixe o japonês offline. A câmera traduz cardápio, placa e embalagem; o modo conversa traduz falando.
+- Frases curtas e simples traduzem melhor. Mostre a tela em vez de tentar pronunciar.
+- Apontar resolve muito: foto do prato, a vitrine de comida de plástico, o mapa no celular.
+- Muitos japoneses entendem inglês escrito melhor que falado: escreva se a conversa travar.`, [S.solo, S.dos]),
+  n(TALK, 'consenso', 'Jeito japonês de falar e ouvir', `
+- "Sumimasen" serve para tudo: chamar alguém, pedir licença, agradecer um favor. Use antes de qualquer pergunta.
+- Ninguém gosta de dizer "não" direto. "Chotto…" (é um pouco…) com cara de dúvida, ou "muzukashii" (é difícil), quase sempre quer dizer não.
+- Fale baixo e devagar, sem gritar em inglês. Um sorriso e uma leve inclinação de cabeça ajudam.
+- Para apontar para alguém ou chamar, use a mão inteira com a palma para baixo, não o dedo.`, [S.dos]),
+  n(TALK, 'opiniao', 'Deixe prontos no celular', `
+Prints que poupam muito tempo:
+- Endereço de cada hotel em japonês (para o taxista ou para pedir direção).
+- Sua alergia ou restrição escrita em japonês, se tiver.
+- Frase "sou de outro país, não falo japonês, desculpe" em japonês: 外国から来ました。日本語が話せません。すみません。`),
 
   // ── transporte
   n(TRANSP, 'consenso', 'Cartão IC (Suica, PASMO, ICOCA)', `
@@ -168,6 +231,21 @@ O mais recomendado hoje para quem viaja sozinho é um eSIM de dados, comprado e 
   n(NET, 'opiniao', 'Bateria externa', `
 Com mapa e câmera o dia inteiro, a bateria do celular não aguenta. Leve um powerbank na mochila (no avião ele vai na bagagem de mão). Se esquecer, o ChargeSPOT aluga baterias em conbinis e estações.`, [S.safety]),
 
+  n(NET, 'consenso', 'Mais apps que os viajantes indicam', `
+- Navitime Japan Travel ou Japan Transit (Jorudan): rotas de trem às vezes melhores que o Google, com plataforma e vagão para baldeação.
+- Japan Official Travel App (JNTO): alertas de emergência, guias e etiqueta.
+- DeepL: tradução mais natural que o Google para textos longos.
+- Klook: ingressos, passes e alguns trens com desconto. Omakase e TableCheck: restaurantes.
+- Tenki.jp ou Yahoo Weather: previsão do tempo local, chuva hora a hora e terremotos.
+- MyMizu: onde encher a garrafinha de graça.
+- Wise ou outro app de câmbio: para acompanhar o que gastou.
+- LINE: o WhatsApp japonês, que alguns restaurantes e hostels usam para reservas.`, [S.apps]),
+  n(NET, 'opiniao', 'Configure antes de embarcar', `
+- Google Maps: salve hotéis, restaurantes e lugares com estrela, e baixe as cidades offline.
+- Google Tradutor: baixe o pacote de japonês.
+- Faça login nos apps de reserva e deixe ingressos e QR codes salvos fora do app (print).
+- Teste o eSIM ainda no Brasil (instalar, sem ativar).`),
+
   // ── comida
   n(FOOD, 'consenso', 'Comer sozinho é normal', `
 Muitos japoneses comem sozinhos, e a maioria dos restaurantes tem balcão. Os que mais funcionam para uma pessoa:
@@ -193,6 +271,27 @@ Comer andando pela rua é malvisto. Coma em pé ao lado da barraca ou da máquin
   n(FOOD, 'atencao', 'Reservas de restaurantes famosos', `
 Restaurantes concorridos (sushi omakase, wagyu, kaiseki) só abrem vagas por TableCheck, Omakase, Tabelog ou pelo hotel, e muitos cobram multa por não comparecer. Faltar sem avisar é levado muito a sério. Restaurante que pede o cartão na reserva vai cobrar se você não for.`),
 
+  n(FOOD, 'consenso', 'Restaurante passo a passo', `
+1. Na porta você ouve "irasshaimase!" (bem-vindo). Não precisa responder: mostre um dedo (sou só eu) ou diga "hitori desu". Se houver uma prancheta na porta, escreva seu nome e o número de pessoas e espere chamarem.
+2. Espere indicarem a mesa. No balcão é normal sentar ao lado de estranhos.
+3. Toalhinha quente (oshibori): só para as mãos. Água ou chá vêm de graça e reabastecem.
+4. Para chamar o garçom: "sumimasen!" com a mão levantada, ou o botão de chamada na mesa. Muitos lugares têm tablet ou QR code para pedir.
+5. A conta: peça "okaikei onegaishimasu" ou faça um X com os dedos indicadores. Muitas vezes a conta já está na mesa (virada para baixo) e se paga no caixa da saída, não na mesa.
+6. Ao sair, um "gochisousama deshita" (obrigado pela refeição) agrada muito.`, [S.restMistakes, S.soloDining], true),
+  n(FOOD, 'consenso', 'Pequenas regras que os japoneses notam', `
+- Não chegue atrasado em reserva: atraso de 15 minutos pode cancelar a mesa.
+- Não divida um prato só entre duas pessoas em restaurante cheio, nem fique muito tempo no balcão de lugares rápidos (lámen, gyudon) depois de comer.
+- Molho de soja: pouco no pratinho, e o sushi molha pelo peixe, não pelo arroz.
+- Não passe comida de hashi para hashi e não aponte com eles.
+- Pode levantar a tigela até a boca para tomar o caldo e comer o arroz.
+- Se tirar o sapato, os chinelos não entram no tatame.`, [S.restMistakes, S.fodors]),
+  n(FOOD, 'opiniao', 'Como achar onde comer', `
+- Google Maps com nota 4,0 ou mais e muitas avaliações, ou Tabelog acima de 3,5.
+- Andares altos de prédios de estação e de lojas de departamento têm praças de restaurantes (resutoran-gai), quase todos com cardápio de fotos.
+- Fila de japoneses na porta é a melhor avaliação.
+- Lugares com cardápio só em japonês costumam ser mais baratos e mais locais: o Google Tradutor resolve.
+- Nada de comida de rua parada no meio da calçada: coma ao lado da barraca.`, [S.fodors]),
+
   // ── hospedagem e bagagem
   n(STAY, 'consenso', 'Mandar a mala pelo correio (takkyubin)', `
 A recepção do hotel despacha sua mala para o próximo hotel (Yamato/Kuroneko). Custa uns ¥2.000 a ¥4.500 por volume e chega no dia seguinte, mas conte com 2 dias.
@@ -205,6 +304,41 @@ Takayama é cidade pequena e o trem Hida tem pouco espaço para mala grande. Uma
 Toda estação grande tem armários, em vários tamanhos, de uns ¥400 a ¥1.000 por dia, muitos pagos com o cartão IC. Os grandes acabam cedo. A recepção do hotel guarda a mala de graça antes do check-in (normalmente às 15h) e depois do check-out.`, [S.lp, S.luggage]),
   n(STAY, 'consenso', 'Hotel japonês', `
 Quarto pequeno, banheiro compacto e muito completo: pijama, escova de dente, chinelo e às vezes lavanderia de moedas. Tire o sapato onde houver um degrau na entrada. Em ryokan e casas tradicionais, o chinelo do banheiro fica no banheiro.`),
+
+  // ── dia a dia
+  n(DAILY, 'consenso', 'Conbini: como usar de verdade', `
+- No caixa perguntam se quer esquentar (atatamemasu ka?): responda "hai, onegaishimasu" (sim) ou "daijoubu desu" (não precisa). Hashi, colher e sacola também são oferecidos.
+- Sacola é paga (uns ¥3 a ¥5): leve uma ecobag dobrável.
+- Café: pague o copo no caixa e sirva-se na máquina.
+- Tem caixa eletrônico, impressora (imprimir ingressos e reservas), cobrança de contas e lixeiras. Alguns têm banheiro.
+- Cerveja e saquê são vendidos 24h (só para maiores de 20, podem pedir documento).`, [S.reddit, S.wish]),
+  n(DAILY, 'consenso', 'Lavar roupa na viagem', `
+Lavanderia de moedas (koin randorii) existe em todo bairro e em muitos hotéis.
+- Lavar: ¥400 a ¥800 (30 a 60 min). Secar: uns ¥100 a cada 10 minutos. Lavar e secar numa máquina só: perto de ¥1.000.
+- Muitas máquinas já colocam sabão sozinhas. Botões: 洗濯 (lavar), 乾燥 (secar), スタート (começar).
+- Para três semanas, levar roupa para uma semana e lavar duas vezes é o mais comum.`, [S.laundry]),
+  n(DAILY, 'consenso', 'Água, bebidas e máquinas', `
+- Água da torneira é potável em todo o país.
+- Máquinas de bebida em toda esquina, e no inverno com bebidas quentes (botão com faixa vermelha).
+- Pocari Sweat e Aquarius repõem sais minerais depois de um dia andando muito.
+- Garrafinhas vazias vão na lixeira ao lado da máquina, não no lixo comum.`, [S.dos]),
+  n(DAILY, 'consenso', 'Endereços e como achar os lugares', `
+A maioria das ruas não tem nome: o endereço é bairro, quarteirão e número do prédio. Por isso:
+- Use sempre o pino do Google Maps, não o endereço digitado.
+- Restaurantes e lojas costumam ficar em andares altos de prédios: confira o andar (2F, B1F…) no Maps e procure a placa vertical na fachada.
+- B1F, B2F são subsolos. Muitas lojas e restaurantes ficam lá.
+- Em estação grande, siga as placas amarelas de saída (exit) e as letras e números.`, [S.dos]),
+  n(DAILY, 'opiniao', 'Andar muito: cuide dos pés', `
+É comum passar de 20 mil passos por dia.
+- Leve o tênis já amaciado e um segundo par para alternar.
+- Bolhas: o curativo de hidrocoloide Kizu Power Pad (キズパワーパッド), vendido em farmácia, é o mais elogiado.
+- À noite, as folhas refrescantes Kyusoku Jikan (休足時間) nas pernas aliviam muito.
+- Planeje pausas: um café sentado a cada duas ou três horas.`, [S.fodors]),
+  n(DAILY, 'consenso', 'Horários do país', `
+- Lojas abrem por volta das 10h ou 11h e fecham às 20h ou 21h. Lojas de departamento fecham perto das 20h.
+- Templos: das 8h ou 9h às 16h30 ou 17h. Museus: até 17h, com última entrada 30 minutos antes; muitos fecham às segundas.
+- Restaurantes fecham entre o almoço e o jantar (14h às 17h) e aceitam o último pedido uma hora antes de fechar.
+- Conbini, Don Quijote, karaokê e redes de gyudon funcionam até de madrugada ou 24h.`),
 
   // ── etiqueta
   n(ETI, 'consenso', 'No trem: silêncio', `
@@ -227,6 +361,29 @@ Fumar na rua é proibido em boa parte das cidades: só nas áreas de fumantes. B
   n(ETI, 'opiniao', 'Gentileza básica basta', `
 Ninguém espera que um turista saiba todas as regras. Uma leve inclinação de cabeça, "sumimasen" e "arigatou gozaimasu" resolvem quase tudo. Entregue e receba coisas com as duas mãos quando puder.`, [S.solo]),
 
+  // ── serviços e situações do dia
+  n(SERV, 'consenso', 'No hotel', `
+- Check-in quase sempre às 15h e check-out às 10h ou 11h. Deixe a mala na recepção antes e depois, de graça.
+- A recepção ajuda a despachar mala (takkyubin), a reservar restaurante por telefone e a chamar táxi. Peça com antecedência.
+- Pijama e chinelo do quarto não saem do hotel (o pijama em ryokan pode ser usado nos corredores e no onsen).
+- Em hotel pequeno ou cápsula, há horário de silêncio e às vezes a chave fica na recepção quando você sai.`, [S.wish]),
+  n(SERV, 'consenso', 'Táxi', `
+- A porta de trás abre e fecha sozinha. Entre e não toque nela.
+- Mostre o endereço em japonês ou o pino no mapa. Muitos aceitam cartão e cartão IC (confira o adesivo na janela).
+- O app GO chama o táxi e já informa o destino e o pagamento, sem precisar falar.
+- Sem gorjeta. Depois das 22h a tarifa sobe 20%.`),
+  n(SERV, 'consenso', 'Lojas e provadores', `
+- Ao entrar, ouve-se "irasshaimase": não precisa responder.
+- No provador, tire o sapato antes de subir no degrau. Em muitas lojas dão uma capinha para o rosto, para não sujar a roupa de maquiagem.
+- Pague colocando o dinheiro ou o cartão na bandeja. O troco vem em notas primeiro, depois as moedas.
+- Tax free: avise antes de pagar ("menzei onegaishimasu") e mostre o passaporte.`, [S.lp]),
+  n(SERV, 'opiniao', 'Karaokê, fliperama e onsen sozinho', `
+- Karaokê (Big Echo, Karaoke Kan, Jankara): sozinho é normal. Paga-se por 30 minutos ou pacote de horas, com bebida inclusa em muitos.
+- Fliperamas (Round1, GiGO, Taito Station): andares de máquinas de pegar bichinho, jogos de ritmo e cabines de foto (purikura).
+- Sento (banho público de bairro) custa uns ¥500 a ¥550 em Tóquio e é um ótimo fim de dia depois de andar muito. Super sento e onsen de cidade têm sauna, restaurante e sala de descanso.`),
+  n(SERV, 'consenso', 'Correios e enviar coisas para o Brasil', `
+Comprou demais? O Japan Post (correio, placa 〒) manda caixas para o Brasil por avião ou pelo modo econômico. Compre a caixa lá mesmo e preencha a declaração de alfândega. Lembre que o que chega pelo correio entra na regra de importação da Receita, separada da cota de bagagem.`),
+
   // ── templos e santuários
   n(TEMPLE, 'consenso', 'Santuário (xintoísta) x templo (budista)', `
 - Santuário (jinja): tem torii, o portal. Na frente do altar: duas reverências, duas palmas, uma reverência.
@@ -241,6 +398,16 @@ Ninguém espera que um turista saiba todas as regras. Uma leve inclinação de c
 A maioria abre entre 8h e 9h e fecha entre 16h30 e 17h, e no inverno fecha mais cedo. Na primeira hora os lugares famosos estão vazios. Fushimi Inari fica aberto 24h.`, [S.kyotoAutumn, S.nikko]),
   n(TEMPLE, 'opiniao', 'Goshuin (carimbo caligrafado)', `
 Muitos templos e santuários fazem um carimbo à mão num caderninho próprio (goshuincho), por uns ¥300 a ¥500, em dinheiro. Peça no balcão (nokyosho): "goshuin onegaishimasu". Alguns separam livros de templo e de santuário. É uma lembrança muito citada por quem faz.`),
+
+  n(TEMPLE, 'consenso', 'Omikuji, ema e omamori', `
+- Omikuji: a sorte em papel (¥100 a ¥300). Se vier azar (kyo), amarre no varal do templo para deixar a má sorte lá; sorte boa você pode levar.
+- Ema: plaquinha de madeira para escrever um pedido e pendurar.
+- Omamori: amuleto por tema (saúde, estudo, viagem segura, amor). Não se abre e é trocado depois de um ano. Ótimo presente.
+- Na caixa de oferendas, jogue uma moeda antes de rezar. A de ¥5 (go-en) é a preferida, porque soa como "boa ligação".`, [S.safety]),
+  n(TEMPLE, 'opiniao', 'Como aproveitar sem multidão', `
+- Kyoto e os lugares famosos de Tóquio: chegue na abertura ou na última hora antes de fechar.
+- Ande dez minutos além do ponto principal: templos menores ao lado dos famosos estão quase vazios.
+- Dia de semana ganha do fim de semana, e chuva fina esvazia tudo.`, [S.wish]),
 
   // ── compras e tax free
   n(SHOP, 'atencao', 'Tax free mudou em 1º de novembro de 2026', `
@@ -268,6 +435,49 @@ Matsumoto Kiyoshi, Welcia, Sundrug e Tsuruha vendem remédio de venda livre, cur
   n(HEALTH, 'consenso', 'Banheiros', `
 Banheiros públicos limpos em estações, conbinis, shoppings e parques. Muitos não têm papel para secar a mão: os japoneses andam com um lencinho de mão (hankachi). Na privada eletrônica, o botão 止 (tomeru) para tudo.`, [S.drinktea]),
 
+  // ── remédios e farmácia
+  n(MEDS, 'consenso', 'Como comprar remédio no Japão', `
+- Drugstore (ドラッグストア, placa com 薬 "kusuri"): Matsumoto Kiyoshi, Welcia, Sundrug, Tsuruha, Sugi. Muitas abrem até tarde, e a Don Quijote é o plano B de madrugada.
+- Remédios de classe 1 (como Loxonin S e Gaster 10) só são vendidos com o farmacêutico (yakuzaishi) presente. Fora desse horário, a gôndola fica fechada.
+- As doses japonesas são mais fracas que as brasileiras. Se você depende de uma dose específica, leve o seu remédio.
+- Use a câmera do Google Tradutor na caixa. Para pedir, mostre o sintoma escrito ou a foto da caixa abaixo.
+- Antibiótico e remédio de receita exigem receita japonesa (consulta numa clínica).`, [S.pharmacy, S.otc], true),
+  n(MEDS, 'opiniao', 'Dor, febre e resfriado', `
+- Dor de cabeça, dor no corpo, febre: EVE (イブ, ibuprofeno), Loxonin S (ロキソニンS, loxoprofeno, mais forte, precisa de farmacêutico), Tylenol A (タイレノールA, paracetamol, o mais leve para o estômago), Bufferin (バファリン).
+- Resfriado com vários sintomas: Pabron Gold A (パブロンゴールドA), Lulu Attack (ルルアタック) ou Benza Block (ベンザブロック, por cor de sintoma). Muitos dão sono.
+- Começo de resfriado: Kakkonto (葛根湯), fitoterápico tradicional, tomado logo no início.
+- Garganta: Pelack T (ペラックT), gargarejo Isodine (イソジンうがい薬) e pastilhas de Ryukakusan (龍角散).
+- Febre ou mal-estar: Pocari Sweat ou OS-1 (経口補水液) para hidratar.
+Leia a bula pelo tradutor, siga a dose da caixa e não misture dois antigripais.`, [S.otc, S.pharmacy]),
+  n(MEDS, 'opiniao', 'Estômago, intestino e enjoo', `
+- Azia, má digestão, comeu demais: Ohta Isan (太田胃散) ou Gaster 10 (ガスター10, precisa de farmacêutico).
+- Diarreia: Stoppa (ストッパ, não precisa de água) ou Seirogan (正露丸, cheiro forte; prefira o 糖衣A, revestido).
+- Prisão de ventre: Korak (コーラック), só por poucos dias.
+- Enjoo de ônibus, barco ou trem de montanha: Travelmin (トラベルミン), tomado 30 minutos antes.
+- Ressaca: Ukon no Chikara (ウコンの力), bebida de cúrcuma vendida no conbini, antes ou depois de beber.`, [S.otc, S.otc2]),
+  n(MEDS, 'opiniao', 'Pés, músculos, pele e olhos', `
+- Bolhas: Kizu Power Pad (キズパワーパッド), curativo de hidrocoloide.
+- Pernas cansadas: Kyusoku Jikan (休足時間), folhas refrescantes para a noite.
+- Dor muscular: adesivos Salonpas (サロンパス) ou Feitas (フェイタス), gel Voltaren (ボルタレン).
+- Picada e coceira: Muhi (ムヒ).
+- Corte e esfolado: Band-Aid e Isodine (o de pele, não o de gargarejo).
+- Olho cansado ou seco: Sante FX (サンテFX) ou Rohto (ロート). Rinite: Allegra FX (アレグラFX), que não dá sono.
+- Ar seco do outono: hidratante labial e um creme de mãos.`, [S.otc, S.otc2]),
+  n(MEDS, 'consenso', 'Sintomas em japonês para mostrar', `
+- Atama ga itai desu (頭が痛いです): estou com dor de cabeça.
+- Onaka ga itai desu (お腹が痛いです): estou com dor de barriga.
+- Netsu ga arimasu (熱があります): estou com febre.
+- Kaze o hikimashita (風邪をひきました): peguei um resfriado.
+- Geri desu (下痢です): estou com diarreia.
+- Nodo ga itai desu (喉が痛いです): estou com dor de garganta.
+- Kusuri o kudasai (薬をください): quero um remédio, por favor.`),
+  n(MEDS, 'consenso', 'Precisei de médico', `
+- Antes de ir, acione a assistência do seguro viagem: ela indica a clínica e paga direto. Sem acionar, você paga e pede reembolso depois, com laudo, receita e recibos.
+- Para achar hospital com atendimento em inglês: guia do JNTO (busca por cidade, idioma e especialidade) e a Japan Visitor Hotline (050-3816-2787, 24h).
+- Em Tóquio, o Himawari (03-5285-8181, das 9h às 20h) indica clínicas que falam inglês.
+- Leve o passaporte. Consulta simples numa clínica costuma custar de ¥5.000 a ¥15.000 para quem não tem o seguro de saúde japonês.
+- Emergência grave: 119 (ambulância, gratuita).`, [S.jntoMed, S.himawari, S.hotline]),
+
   // ── emergências
   n(SOS, 'atencao', 'Números de emergência', `
 - 110: polícia.
@@ -277,6 +487,12 @@ Banheiros públicos limpos em estações, conbinis, shoppings e parques. Muitos 
 - Consulado-Geral do Brasil em Tóquio: (03) 5488-5451 (Gotanda).
 - Consulado-Geral do Brasil em Nagoya: 052-222-1077.
 Os telefones dos consulados são de 2023: confira no site do Itamaraty antes de viajar.`, [S.hotline, S.consul], true),
+  n(SOS, 'consenso', 'Como usar o seguro viagem', `
+- Salve no celular, fora do app, o telefone e o WhatsApp da assistência, o número da apólice e o PDF das condições.
+- Ligue para a assistência ANTES de ir à clínica: ela indica onde ir e paga direto. Indo por conta própria, guarde laudo, receita e recibos detalhados para o reembolso.
+- Mala extraviada ou danificada: faça o relatório de irregularidade (PIR) no balcão da companhia aérea antes de sair da área de desembarque. Sem ele, o seguro não paga.
+- Voo muito atrasado: guarde as notas de hotel e comida e o comprovante do atraso.
+- Confira se a vigência cobre até o dia em que você chega ao Brasil, não só o dia em que sai do Japão.`, [S.jntoMed]),
   n(SOS, 'consenso', 'Ande com o passaporte', `
 Estrangeiro tem que andar com o passaporte o tempo todo: a polícia pode pedir. Ele também é exigido no tax free e no check-in dos hotéis.`),
   n(SOS, 'consenso', 'Perdeu alguma coisa', `

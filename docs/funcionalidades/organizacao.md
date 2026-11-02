@@ -60,9 +60,10 @@ viagem. Serve para o que vale para a viagem inteira; o que é de um dia ou de um
 da atividade.
 
 - **Guia pronto**: com a página vazia, **Carregar este guia** traz um guia inteiro de uma vez. O primeiro é **Japão
-  viajando sozinho** (70 notas em 15 assuntos, pesquisadas em guias, sites oficiais e relatos de viajantes, com as
+  viajando sozinho** (102 notas em 20 assuntos, pesquisadas em guias, sites oficiais e relatos de viajantes, com as
   fontes em cada nota). Depois de carregado, cada nota é uma nota comum: dá para editar, apagar ou fixar.
   **Carregar o que falta**, no fim da página, traz de novo só as notas que a viagem não tem (compara assunto e título).
+  É assim que uma viagem que já tinha o guia recebe as notas novas quando o guia cresce.
 - **Marcas**: cada nota pode ter uma marca. **Consenso** é o que quase todo guia e relato repete; **Opinião** é dica de
   alguns viajantes ou questão de gosto; **Atenção** é regra, mudança recente ou algo que dá problema se esquecer
   (ganha uma faixa colorida).

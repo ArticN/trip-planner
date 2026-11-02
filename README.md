@@ -53,7 +53,7 @@ Localmente os dados ficam em `data/planner.db`, que está no `.gitignore`.
 - **Hospedagens** com check-in/out, número da reserva, preço e link, no cabeçalho de cada dia.
 - **Orçamento** na moeda da viagem convertido para a sua, por dia, cidade e tipo; **estatísticas** de gasto e distância.
 - **Compras** com a cota de isenção da Receita (US$ 1.000 por padrão, editável) e estimativa do imposto.
-- **Notas de viagem**: dicas por assunto, com marca de consenso, opinião ou atenção e as fontes, e um guia pronto do Japão para viajar sozinho (70 notas) que vira notas editáveis.
+- **Notas de viagem**: dicas por assunto, com marca de consenso, opinião ou atenção e as fontes, e um guia pronto do Japão para viajar sozinho (102 notas) que vira notas editáveis.
 - **Checklist**, **ideias sem data**, **calendário**, **busca**, notas, links e **anexos** (ingressos, vouchers) em cada atividade.
 - **Diário de viagem**: álbum de fotos em páginas livres, com blocos de fotos (mosaico, grade, destaque, polaroides, filme) e de texto; cada foto vai sozinha para o dia em que foi tirada, e o álbum pode ir no link compartilhado.
 - **Modo hoje**: durante a viagem abre no dia atual, destaca a próxima atividade e oferece "Como chegar".

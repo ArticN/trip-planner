@@ -15,6 +15,17 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.44',
+    date: '2026-11-02',
+    title: 'Guia do Japão maior',
+    items: [
+      'O guia “Japão viajando sozinho” passou de 70 para 102 notas em 20 assuntos.',
+      'Assuntos novos: Primeiros dias (do desembarque ao jet lag), Como se comunicar (frases, gestos e tradução por câmera), Dia a dia (conbini, lavanderia, endereços, horários), Serviços e situações do dia (hotel, táxi, lojas, onsen, correios) e Remédios e farmácia (o que comprar para cada sintoma, nomes em japonês e onde achar médico que fala inglês).',
+      'Mais notas sobre restaurantes passo a passo, templos, apps e como usar o seguro viagem.',
+      'Quem já carregou o guia recebe só as notas novas com “Carregar o que falta”, no fim da página Notas.',
+    ],
+  },
+  {
     version: '1.43',
     date: '2026-11-02',
     title: 'Notas de viagem',
