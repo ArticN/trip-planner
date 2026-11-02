@@ -113,7 +113,10 @@ export function rangeDays(start, end) {
   return out;
 }
 
-export const CURRENCIES = ['BRL', 'USD', 'EUR', 'GBP', 'JPY', 'ARS', 'CLP', 'CAD', 'AUD', 'CHF', 'MXN', 'KRW', 'CNY', 'THB'];
+// as mais usadas primeiro; depois as dos países que o assistente de nova viagem conhece (web/src/countries.js)
+export const CURRENCIES = ['BRL', 'USD', 'EUR', 'GBP', 'JPY', 'ARS', 'CLP', 'CAD', 'AUD', 'CHF', 'MXN', 'KRW', 'CNY', 'THB',
+  'UYU', 'PYG', 'PEN', 'BOB', 'COP', 'CRC', 'CUP', 'DOP', 'CZK', 'HUF', 'PLN', 'TRY', 'SEK', 'NOK', 'DKK', 'ISK', 'ZAR', 'EGP', 'MAD',
+  'AED', 'QAR', 'HKD', 'TWD', 'VND', 'IDR', 'SGD', 'MYR', 'PHP', 'INR', 'MVR', 'NZD'];
 
 const fmtCache = {};
 export function money(n, cur) {

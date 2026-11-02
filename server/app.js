@@ -19,7 +19,7 @@ const DAY_FIELDS = ['day', 'title', 'notes'];
 const NOTE_FIELDS = ['grp', 'title', 'body', 'tag', 'links', 'pinned', 'sort'];
 const NOTE_TAGS = ['consenso', 'opiniao', 'atencao'];
 const BUY_FIELDS = ['title', 'store', 'city', 'day', 'price', 'grp', 'bought', 'exempt', 'notes', 'sort'];
-const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope'];
+const TRIP_FIELDS = ['name', 'subtitle', 'emoji', 'start', 'end', 'currency', 'home_currency', 'rate', 'tz', 'cover', 'rate_auto', 'rate_at', 'remind_min', 'remind_flight_min', 'accent', 'usd_rate', 'usd_rate_at', 'quota_usd', 'scope', 'countries'];
 
 // objetos (ex.: route com as estações) vão para o banco como JSON
 const clean = (v) => (v === '' || v === undefined ? null : v && typeof v === 'object' ? JSON.stringify(v) : v);
@@ -166,7 +166,7 @@ async function migrate() {
   };
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['via', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT'], ['slot', 'TEXT'], ['route', 'TEXT'], ['alt', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
-  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT'], ['share_money', 'INTEGER DEFAULT 0'], ['share_diary', 'INTEGER DEFAULT 0']]);
+  await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT'], ['share_money', 'INTEGER DEFAULT 0'], ['share_diary', 'INTEGER DEFAULT 0'], ['countries', 'TEXT']]);
   await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
   // metadados das fotos (v1.40): onde foi tirada, a atividade do roteiro e a câmera (JSON)
   await addCols('photos', [['lat', 'REAL'], ['lng', 'REAL'], ['activity_id', 'INTEGER'], ['meta', 'TEXT']]);
@@ -237,13 +237,30 @@ const TRANSIT_CITY = { key: 'transito', name: 'Em trânsito', emoji: '✈️', c
 
 // viagem nacional ou internacional; vazio = automático (pelas cidades e o país onde mora, ver web/src/geo.js)
 const scopeOf = (v) => (v === 'domestic' || v === 'international' ? v : null);
+// países de destino (códigos ISO de duas letras separados por vírgula, ex.: "JP,KR"); vazio = só pelas cidades
+const countriesOf = (v) => {
+  const list = [...new Set((Array.isArray(v) ? v : String(v || '').split(',')).map((x) => String(x).trim().toUpperCase()).filter((x) => /^[A-Z]{2}$/.test(x)))].slice(0, 20);
+  return list.length ? list.join(',') : null;
+};
+// chaves das cidades a partir do nome ("São Paulo" → "sao-paulo"), sem repetir
+const slug = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'local';
+const keyCities = (list) => {
+  const used = new Set(list.filter((c) => c.key).map((c) => c.key));
+  return list.map((c) => {
+    if (c.key) return c;
+    let key = slug(c.name);
+    for (let i = 2; used.has(key) || key === 'transito'; i++) key = `${slug(c.name)}-${i}`;
+    used.add(key);
+    return { ...c, key };
+  });
+};
 
 // cria uma viagem completa a partir de { trip, cities, stays, activities } (exemplo ou backup).
 // Tudo depois da viagem vai num único lote: no banco remoto é uma ida só.
 async function createTripFull(b) {
-  const { lastInsertRowid: id } = await db.run(`INSERT INTO trips (${TRIP_FIELDS.join(',')}) VALUES (${marks(TRIP_FIELDS)})`, pick({ rate: 1, emoji: '🧳', ...b.trip, scope: scopeOf(b.trip?.scope) }, TRIP_FIELDS));
+  const { lastInsertRowid: id } = await db.run(`INSERT INTO trips (${TRIP_FIELDS.join(',')}) VALUES (${marks(TRIP_FIELDS)})`, pick({ rate: 1, emoji: '🧳', ...b.trip, scope: scopeOf(b.trip?.scope), countries: countriesOf(b.trip?.countries) }, TRIP_FIELDS));
   const list = [];
-  const cities = [...(b.cities || [])];
+  const cities = keyCities((b.cities || []).filter((c) => c?.key || c?.name));
   if (!cities.some((c) => c.key === 'transito')) cities.push(TRANSIT_CITY);
   cities.forEach((c) => list.push(insCity(id, c)));
   (b.stays || []).forEach((s) => list.push(insStay(id, s)));
@@ -441,7 +458,7 @@ app.get('/api/share/:token', h(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({
     trip: {
-      ...only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent', ...(money ? ['usd_rate', 'quota_usd'] : [])]),
+      ...only(d.trip, ['name', 'subtitle', 'emoji', 'start', 'end', 'tz', 'cover', 'currency', 'home_currency', 'rate', 'accent', 'countries', ...(money ? ['usd_rate', 'quota_usd'] : [])]),
       share_plan: plan ? 1 : 0, share_money: money ? 1 : 0, share_diary: diary ? 1 : 0,
     },
     cities: d.cities.map((c) => only(c, ['key', 'name', 'emoji', 'color', 'lat', 'lng'])),
@@ -485,10 +502,14 @@ app.get('/api/trips', h(async (_req, res) => {
 }));
 
 app.post('/api/trips', h(async (req, res) => {
+  // aceita { name, start, end, ... } (só a viagem) ou { trip, cities, activities, notes, checklist } (assistente de nova viagem)
   const b = req.body || {};
-  if (!b.name || !b.start || !b.end) return res.status(400).json({ error: 'name, start e end são obrigatórios' });
-  if (b.end < b.start) return res.status(400).json({ error: 'a data final é anterior à inicial' });
-  const id = await createTripFull({ trip: b, cities: [], stays: [], activities: [] });
+  const t = b.trip && typeof b.trip === 'object' ? b.trip : b;
+  if (!t.name || !t.start || !t.end) return res.status(400).json({ error: 'name, start e end são obrigatórios' });
+  if (t.end < t.start) return res.status(400).json({ error: 'a data final é anterior à inicial' });
+  const arr = (v, n) => (Array.isArray(v) ? v.filter((x) => x && typeof x === 'object').slice(0, n) : []);
+  const activities = arr(b.trip ? b.activities : null, 50).filter((a) => a.title && a.day >= t.start && a.day <= t.end);
+  const id = await createTripFull({ trip: t, cities: arr(b.trip ? b.cities : null, 60).map(({ key, ...c }) => c), stays: [], activities, notes: arr(b.trip ? b.notes : null, 200), checklist: arr(b.trip ? b.checklist : null, 100) });
   res.status(201).json(await getTrip(id));
 }));
 
@@ -520,6 +541,7 @@ app.put('/api/trips/:id', needTrip, h(async (req, res) => {
   const row = { ...cur, ...req.body };
   if (row.accent && !/^#[0-9a-f]{6}$/i.test(row.accent)) row.accent = null;
   row.scope = scopeOf(row.scope);
+  row.countries = countriesOf(row.countries);
   if (!row.name || !row.start || !row.end || row.end < row.start) return res.status(400).json({ error: 'nome e datas válidas são obrigatórios' });
   await db.run(`UPDATE trips SET ${setList(TRIP_FIELDS)} WHERE id = ?`, [...pick(row, TRIP_FIELDS), req.tripId]);
   res.json(await db.get('SELECT * FROM trips WHERE id = ?', [req.tripId]));
@@ -605,7 +627,7 @@ app.get('/api/places', h(async (_req, res) => {
 }));
 
 // preferências gerais do app (ex.: país onde mora e visão do "Meu mapa"), iguais em todos os aparelhos
-const SETTINGS = ['home_country', 'map_view'];
+const SETTINGS = ['home_country', 'map_view', 'home_airport'];
 app.get('/api/settings', h(async (_req, res) => {
   res.json(Object.fromEntries((await db.all('SELECT key, value FROM settings')).filter((r) => SETTINGS.includes(r.key)).map((r) => [r.key, r.value])));
 }));

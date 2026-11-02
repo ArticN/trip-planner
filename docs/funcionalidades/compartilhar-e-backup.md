@@ -98,6 +98,7 @@ Datas sempre como `AAAA-MM-DD`, horários como `HH:MM` (24h), fusos no formato I
 | `cover`, `accent` | Foto de capa (link ou imagem embutida) e cor própria da viagem. |
 | `remind_min`, `remind_flight_min` | Minutos de antecedência dos lembretes (padrão 30 e 180). |
 | `scope` | Tipo da viagem: `"domestic"` (nacional), `"international"` ou vazio/`null` (automático, pelas cidades e o país onde você mora). Backups antigos vêm sem o campo e ficam no automático. |
+| `countries` | Países de destino escolhidos na criação, códigos ISO de duas letras separados por vírgula (`"JP,KR"`), ou vazio. Entram no tipo automático da viagem e no contorno do mapa. |
 | `usd_rate`, `usd_rate_at`, `quota_usd` | Cotação em dólar para as compras (`usd_rate_at: "manual"` = digitada) e a cota em US$ (padrão 1000). |
 
 ### `cities`

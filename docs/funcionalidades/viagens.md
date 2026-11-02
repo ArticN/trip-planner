@@ -6,10 +6,41 @@
 
 Uma instalação guarda quantas viagens você quiser. Cada uma tem as próprias datas, moeda, cidades, hospedagens e roteiro.
 
-**Criar:** na tela inicial, **+ Nova viagem**. Preencha:
+**Criar:** na tela inicial, **+ Nova viagem**. Um assistente em 4 passos monta a viagem e já deixa quase tudo
+configurado a partir do destino (desde a v1.45):
+
+1. **Destino**: um ou mais países (busca por nome sem acento, código ou cidade: "japao", "EUA", "Paris"). Atalhos para
+   os países mais procurados e para o seu, que vira viagem nacional. Aqui fica também **Onde moro**, salvo para as
+   próximas viagens e para o [Meu mapa](mapa.md#meu-mapa).
+2. **Datas**: ida e volta, com atalhos (fim de semana, 1 semana, 10 e 15 dias, 3 semanas).
+3. **Já criar**: as cidades mais visitadas do país (as duas primeiras vêm marcadas; dá para buscar outra), os
+   **voos de ida e volta** (aeroporto de casa → principal aeroporto do destino; numa viagem nacional, o aeroporto mais
+   perto da primeira e da última cidade), as **notas sobre o destino** e uma **checklist básica**.
+4. **Revisar**: nome e bandeira sugeridos ("Japão 2026"), moedas, câmbio do dia, fuso e a lista do que vai ser criado.
+
+O que vem pronto, pelo país:
+
+- **Moeda** do destino e a **sua moeda** (do país onde mora); **câmbio** com a cotação do dia, que continua se
+  atualizando sozinho (veja [câmbio automático](dinheiro.md#câmbio-automático)). Sem internet a viagem é criada mesmo
+  assim e busca a cotação quando a conexão voltar.
+- **Fuso horário** do destino e a diferença para o seu ("9 h à frente").
+- **Tipo**: nacional quando todos os países escolhidos são o seu; internacional nos outros casos.
+- **Notas** no grupo "Sobre <país>": moeda, fuso, idioma, tomadas e voltagem (avisa quando precisa de adaptador),
+  números de emergência e trânsito pela esquerda, quando for o caso.
+- **Checklist**: passaporte, visto, seguro, cartão, dinheiro local, adaptador e chip (internacional) ou documento,
+  reservas e carregadores (nacional).
+- **Mapa**: o contorno dos países do destino. Enquanto a viagem não tem pontos com posição, o mapa abre enquadrando o país.
+
+O app tem dados prontos de cerca de 60 países (os mais procurados das Américas, Europa, Ásia, África e Oceania, em
+`web/src/countries.js`). Os outros também podem ser escolhidos: nome, idioma e fuso vêm do navegador e a moeda fica para
+escolher na revisão. Tudo que o assistente cria dá para editar ou apagar depois. Regras de entrada (passaporte, visto,
+vacinas) não são preenchidas: confira no consulado.
+
+Depois de criada, em **Editar viagem** ficam os campos de sempre:
 
 - **Nome** e **subtítulo** (opcional), e um emoji da lista.
 - **Início** e **Fim**: definem os dias do roteiro (um por data, inclusive as duas pontas).
+- **Países de destino**: trocar o país ajusta moeda e fuso para o novo destino.
 - **Tipo de viagem**: **Automático** (padrão), **Nacional** ou **Internacional**. Veja [Nacional ou internacional](#nacional-ou-internacional).
 - **Moeda da viagem** e **Sua moeda**: os custos são digitados na moeda da viagem e convertidos para a sua. Com moedas
   diferentes aparece o campo **Câmbio** (quanto 1 unidade da moeda da viagem vale na sua). Veja [câmbio automático](dinheiro.md#câmbio-automático).
@@ -31,8 +62,8 @@ Cada viagem é **nacional** (dentro do país onde você mora, como uma ida ao Am
 **internacional**. O tipo aparece na visão geral, embaixo das datas, junto com os estados (nacional) ou os países
 (internacional) por onde a viagem passa: "Viagem nacional · Amazonas", "Viagem internacional · Japão".
 
-**Automático (padrão):** a viagem é nacional quando todas as cidades com posição ficam no país escolhido em
-**Onde moro**, no [Meu mapa](mapa.md#meu-mapa) da tela inicial. Sem "Onde moro" ou sem cidades com posição, ela conta
+**Automático (padrão):** a viagem é nacional quando todas as cidades com posição e todos os países de destino ficam
+no país escolhido em **Onde moro** (no assistente de nova viagem ou no [Meu mapa](mapa.md#meu-mapa) da tela inicial). Sem "Onde moro" ou sem cidades com posição, ela conta
 como internacional, que era como o app tratava todas as viagens antes. O tipo acompanha as cidades: adicionar uma cidade
 fora do país transforma a viagem em internacional.
 

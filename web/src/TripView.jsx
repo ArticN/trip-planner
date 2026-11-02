@@ -712,6 +712,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             onAltPick={(id) => showAlt(id, false)}
             stays={data.stays}
             cities={data.cities}
+            countries={trip.countries || ''}
             stayByDay={sel === 'trip' ? null : stayFor(sel)}
             checkout={checkoutStay}
             selectedId={selectedId}

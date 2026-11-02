@@ -1767,3 +1767,48 @@ input.dj-lb-cap:focus-visible { outline: none; box-shadow: none; background: #f2
 .setup-help { font-size: 14px; color: var(--muted); }
 .setup-bar { padding: 10px 16px; font-size: 14px; line-height: 1.45; background: var(--card); border-bottom: 1px solid var(--accent); }
 .setup-bar a { color: var(--accent); }
+
+/* ── nova viagem guiada (NewTrip.jsx) e escolha de países (CountryPicker.jsx) */
+.wiz-steps { display: flex; gap: 4px; list-style: none; margin: 0 0 18px; padding: 0; counter-reset: s; }
+.wiz-steps li { flex: 1; min-width: 0; }
+.wiz-steps button { width: 100%; display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 0; border-bottom: 2px solid var(--line); border-radius: 0; background: none; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wiz-steps button span { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--raised); font-size: 11px; font-weight: 600; }
+.wiz-steps li.done button { color: var(--ink-2); border-bottom-color: var(--ink-2); }
+.wiz-steps li.on button { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.wiz-steps li.on button span { background: var(--accent); color: var(--on-accent); }
+.wiz-steps button:disabled { opacity: 1; cursor: default; }
+@media (max-width: 520px) { .wiz-steps button { font-size: 0; justify-content: center; } .wiz-steps button span { font-size: 11px; } }
+.wiz-q { font-family: var(--serif); font-size: 26px; font-weight: 400; margin: 0 0 4px; }
+.wiz-pane > p { margin: 0 0 12px; }
+.wiz-count { margin-right: 4px; }
+.wiz-kind { display: grid; gap: 2px; margin: 14px 0; padding: 10px 12px; border-radius: var(--r-box); background: var(--raised); border-left: 3px solid var(--accent); }
+.wiz-kind.dom { border-left-color: var(--ok); }
+.wiz-home { display: grid; gap: 4px; margin-top: 16px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.wiz-block { margin-bottom: 14px; }
+.wiz-block > p { margin: 2px 0 8px; }
+.wiz-cities, .cpick-quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.wiz-cities button, .cpick-quick button { padding: 4px 12px; font-size: 13px; }
+.wiz-cities button.on, .cpick-quick button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.wiz-opt { margin: 10px 0 4px; color: var(--ink); font-size: 14px; align-items: flex-start; }
+.wiz-opt input { margin-top: 3px; }
+.wiz-air { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 6px 0 8px 26px; }
+.wiz-air label { display: grid; gap: 2px; font-size: 13px; color: var(--ink-2); }
+.wiz-air input { text-transform: uppercase; font-family: ui-monospace, monospace; letter-spacing: 0.06em; }
+.wiz-air small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 520px) { .wiz-air { margin-left: 0; } }
+.wiz-name { display: grid; grid-template-columns: 56px 1fr; gap: 6px; }
+.wiz-name .emo { text-align: center; font-size: 18px; }
+.wiz-summary { margin-top: 16px; padding: 12px 14px; border-radius: var(--r-box); background: var(--raised); }
+.wiz-summary .section-title { margin-top: 0; }
+.wiz-summary ul { margin: 6px 0; padding-left: 18px; display: grid; gap: 3px; font-size: 14px; }
+.wiz-summary p { margin: 4px 0 0; }
+.cpick { position: relative; display: grid; gap: 6px; }
+.cpick-sel { display: flex; flex-wrap: wrap; gap: 6px; }
+.cpick-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: var(--r-pill); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); font-size: 14px; font-weight: 500; }
+.cpick-chip button { border: 0; background: none; padding: 0 6px; font-size: 16px; line-height: 1; color: var(--muted); }
+.cpick-res { display: grid; max-height: 260px; overflow: auto; border: 1px solid var(--ctl); border-radius: var(--r-ctl); background: var(--card); }
+.cpick-res button { border: 0; border-radius: 0; text-align: left; padding: 8px 10px; background: none; font-size: 14px; }
+.cpick-res button.on { background: var(--hover); }
+.cpick-flag { display: inline-block; width: 1.4em; }
+.trip-countries { display: grid; gap: 4px; }
+.wiz-summary .section-title { margin: 0; padding: 0; }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
-import { TripModal } from './Modals.jsx';
+import NewTripWizard from './NewTrip.jsx';
 import { daysBetween, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
 import AppearanceModal from './Look.jsx';
 import Mark from './Mark.jsx';
@@ -41,20 +41,13 @@ export default function Home({ version, onOpen, onChanged }) {
 
   const say = (m) => { setToast(m); setTimeout(() => setToast(''), 3200); };
 
-  const newTrip = () => {
-    const t = new Date();
-    const end = new Date(t.getTime() + 6 * 86400000);
-    const f = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    setCreating({ name: '', subtitle: '', emoji: '', start: f(t), end: f(end), currency: 'BRL', home_currency: 'BRL', rate: 1 });
-  };
-
-  const create = async (t) => {
-    try {
-      const d = await api.createTrip(t);
-      setCreating(null);
-      onChanged();
-      onOpen(d.trip.id);
-    } catch (e) { say('Não consegui criar a viagem'); }
+  // nova viagem: assistente em passos (NewTrip.jsx) que já deixa moeda, câmbio, fuso, cidades, voos e notas prontos
+  const newTrip = () => setCreating(true);
+  const create = async (payload) => {
+    const d = await api.createTrip(payload);
+    setCreating(null);
+    onChanged();
+    onOpen(d.trip.id);
   };
 
 
@@ -143,7 +136,7 @@ export default function Home({ version, onOpen, onChanged }) {
       </main>
 
       {look && <AppearanceModal onClose={() => setLook(false)} />}
-      {creating && <TripModal trip={creating} onSave={create} onClose={() => setCreating(null)} />}
+      {creating && <NewTripWizard onCreate={create} onClose={() => setCreating(null)} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
