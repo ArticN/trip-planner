@@ -9,6 +9,19 @@ import { travelLegs, parseRoute, rideColor, rideLabel, dayStart, isStraightTrave
 import { loadAirports, flightRoute } from './flights.js';
 import { loadCountries, polys } from './geo.js';
 
+// Leaflet 1.9: um redesenho do canvas agendado logo antes do mapa sair da tela roda depois que o canvas
+// foi destruído e lança "Cannot read properties of undefined (reading 'clearRect')" (aparece ao abrir uma
+// viagem no modo dev, que monta tudo duas vezes, e ao sair rápido para a Home). Sem canvas, não há o que desenhar.
+if (!L.Canvas.prototype._safeRedraw) {
+  const redraw = L.Canvas.prototype._redraw;
+  L.Canvas.prototype._redraw = function safeRedraw() {
+    if (this._ctx) return redraw.call(this);
+    this._redrawRequest = null;
+    return undefined;
+  };
+  L.Canvas.prototype._safeRedraw = true;
+}
+
 const WORLD_CENTER = [20, 0];
 const BASE_KEY = 'trip-planner-basemap';
 
