@@ -126,3 +126,32 @@ test('link curto do Google: só segue endereços do Google', async () => {
   assert.ok(!isGoogleMapsUrl('https://google.com.evil.io/maps'));
   assert.ok(!isGoogleMapsUrl('https://127.0.0.1/'));
 });
+
+test('arquivos da página de ingressos: soltos ou de um item da checklist, privados no link de visitante', async () => {
+  const up = (url, name, extra = {}) => fetch(base + url, { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(name), 'X-File-Type': 'application/pdf', ...extra }, body: Buffer.from('%PDF-1.4 QR123') });
+  const c = await call('POST', `/api/trips/${tripId}/checklist`, { text: '25/11 Kaiyukan ingresso', grp: 'Reservas e ingressos' });
+  const solto = await up(`/api/trips/${tripId}/files`, 'solto.pdf');
+  assert.equal(solto.status, 201);
+  const ligado = await (await up(`/api/trips/${tripId}/files`, 'kaiyukan.pdf', { 'X-Check-Id': String(c.json.id) })).json();
+  assert.equal(ligado.check_id, c.json.id);
+  assert.equal((await up(`/api/trips/${tripId}/files`, 'x.pdf', { 'X-Check-Id': '999999' })).status, 404);
+  const d = await call('GET', `/api/trips/${tripId}`);
+  assert.ok(d.json.files.some((f) => f.name === 'kaiyukan.pdf' && f.check_id === c.json.id));
+  assert.equal(d.json.files[0].data, undefined); // a lista não traz o conteúdo
+
+  // visitante (link com tudo liberado) não vê nem baixa os anexos
+  const link = await call('POST', `/api/trips/${tripId}/shares`, { name: 'Tudo', plan: 1, money: 1, diary: 1 });
+  const saved = cookie;
+  cookie = '';
+  const v = await call('GET', `/api/share/${link.json.token}`);
+  const raw = await call('GET', `/api/files/${ligado.id}`);
+  cookie = saved;
+  assert.equal(v.json.files, undefined);
+  assert.doesNotMatch(JSON.stringify(v.json), /kaiyukan\.pdf/);
+  assert.equal(raw.status, 401);
+
+  // apagar o item da checklist deixa o arquivo solto, não apaga
+  await call('DELETE', `/api/checklist/${c.json.id}`);
+  const d2 = await call('GET', `/api/trips/${tripId}`);
+  assert.equal(d2.json.files.find((f) => f.id === ligado.id).check_id, null);
+});

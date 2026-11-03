@@ -158,7 +158,12 @@ export function OfflinePanel({ onClose, online }) {
       {(pending.length > 0 || s.pending > 0) && (
         <section className="offp">
           <h4>Esperando internet ({pending.length})</h4>
-          <ul className="offp-list">{pending.map((p) => <li key={p.opId}><span>{p.what}<span className="muted small"> · {when(p.at)}{p.lastError ? ` · ${p.lastError}` : ''}</span></span></li>)}</ul>
+          <ul className="offp-list">{pending.map((p) => (
+            <li key={p.opId}>
+              <span>{p.what}<span className="muted small"> · {when(p.at)}{p.lastError ? ` · ${p.lastError}` : ''}</span></span>
+              {p.upload && <button className="ghost" disabled={!!busy} onClick={() => act(`u${p.opId}`, () => sync.cancelUpload(p.opId), 'Anexo descartado.')}>Descartar</button>}
+            </li>
+          ))}</ul>
           <button disabled={!online || s.syncing} onClick={() => act('flush', () => sync.wake())}>{s.syncing ? 'Enviando…' : 'Enviar agora'}</button>
         </section>
       )}
