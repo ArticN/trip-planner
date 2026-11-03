@@ -47,23 +47,37 @@ export function createSync({ store, fetchImpl = (...a) => fetch(...a), isOnline 
   let lastSync = null;
   let lastError = '';
   let local = {}; // tripId → hora da cópia mostrada por falta de internet
+  let uploads = [];
+  let upSeq = 0; // anexos escolhidos sem internet, esperando para subir (o arquivo fica no aparelho, em up:<id>)
   const statusFns = new Set();
   const tripFns = new Set();
 
   const ready = (async () => {
     const [outbox, idmap, failed, conflicts] = await Promise.all(['outbox', 'idmap', 'failed', 'conflicts'].map((k) => store.get(k).catch(() => undefined)));
     state = { outbox: outbox || [], idmap: idmap || {}, failed: failed || [], conflicts: conflicts || [] };
+    await loadUploads().catch(() => {});
   })();
 
   // outra aba pode ter mexido na fila: relê antes de mexer
   async function reload() {
     const [outbox, idmap, failed, conflicts] = await Promise.all(['outbox', 'idmap', 'failed', 'conflicts'].map((k) => store.get(k)));
     state = { outbox: outbox || [], idmap: idmap || {}, failed: failed || [], conflicts: conflicts || [] };
+    await loadUploads();
+  }
+  // a lista dos anexos esperando, sem o conteúdo (o arquivo só é lido do aparelho na hora de enviar ou abrir)
+  async function loadUploads() {
+    const list = [];
+    for (const k of (await store.keys('up:')).sort()) {
+      const u = await store.get(k);
+      if (u) { const { blob: _b, ...meta } = u; list.push(meta); }
+    }
+    uploads = list;
   }
   const save = () => Promise.all(['outbox', 'idmap', 'failed', 'conflicts'].map((k) => store.set(k, state[k])));
 
   const status = () => ({
-    pending: state.outbox.length,
+    pending: state.outbox.length + uploads.length,
+    uploads: uploads.length,
     failed: state.failed.length,
     conflicts: state.conflicts.length,
     syncing: !!flushing,
@@ -288,7 +302,7 @@ export function createSync({ store, fetchImpl = (...a) => fetch(...a), isOnline 
 
   async function run() {
     await reload();
-    if (!state.outbox.length || !isOnline()) return;
+    if ((!state.outbox.length && !uploads.length) || !isOnline()) return;
     emit();
     const touched = new Set();
     // a versão do servidor antes de enviar: para achar conflitos e guardar num backup
@@ -341,17 +355,83 @@ export function createSync({ store, fetchImpl = (...a) => fetch(...a), isOnline 
         await save();
       }
     }
-    if (!state.outbox.length) lastSync = now();
+    if (!state.outbox.length) await sendUploads(touched);
+    if (!state.outbox.length && !uploads.length) lastSync = now();
     for (const t of touched) {
       try { await freshSnapshot(t, await raw('GET', `/api/trips/${t}`, null, { timeout: 20000 })); } catch { /* fica a cópia local */ }
       changed(t);
     }
   }
 
+  // ── anexos escolhidos sem internet: guardados no aparelho e enviados depois da fila de edições
+  // (o item dono pode ter sido criado sem internet: o id provisório vira o real aqui)
+  async function queueUpload({ tripId, url, blob, name, type, size, kind = 'doc', headers = {}, activity_id = null, idea_id = null, check_id = null }) {
+    await ready;
+    const id = uid();
+    const item = { id, tripId, url, headers, name, type, size: size ?? blob?.size ?? 0, kind, activity_id, idea_id, check_id, at: now(), blob };
+    await store.set(`up:${String(item.at).padStart(15, '0')}:${String(upSeq++ % 1e6).padStart(6, '0')}:${id}`, item); // em ordem de escolha
+    await loadUploads();
+    emit();
+    changed(tripId);
+    schedule(1500);
+    const { blob: _b, ...meta } = item;
+    return meta;
+  }
+  const uploadKey = async (id) => (await store.keys('up:')).find((k) => k.endsWith(`:${id}`));
+  async function uploadBlob(id) {
+    const k = await uploadKey(id);
+    return k ? (await store.get(k))?.blob || null : null;
+  }
+  async function cancelUpload(id) {
+    const k = await uploadKey(id);
+    if (k) await store.del(k);
+    const u = uploads.find((x) => x.id === id);
+    await loadUploads();
+    emit();
+    if (u) changed(u.tripId);
+  }
+  const pendingUploads = (tripId) => uploads.filter((u) => tripId == null || u.tripId === tripId);
+
+  async function sendUploads(touched) {
+    const real = (id) => (isTemp(id) && state.idmap[id] != null ? state.idmap[id] : id);
+    for (const k of (await store.keys('up:')).sort()) {
+      const u = await store.get(k);
+      if (!u || u.skip) continue;
+      const { url } = remap({ url: u.url, kind: {} }, state.idmap);
+      const checkId = real(u.check_id);
+      if (tempRefs({ url }).length || isTemp(checkId)) {
+        // o item dono foi criado sem internet e não pôde ser salvo: o arquivo fica no aparelho, com o aviso
+        await store.set(k, { ...u, error: 'o item deste anexo não foi salvo no servidor' });
+        continue;
+      }
+      let res;
+      try {
+        res = await fetchImpl(url, {
+          method: 'POST',
+          headers: { 'X-TP-Live': '1', 'X-Op-Id': u.id, 'Content-Type': 'application/octet-stream', ...u.headers, ...(checkId ? { 'X-Check-Id': String(checkId) } : {}) },
+          body: u.blob,
+        });
+      } catch { lastError = 'sem conexão com o servidor'; break; }
+      if (res.status === 401) { onAuthRequired(); lastError = 'é preciso entrar de novo para enviar os anexos'; break; }
+      if (!res.ok) {
+        let msg = await res.text().catch(() => '');
+        try { msg = JSON.parse(msg).error || msg; } catch { /* texto puro */ }
+        if (res.status >= 500 || [408, 409, 425, 429].includes(res.status)) { lastError = msg || `erro ${res.status}`; break; }
+        await store.set(k, { ...u, skip: true, error: String(msg || `erro ${res.status}`).slice(0, 200) });
+        continue;
+      }
+      const row = await res.json().catch(() => null);
+      await store.del(k);
+      if (row && u.tripId != null) await noteCreated('files', u.tripId, row);
+      if (u.tripId != null) touched.add(u.tripId);
+    }
+    await loadUploads();
+  }
+
   function flush() {
     if (flushing) return flushing;
     const go = () => run().catch((e) => { lastError = String(e.message || e); });
-    flushing = (globalThis.navigator?.locks ? navigator.locks.request('tp-sync', go) : go()).finally(() => { flushing = null; emit(); if (state.outbox.length) schedule(nextDelay()); });
+    flushing = (globalThis.navigator?.locks ? navigator.locks.request('tp-sync', go) : go()).finally(() => { flushing = null; emit(); if (state.outbox.length || uploads.some((u) => !u.skip)) schedule(nextDelay()); });
     emit();
     return flushing;
   }
@@ -433,9 +513,11 @@ export function createSync({ store, fetchImpl = (...a) => fetch(...a), isOnline 
 
   return {
     ready, request, getTrip, getTrips, flush, wake, noteCreated,
+    queueUpload, pendingUploads, uploadBlob, cancelUpload,
     status, subscribe: (f) => { statusFns.add(f); return () => statusFns.delete(f); },
     onTripChanged: (f) => { tripFns.add(f); return () => tripFns.delete(f); },
-    pendingList: () => state.outbox.map((op) => ({ ...op, what: describe(op) })),
+    pendingList: () => [...state.outbox.map((op) => ({ ...op, what: describe(op) })),
+      ...uploads.map((u) => ({ opId: u.id, tripId: u.tripId, at: u.at, upload: true, lastError: u.error, what: `Anexo novo: ${u.name}` }))],
     failedList: () => state.failed.map((op) => ({ ...op, what: describe(op) })),
     conflictList: () => state.conflicts,
     retryFailed, discardFailed, dismissConflicts,

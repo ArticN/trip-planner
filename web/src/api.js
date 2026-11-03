@@ -46,17 +46,34 @@ export const api = {
   deleteActivity: (id) => req('DELETE', `/api/activities/${id}`),
   saveDayNotes: (tripId, day, d) => req('PUT', `/api/trips/${tripId}/daynotes/${day}`, d),
   reorderDay: (tripId, day, ids) => req('PUT', `/api/trips/${tripId}/days/reorder`, { day, ids }),
-  // anexos: o corpo vai cru (sem base64), com nome e tipo nos cabeçalhos
-  uploadFile: async (owner, id, file) => {
-    const res = await fetch(`/api/${owner === 'idea' ? 'ideas' : 'activities'}/${id}/files`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name || 'arquivo'), 'X-File-Type': file.type || 'application/octet-stream', 'X-File-Kind': file.kind || 'doc' },
-      body: file,
-    });
+  // anexos: o corpo vai cru (sem base64), com nome e tipo nos cabeçalhos.
+  // owner: 'activity' | 'idea' | 'trip' (arquivo da página de ingressos, solto ou de um item da checklist: file.checkId).
+  // Sem internet (ou com o item ainda só no aparelho) o arquivo fica guardado no aparelho e sobe sozinho
+  // quando a internet voltar: a resposta vem com queued: true e não entra em data.files ainda.
+  uploadFile: async (owner, id, file, tripId = null) => {
+    const url = owner === 'trip' ? `/api/trips/${id}/files` : `/api/${owner === 'idea' ? 'ideas' : 'activities'}/${id}/files`;
+    const headers = { 'X-File-Name': encodeURIComponent(file.name || 'arquivo'), 'X-File-Type': file.type || 'application/octet-stream', 'X-File-Kind': file.kind || 'doc' };
+    const trip = owner === 'trip' ? Number(id) : tripId ?? file.tripId ?? null;
+    const queue = () => sync.queueUpload({
+      tripId: trip, url, blob: file, name: file.name || 'arquivo', type: file.type || 'application/octet-stream', size: file.size, kind: file.kind || 'doc', headers,
+      activity_id: owner === 'activity' ? id : null, idea_id: owner === 'idea' ? id : null, check_id: file.checkId ?? null,
+    }).then((meta) => ({ ...meta, queued: true }));
+    if (trip != null && (!navigator.onLine || Number(id) < -1e9 || Number(file.checkId) < -1e9)) return queue();
+    let res;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream', ...headers, ...(file.checkId ? { 'X-Check-Id': String(file.checkId) } : {}) },
+        body: file,
+      });
+    } catch (e) {
+      if (trip != null) return queue(); // a rede caiu no meio
+      throw e;
+    }
     if (res.status === 401) window.dispatchEvent(new Event('auth-required'));
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `erro ${res.status}`);
     const row = await res.json();
-    sync.noteCreated('files', row.trip_id ?? file.tripId ?? null, row).catch(() => {});
+    sync.noteCreated('files', row.trip_id ?? trip, row).catch(() => {});
     return row;
   },
   deleteFile: (id) => req('DELETE', `/api/files/${id}`),

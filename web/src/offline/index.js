@@ -47,3 +47,15 @@ export function useTripChanged(tripId, fn) {
 }
 
 export const syncReady = booting;
+
+// anexos escolhidos sem internet que ainda vão subir (aparecem na página de ingressos com o aviso)
+export function usePendingUploads(tripId) {
+  const s = useSyncStatus();
+  const [list, setList] = useState([]);
+  useEffect(() => {
+    let live = true;
+    booting.then((i) => { if (live) setList(i.pendingUploads(tripId)); });
+    return () => { live = false; };
+  }, [tripId, s.uploads, s.syncing]);
+  return list;
+}

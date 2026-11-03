@@ -313,7 +313,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     const note = locateNote(located);
     const sendPending = async (owner, id) => {
       for (const f of pending) {
-        try { const up = await api.uploadFile(owner, id, f); setData((d) => ({ ...d, files: [...(d.files || []), up] })); } catch (e) { say(`Não consegui anexar ${f.name}: ${e.message}`); }
+        try { addUploaded(await api.uploadFile(owner, id, f, tripId)); } catch (e) { say(`Não consegui anexar ${f.name}: ${e.message}`); }
       }
     };
     if (editing.idea) {
@@ -352,9 +352,26 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
   // ── anexos
   const filesOf = (owner, id) => (data?.files || []).filter((f) => (owner === 'idea' ? f.idea_id === id : f.activity_id === id));
-  const addFile = async (owner, id, file) => {
-    const up = await api.uploadFile(owner, id, file);
-    setData((d) => ({ ...d, files: [...(d.files || []), up] }));
+  // anexo enviado entra na lista; sem internet ele fica no aparelho e sobe sozinho depois (a viagem recarrega)
+  function addUploaded(up) {
+    if (up?.queued) say(`Sem internet: ${up.name} ficou guardado no aparelho e sobe quando a internet voltar`);
+    else if (up) setData((d) => ({ ...d, files: [...(d.files || []), up] }));
+  }
+  const addFile = async (owner, id, file) => addUploaded(await api.uploadFile(owner, id, file, tripId));
+  // página de ingressos (ela mostra os próprios avisos): arquivo de uma atividade, de um item de reserva da
+  // checklist ou solto na viagem
+  const addTicketFile = async (target, file) => {
+    if (target?.check) file.checkId = target.check;
+    const up = target?.activity ? await api.uploadFile('activity', target.activity, file, tripId) : await api.uploadFile('trip', tripId, file);
+    if (!up.queued) setData((d) => ({ ...d, files: [...(d.files || []), up] }));
+    return up;
+  };
+  const removeTicketFile = async (f) => {
+    setData((d) => ({ ...d, files: (d.files || []).filter((x) => x.id !== f.id) }));
+    try {
+      await api.deleteFile(f.id);
+      if ('caches' in window) caches.open('files-v1').then((c) => c.delete(api.fileUrl(f.id))).catch(() => {});
+    } catch { reload(); throw new Error('não consegui remover'); }
   };
   const removeFile = (f) => softDelete(`${f.name} removido`, 'files', f, async () => {
     await api.deleteFile(f.id);
@@ -671,7 +688,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   if (!data) return <div className="splash"><h1><Mark size={44} /></h1><p>Carregando roteiro…</p></div>;
 
   if (sel === 'analise') return <Analysis data={data} onBack={() => go('trip')} onTickets={() => go('ingressos')} />;
-  if (sel === 'ingressos') return <Tickets data={data} onBack={() => go('trip')} onToggle={toggleTicket} />;
+  if (sel === 'ingressos') return <Tickets data={data} onBack={() => go('trip')} onToggle={toggleTicket} onAddFile={addTicketFile} onRemoveFile={removeTicketFile} />;
   if (sel === 'notas') return <Notes data={data} setData={setData} onBack={() => go('trip')} />;
   if (sel === 'diario') return <Journal key={openPhoto || 'album'} data={data} setData={setData} initialPhoto={openPhoto} onBack={() => { setOpenPhoto(null); go('trip'); }} />;
 

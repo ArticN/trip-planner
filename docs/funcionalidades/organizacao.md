@@ -48,6 +48,23 @@ abrir o ingresso dali mesmo. O topo mostra quantos já foram comprados, e dá pa
 ingresso, restaurante…). Marcar **Comprado** marca o item de reserva da checklist ligado àquela atividade, ou cria um
 no grupo "Reservas e ingressos". A página também imprime.
 
+### Arquivos dos ingressos
+
+No topo da página, **Arquivos dos ingressos** junta num lugar só os PDFs e prints de ingressos, passagens e vouchers
+da viagem: os anexados às atividades (pelo editor ou aqui) e os guardados direto nesta página. Para adicionar, escolha
+**De qual item** (uma atividade da lista ou um item de reserva da checklist; ou "Nenhum, só guardar aqui") e toque
+**Adicionar PDF ou foto**. Cada item da lista também tem **📎 Anexar**. Cada arquivo mostra o dia e o item, e
+"disponível offline" quando já está guardado no aparelho.
+
+- **Sem internet**: o arquivo escolhido fica guardado no aparelho ("só neste aparelho") e sobe sozinho quando a
+  internet voltar, junto com as edições pendentes (aparece em ⋯ › Dados offline e backups, onde dá para descartar).
+  Funciona até para uma atividade criada sem internet.
+- **Privacidade**: os arquivos nunca vão para links de visitante, nem com "gastos e ingressos" ligado (ingressos têm
+  nome e QR code). Só quem entra com a senha abre.
+- **Tamanho**: até 4 MB por arquivo (limite de envio da Vercel). Fotos maiores são reduzidas sozinhas, mantendo o QR
+  legível; um PDF maior é recusado com aviso.
+- Apagar o item da checklist não apaga o arquivo: ele fica solto na página.
+
 Limitações: a separação lê as palavras das notas, então uma nota sem nenhuma dessas palavras não entra. Um item da
 checklist é ligado à atividade do mesmo dia com mais palavras em comum no título; sem data no começo do texto
 ("09/11 …"), ele aparece sozinho.

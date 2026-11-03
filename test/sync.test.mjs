@@ -24,9 +24,20 @@ function fakeServer() {
     calls.push(`${method} ${url}`);
     const opId = init.headers?.['X-Op-Id'];
     if (opId && ops.has(opId)) return ops.get(opId);
-    if (srv.failNext && (!srv.failMethod || srv.failMethod === method)) { const f = srv.failNext; srv.failNext = null; return json(f, { error: 'falha simulada' }); }
-    const body = init.body ? JSON.parse(init.body) : null;
     let m;
+    if (srv.failNext && (!srv.failMethod || srv.failMethod === method)) { const f = srv.failNext; srv.failNext = null; return json(f, { error: 'falha simulada' }); }
+    // envio de anexo: corpo cru, dono na URL ou na viagem (X-Check-Id)
+    if (method === 'POST' && (m = url.match(/^\/api\/(activities|trips)\/(-?\d+)\/files$/))) {
+      const isAct = m[1] === 'activities';
+      if (isAct && !db.activities.some((a) => a.id === Number(m[2]))) return json(404, { error: 'não encontrada' });
+      const size = typeof init.body === 'string' ? init.body.length : init.body?.size ?? init.body?.length ?? 0;
+      const row = { id: next++, trip_id: 1, activity_id: isAct ? Number(m[2]) : null, idea_id: null, check_id: Number(init.headers['X-Check-Id']) || null, name: decodeURIComponent(init.headers['X-File-Name']), type: init.headers['X-File-Type'], size, kind: 'doc' };
+      db.files.push(row);
+      const r = json(201, row);
+      if (opId) ops.set(opId, r);
+      return r;
+    }
+    const body = init.body ? JSON.parse(init.body) : null;
     let res;
     if (method === 'GET' && url === '/api/trips/1') res = json(200, structuredClone(db));
     else if (method === 'GET' && url === '/api/trips') res = json(200, [{ ...db.trip, activity_count: db.activities.length }]);
@@ -263,4 +274,43 @@ test('applyOp: agendar ideia leva os anexos junto', () => {
   assert.equal(d.ideas.length, 0);
   assert.equal(d.activities[0].title, 'Onsen');
   assert.equal(d.files[0].activity_id, res.id);
+});
+
+test('anexo escolhido sem internet fica no aparelho e sobe depois, até de atividade criada offline', async () => {
+  const { srv, sync } = setup();
+  await sync.getTrip(1);
+  srv.online = false;
+  const act = await sync.request('POST', '/api/trips/1/activities', { day: '2026-11-25', title: 'Kaiyukan' });
+  const item = await sync.request('POST', '/api/trips/1/checklist', { text: '25/11 Kaiyukan ingresso' });
+  const headers = { 'X-File-Name': encodeURIComponent('kaiyukan.pdf'), 'X-File-Type': 'application/pdf', 'X-File-Kind': 'doc' };
+  const up = await sync.queueUpload({ tripId: 1, url: `/api/activities/${act.id}/files`, blob: 'PDF-1', name: 'kaiyukan.pdf', type: 'application/pdf', headers, activity_id: act.id });
+  await sync.queueUpload({ tripId: 1, url: '/api/trips/1/files', blob: 'PDF-2', name: 'solto.pdf', type: 'application/pdf', headers: { ...headers, 'X-File-Name': 'solto.pdf' }, check_id: item.id });
+  assert.equal(sync.pendingUploads(1).length, 2);
+  assert.equal(sync.pendingUploads(1)[0].id, up.id);
+  assert.equal(await sync.uploadBlob(up.id), 'PDF-1');
+  assert.equal(sync.status().uploads, 2);
+  assert.equal(sync.status().pending, 4); // 2 edições + 2 anexos
+
+  srv.online = true;
+  await sync.wake();
+  assert.equal(sync.status().pending, 0);
+  const real = srv.db.activities.find((a) => a.title === 'Kaiyukan');
+  const check = srv.db.checklist.find((c) => c.text.includes('Kaiyukan'));
+  assert.deepEqual(srv.db.files.map((f) => [f.name, f.activity_id, f.check_id]), [['kaiyukan.pdf', real.id, null], ['solto.pdf', null, check.id]]);
+  assert.equal((await sync.getTrip(1)).files.length, 2);
+  // reenviar não duplica (mesmo X-Op-Id)
+  await sync.wake();
+  assert.equal(srv.db.files.length, 2);
+});
+
+test('anexo descartado antes de subir não vai ao servidor', async () => {
+  const { srv, sync } = setup();
+  await sync.getTrip(1);
+  srv.online = false;
+  const up = await sync.queueUpload({ tripId: 1, url: '/api/activities/10/files', blob: 'x', name: 'a.pdf', type: 'application/pdf', headers: { 'X-File-Name': 'a.pdf', 'X-File-Type': 'application/pdf' } });
+  await sync.cancelUpload(up.id);
+  srv.online = true;
+  await sync.wake();
+  assert.equal(srv.db.files.length, 0);
+  assert.equal(sync.status().pending, 0);
 });

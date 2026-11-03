@@ -130,6 +130,7 @@ export function applyOp(data, op, result) {
       d[kind.coll] = list(kind.coll).filter((x) => x.id !== kind.id);
       if (kind.coll === 'activities') d.files = list('files').filter((f) => f.activity_id !== kind.id);
       if (kind.coll === 'ideas') d.files = list('files').filter((f) => f.idea_id !== kind.id);
+      if (kind.coll === 'checklist') d.files = list('files').map((f) => (f.check_id === kind.id ? { ...f, check_id: null } : f));
       break;
     case 'trip':
       d.trip = { ...d.trip, ...(result || op.body) };

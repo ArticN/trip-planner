@@ -15,6 +15,17 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.49',
+    date: '2026-11-03',
+    title: 'Todos os ingressos num lugar só',
+    items: [
+      'A página Ingressos ganhou "Arquivos dos ingressos": os PDFs e prints de ingressos, passagens e vouchers da viagem, todos juntos, com o dia e o item de cada um.',
+      'Adicione direto ali (ligado a uma atividade, a um item de reserva da checklist ou solto) ou pelo 📎 Anexar de cada item.',
+      'Sem internet, o arquivo fica guardado no aparelho e sobe sozinho quando a internet voltar. Os já enviados abrem offline.',
+      'Os arquivos nunca aparecem em links de visitante: ingressos têm nome e QR code.',
+    ],
+  },
+  {
     version: '1.48',
     date: '2026-11-03',
     title: 'Buscar e marcar lugares no mapa',

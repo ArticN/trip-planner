@@ -169,7 +169,8 @@ async function migrate() {
   await addCols('activities', [['notes', 'TEXT'], ['links', 'TEXT'], ['start_tz', 'TEXT'], ['end_tz', 'TEXT'], ['ref', 'TEXT'], ['from_code', 'TEXT'], ['to_code', 'TEXT'], ['via', 'TEXT'], ['spent', 'REAL'], ['rating', 'INTEGER'], ['review', 'TEXT'], ['slot', 'TEXT'], ['route', 'TEXT'], ['alt', 'TEXT']]);
   await addCols('stays', [['check_in_time', 'TEXT'], ['check_out_time', 'TEXT'], ['booking', 'TEXT'], ['cost', 'REAL'], ['link', 'TEXT']]);
   await addCols('trips', [['tz', 'TEXT'], ['cover', 'TEXT'], ['share_token', 'TEXT'], ['rate_auto', 'INTEGER DEFAULT 1'], ['rate_at', 'TEXT'], ['cal_token', 'TEXT'], ['remind_min', 'INTEGER DEFAULT 30'], ['remind_flight_min', 'INTEGER DEFAULT 180'], ['accent', 'TEXT'], ['usd_rate', 'REAL'], ['usd_rate_at', 'TEXT'], ['quota_usd', 'REAL'], ['scope', 'TEXT'], ['share_money', 'INTEGER DEFAULT 0'], ['share_diary', 'INTEGER DEFAULT 0'], ['countries', 'TEXT']]);
-  await addCols('files', [['kind', "TEXT DEFAULT 'doc'"]]);
+  // check_id (v1.49): arquivo da página de ingressos ligado a um item de reserva da checklist (ou solto na viagem)
+  await addCols('files', [['kind', "TEXT DEFAULT 'doc'"], ['check_id', 'INTEGER']]);
   // metadados das fotos (v1.40): onde foi tirada, a atividade do roteiro e a câmera (JSON)
   await addCols('photos', [['lat', 'REAL'], ['lng', 'REAL'], ['activity_id', 'INTEGER'], ['meta', 'TEXT']]);
 
@@ -336,7 +337,7 @@ async function getTrip(id) {
     db.all('SELECT * FROM checklist WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT * FROM ideas WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT * FROM days WHERE trip_id = ? ORDER BY day', [id]),
-    db.all('SELECT id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE trip_id = ? ORDER BY id', [id]),
+    db.all('SELECT id, activity_id, idea_id, check_id, name, type, size, kind, created_at FROM files WHERE trip_id = ? ORDER BY id', [id]),
     db.all('SELECT * FROM purchases WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all('SELECT id, day, title, blocks, sort FROM album_pages WHERE trip_id = ? ORDER BY sort, id', [id]),
     db.all(`SELECT ${PHOTO_META} FROM photos WHERE trip_id = ? ORDER BY day, sort, taken_at, id`, [id]),
@@ -746,7 +747,9 @@ app.put('/api/checklist/:cid', h(async (req, res) => {
   res.json(await db.get('SELECT * FROM checklist WHERE id = ?', [cur.id]));
 }));
 app.delete('/api/checklist/:cid', h(async (req, res) => {
-  await db.run('DELETE FROM checklist WHERE id = ?', [Number(req.params.cid)]);
+  const cid = Number(req.params.cid);
+  // os ingressos anexados ao item continuam na viagem, soltos na página de ingressos
+  await db.batch([['UPDATE files SET check_id = NULL WHERE check_id = ?', [cid]], ['DELETE FROM checklist WHERE id = ?', [cid]]]);
   res.status(204).end();
 }));
 
@@ -884,10 +887,8 @@ app.delete('/api/activities/:id', h(async (req, res) => {
 // Limite de 4 MB por arquivo por causa do teto de 4,5 MB por requisição da Vercel.
 const MAX_FILE = 4 * 1024 * 1024;
 const INLINE = /^(image\/(png|jpeg|gif|webp|avif)|application\/pdf|text\/plain)$/;
-app.post('/api/:kind(activities|ideas)/:oid/files', express.raw({ type: () => true, limit: MAX_FILE }), h(async (req, res) => {
-  const isAct = req.params.kind === 'activities';
-  const owner = await db.get(`SELECT id, trip_id FROM ${isAct ? 'activities' : 'ideas'} WHERE id = ?`, [Number(req.params.oid)]);
-  if (!owner) return res.status(404).json({ error: 'não encontrada' });
+const FILE_COLS = 'id, trip_id, activity_id, idea_id, check_id, name, type, size, kind, created_at';
+async function saveFile(req, res, { tripId, activityId = null, ideaId = null, checkId = null }) {
   const data = Buffer.isBuffer(req.body) ? req.body : null;
   if (!data?.length) return res.status(400).json({ error: 'arquivo vazio' });
   let name = 'arquivo';
@@ -896,9 +897,22 @@ app.post('/api/:kind(activities|ideas)/:oid/files', express.raw({ type: () => tr
   // o corpo vai como octet-stream (para o express.json global não interpretar .json); o tipo real vem em X-File-Type
   const type = String(req.get('x-file-type') || 'application/octet-stream').split(';')[0].trim().toLowerCase().slice(0, 100);
   const kind = req.get('x-file-kind') === 'receipt' ? 'receipt' : 'doc'; // recibo do gasto real ou documento
-  const r = await db.run('INSERT INTO files (trip_id, activity_id, idea_id, name, type, size, data, kind) VALUES (?,?,?,?,?,?,?,?)',
-    [owner.trip_id, isAct ? owner.id : null, isAct ? null : owner.id, name, type, data.length, data, kind]);
-  res.status(201).json(await db.get('SELECT id, trip_id, activity_id, idea_id, name, type, size, kind, created_at FROM files WHERE id = ?', [r.lastInsertRowid]));
+  const r = await db.run('INSERT INTO files (trip_id, activity_id, idea_id, check_id, name, type, size, data, kind) VALUES (?,?,?,?,?,?,?,?,?)',
+    [tripId, activityId, ideaId, checkId, name, type, data.length, data, kind]);
+  res.status(201).json(await db.get(`SELECT ${FILE_COLS} FROM files WHERE id = ?`, [r.lastInsertRowid]));
+}
+const rawFile = express.raw({ type: () => true, limit: MAX_FILE });
+app.post('/api/:kind(activities|ideas)/:oid/files', rawFile, h(async (req, res) => {
+  const isAct = req.params.kind === 'activities';
+  const owner = await db.get(`SELECT id, trip_id FROM ${isAct ? 'activities' : 'ideas'} WHERE id = ?`, [Number(req.params.oid)]);
+  if (!owner) return res.status(404).json({ error: 'não encontrada' });
+  return saveFile(req, res, { tripId: owner.trip_id, activityId: isAct ? owner.id : null, ideaId: isAct ? null : owner.id });
+}));
+// página de ingressos: arquivo solto na viagem ou de um item de reserva da checklist (X-Check-Id)
+app.post('/api/trips/:id/files', needTrip, rawFile, h(async (req, res) => {
+  const cid = Number(req.get('x-check-id')) || null;
+  if (cid && !(await db.get('SELECT 1 AS ok FROM checklist WHERE id = ? AND trip_id = ?', [cid, req.tripId]))) return res.status(404).json({ error: 'item da checklist não encontrado' });
+  return saveFile(req, res, { tripId: req.tripId, checkId: cid });
 }));
 app.get('/api/files/:fid', h(async (req, res) => {
   const f = await db.get('SELECT name, type, data FROM files WHERE id = ?', [Number(req.params.fid)]);

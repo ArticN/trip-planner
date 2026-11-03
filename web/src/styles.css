@@ -1824,3 +1824,20 @@ input.dj-lb-cap:focus-visible { outline: none; box-shadow: none; background: #f2
 .cpick-flag { display: inline-block; width: 1.4em; }
 .trip-countries { display: grid; gap: 4px; }
 .wiz-summary .section-title { margin: 0; padding: 0; }
+
+/* ingressos: arquivos (v1.49) */
+.tk-up { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin: 10px 0 4px; }
+.tk-up-to { display: grid; gap: 4px; flex: 1 1 240px; min-width: 0; }
+.tk-up-to select { width: 100%; min-width: 0; }
+.tk-msg { margin: 6px 0 0; color: var(--ink-2); }
+.tk-msg.bad { color: var(--danger, #d64545); }
+.tk-files { margin-top: 12px; }
+.tk-files button.file-a { border: 0; font: inherit; text-align: left; cursor: pointer; }
+.tk-files small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-off { font-style: normal; color: var(--cat-3); }
+.tk-off.bad { color: var(--danger, #d64545); }
+.tk-empty { margin-top: 10px; }
+.tk-attach { font-size: 13px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.tk-attach:hover { color: var(--ink); text-decoration: underline; }
+.tk-attach.disabled { opacity: .6; pointer-events: none; }
+@media print { .tk-up, .tk-attach, #tk-arquivos .icon-btn { display: none; } }
