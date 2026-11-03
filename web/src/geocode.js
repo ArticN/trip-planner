@@ -250,3 +250,76 @@ export async function autoLocate({ title, location, near }) {
   return null;
 }
 
+
+// ── busca do mapa: junta o OpenStreetMap por endereço (Nominatim, preferindo a área que está na tela)
+// com a busca por nome de loja/lugar (Photon, preferindo o que está perto do centro do mapa).
+// view = { lat, lng, bounds: [sul, oeste, norte, leste] } do mapa; devolve { results, note } como findPlace.
+async function nominatimIn(q, view) {
+  const box = view?.bounds ? `&viewbox=${view.bounds[1]},${view.bounds[2]},${view.bounds[3]},${view.bounds[0]}` : '';
+  const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&${OSM_LANG}${box}&q=${encodeURIComponent(q)}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return (await r.json()).map((x) => {
+    const { title, local } = osmName(x);
+    return { key: `osm${x.place_id}`, lat: +parseFloat(x.lat).toFixed(6), lng: +parseFloat(x.lon).toFixed(6), title, local, detail: x.display_name, name: x.display_name, poi: !['administrative', 'city', 'town', 'suburb', 'quarter', 'neighbourhood', 'state', 'country'].includes(x.type) };
+  }).filter((x) => okLat(x.lat) && okLng(x.lng));
+}
+
+const fmtDist = (k) => (k < 1 ? `${Math.max(10, Math.round(k * 100) * 10)} m` : `${k < 10 ? k.toFixed(1).replace('.', ',') : Math.round(k)} km`);
+const inView = (r, b) => b && r.lat >= b[0] && r.lat <= b[2] && r.lng >= b[1] && r.lng <= b[3];
+const sameSpot = (a, b) => km(a, b) < 0.06 && (a.title || '').toLowerCase().slice(0, 6) === (b.title || '').toLowerCase().slice(0, 6);
+
+// junta, tira repetidos e ordena: o que está na tela e perto primeiro; lugares (lojas, atrações) antes de bairros
+export function rankPlaces(lists, view) {
+  const all = [];
+  for (const r of lists.flat()) if (!all.some((x) => sameSpot(x, r))) all.push(r);
+  const score = (r) => (view ? km(view, r) : 0) * (inView(r, view?.bounds) ? 1 : 4) + (r.poi ? 0 : 1.5);
+  return all
+    .map((r) => (view ? { ...r, away: km(view, r) } : r))
+    .sort((a, b) => score(a) - score(b))
+    .map((r) => {
+      // o nome já aparece em negrito na lista: o detalhe começa no endereço
+      const rest = r.title && r.detail?.startsWith(r.title) ? r.detail.slice(r.title.length).replace(/^,\s*/, '') : r.detail;
+      return { ...r, detail: [r.away != null && `${fmtDist(r.away)} daqui`, rest].filter(Boolean).join(' · ') };
+    })
+    .slice(0, 8);
+}
+
+export async function searchPlaces(text, view) {
+  const q = String(text || '').trim();
+  if (!q) return { results: [] };
+  // coordenadas e links do Google: mesmo caminho do campo de posição
+  if (parseCoords(q) || parseMapsLink(q)) return findPlace(q);
+  if (offline()) throw new Error('sem internet');
+  const safe = (p) => p.catch(() => []);
+  const [osm, ph] = await Promise.all([safe(nominatimIn(q, view)), safe(photon(cleanName(q) || q, view))]);
+  let results = rankPlaces([ph, osm], view);
+  if (results.length) return { results };
+  // nada: tenta o endereço mais curto (sem número do prédio, CEP etc.)
+  for (const s of simplerQueries(q)) {
+    await wait(1100);
+    results = rankPlaces([await safe(nominatimIn(s, view))], view);
+    if (results.length) return { results: results.map((r) => ({ ...r, approx: true })), note: `Não achei o endereço exato; estes são para “${s}”. Arraste o marcador até o lugar certo.` };
+  }
+  return { results: [] };
+}
+
+// sugestões enquanto digita (só Photon, que é feito para isso; o Nominatim não aceita autocompletar)
+export async function suggestPlaces(text, view) {
+  const q = cleanName(text);
+  if (q.length < 3 || offline() || parseCoords(text) || parseMapsLink(text)) return [];
+  return rankPlaces([await photon(q, view).catch(() => [])], view).slice(0, 6);
+}
+
+// nome e endereço de um ponto do mapa (para o marcador novo): { title, local, address }
+export async function describePoint(lat, lng) {
+  if (offline()) return { title: '', local: '', address: '' };
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&${OSM_LANG}&lat=${lat}&lon=${lng}`);
+    if (!r.ok) throw new Error();
+    const j = await r.json();
+    const named = !!j.name;
+    const { title, local } = named ? osmName(j) : { title: '', local: '' };
+    const parts = (j.display_name || '').split(',').map((x) => x.trim()).filter(Boolean);
+    return { title, local, address: parts.slice(named ? 1 : 0, named ? 4 : 3).join(', ') };
+  } catch { return { title: '', local: '', address: '' }; }
+}

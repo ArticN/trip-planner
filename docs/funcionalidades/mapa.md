@@ -16,9 +16,9 @@ Ferramentas do mapa (no celular ficam numa linha que desliza para o lado):
 
 | Botão | O que faz |
 | --- | --- |
-| Buscar lugar para adicionar | Procura um lugar no OpenStreetMap e abre o editor com nome, endereço e posição. |
+| Buscar lugar, endereço, link ou coordenadas | Sugere lugares enquanto você digita, primeiro os que estão na tela e mais perto. Enter busca também por endereço. Escolher um resultado põe um marcador no mapa (ver [abaixo](#adicionar-pelo-mapa)). |
 | Perto daqui | Ver [abaixo](#perto-daqui). |
-| + No mapa | Clique em qualquer ponto do mapa para criar ali uma atividade (no dia) ou uma ideia (na visão geral). O app tenta descobrir o nome e o endereço do ponto. |
+| + Marcar ponto | Clique em qualquer ponto do mapa para pôr ali um marcador. O mesmo vale para o botão direito do mouse ou tocar e segurar no celular. |
 | Números / Ícones | No dia: pinos com o número da ordem ou com o ícone do tipo. |
 | Fotos | Aparece quando há fotos do [diário](diario.md#o-que-o-app-lê-de-cada-foto) com GPS. Mostra ou esconde as miniaturas (ver [abaixo](#fotos-do-diário)). A escolha fica salva. |
 | Hotéis | Mostra ou esconde as hospedagens. |
@@ -40,11 +40,13 @@ painel do pino de uma atividade mostra as fotos ligadas a ela.
 
 ## Adicionar pelo mapa
 
-Três caminhos, todos abrem o editor já preenchido para você conferir e salvar:
+Três caminhos, todos põem um marcador laranja no mapa com um cartão que mostra o nome, o endereço e as coordenadas:
 
-1. **Buscar lugar para adicionar**: digite o nome (inclua a cidade se não achar). Fora do Brasil, o resultado mostra o nome em português ou inglês e, ao lado, o nome local (kanji, por exemplo); o título da atividade usa o nome legível. A busca é literal: no Japão, escreva em romaji ("Shirakawa-go Ogimachi") ou em japonês.
-2. **+ No mapa** e clique no lugar.
+1. **Buscar**: digite o nome (a partir de 3 letras aparecem sugestões, as mais próximas do que está na tela primeiro, com a distância). Use as setas e Enter para escolher, ou Enter sem escolher para buscar também por endereço. Colar um link do Google Maps ou coordenadas leva direto ao ponto. Fora do Brasil, o resultado mostra o nome em português ou inglês e, ao lado, o nome local (kanji, por exemplo). No Japão, escreva em romaji ("Shirakawa-go Ogimachi") ou em japonês.
+2. **Marcar no mapa**: botão direito do mouse no lugar, tocar e segurar no celular, ou **+ Marcar ponto** e clique. O app tenta descobrir o nome e o endereço do ponto.
 3. **Perto daqui** e escolha um resultado.
+
+O marcador pode ser arrastado para acertar a posição (num ponto marcado à mão, o app busca o nome de novo). No cartão, **Criar atividade** abre o editor já preenchido para o dia aberto, e **Guardar como ideia** guarda para depois. O X ou Esc tiram o marcador.
 
 Estando num dia, vira atividade daquele dia; na visão geral, vira ideia. A cidade é escolhida pela mais próxima (até 80 km).
 

@@ -616,6 +616,17 @@ button.big { padding: 12px 22px; font-size: 16px; }
 div.ms-pop { padding: 10px 12px; }
 .ms-pop button { display: grid; width: 100%; text-align: left; border: 0; background: none; padding: 6px 8px; border-radius: var(--r-sm); font-weight: 400; }
 .ms-pop button:hover:not(:disabled) { background: var(--hover); }
+.ms-pop button.hi { background: var(--hover); }
+.ms-pop .ms-more { padding: 4px 8px 2px; font-size: 12px; }
+/* marcador novo (busca / tocar e segurar): gota com a cor de destaque, arrastável */
+.preview-pin span { position: absolute; left: 3px; top: 0; width: 24px; height: 24px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--accent); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+.preview-pin::after { content: ''; position: absolute; left: 11px; bottom: 0; width: 8px; height: 4px; border-radius: 50%; background: rgba(0,0,0,.3); }
+.preview-pin { cursor: grab; }
+.place-card .pc-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); vertical-align: -1px; }
+.place-card .pc-coords { margin: 6px 0 2px; }
+.place-card .pc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.place-card .pc-actions button { flex: 1 1 auto; }
+button.linkish { padding: 0; border: 0; background: none; color: inherit; text-decoration: underline; font: inherit; cursor: pointer; }
 .ms-pop b { font-weight: 500; font-size: 14px; }
 .ms-pop b small, .geo-res b small { font-weight: 400; font-size: 12px; color: var(--muted); }
 .ms-pop span { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
