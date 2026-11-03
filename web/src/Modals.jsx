@@ -1,4 +1,4 @@
-import { OSM_LANG, osmName } from './osmName.js';
+import { findPlace, parseCoords, parseMapsLink } from './geocode.js';
 import { Star } from './Stars.jsx';
 import { useEffect, useState } from 'react';
 import { parseLinks, linkLabel } from './Extras.jsx';
@@ -29,47 +29,52 @@ export function Modal({ title, onClose, children, wide, footer }) {
   );
 }
 
-// busca de endereços/locais (OpenStreetMap Nominatim) — roda no navegador, só quando você clica
-function GeocodeBox({ initial, onPick, placeholder }) {
-  const [q, setQ] = useState(initial || '');
-  const [res, setRes] = useState(null);
+// busca da posição de um lugar — roda no navegador, só quando você clica. Aceita endereço ou nome
+// (OpenStreetMap), link do Google Maps (longo ou curto) ou coordenadas coladas ("35.6586, 139.7454")
+function PlaceResults({ found, onPick }) {
+  if (!found) return null;
+  if (!found.results.length) return <div className="muted small pad">Nada encontrado. Tente outro nome, inclua a cidade, ou cole o link ou as coordenadas do Google Maps.</div>;
+  return (
+    <>
+      {found.note && <div className="warn soft pad">{found.note}</div>}
+      <ul className="geo-res">
+        {found.results.map((r) => (
+          <li key={r.key} onClick={() => onPick(r)}>
+            <b>{r.exact && <span className="ok">● </span>}{r.title}{r.local && <small> {r.local}</small>}</b>
+            <span>{r.detail}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function usePlaceSearch(fallbackMsg, suffix) {
+  const [found, setFound] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-
-  const search = async () => {
-    if (!q.trim()) return;
-    setBusy(true); setErr(''); setRes(null);
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&${OSM_LANG}&q=${encodeURIComponent(q)}`;
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setRes(await r.json());
-    } catch (e) {
-      setErr(`Não consegui buscar (${e.message}). Você ainda pode marcar no mapa ou digitar lat/lng.`);
-    } finally { setBusy(false); }
+  const run = async (q) => {
+    if (!String(q || '').trim()) return;
+    setBusy(true); setErr(''); setFound(null);
+    try { setFound(await findPlace(q, { suffix: suffix?.(q) })); } catch (e) { setErr(`Não consegui buscar (${e.message}). ${fallbackMsg}`); } finally { setBusy(false); }
   };
+  return { found, busy, err, run, clear: () => setFound(null) };
+}
 
+const GEO_HINT = 'Dica: no Google Maps, toque e segure no lugar e copie as coordenadas, ou use Compartilhar › Copiar link, e cole aqui.';
+
+function GeocodeBox({ initial, onPick, placeholder, hint }) {
+  const [q, setQ] = useState(initial || '');
+  const s = usePlaceSearch('Você ainda pode marcar no mapa ou digitar lat/lng.');
   return (
     <div className="geo">
       <div className="row">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder || 'Buscar local (ex: Torre Eiffel, Paris)'} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); search(); } }} />
-        <button type="button" onClick={search} disabled={busy}>{busy ? '…' : 'Buscar'}</button>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder || 'Endereço, nome, link do Google Maps ou “lat, lng”'} onPaste={(e) => { const t = e.clipboardData.getData('text'); if (parseCoords(t) || parseMapsLink(t)) { e.preventDefault(); setQ(t.trim()); s.run(t); } }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); s.run(q); } }} />
+        <button type="button" onClick={() => s.run(q)} disabled={s.busy}>{s.busy ? '…' : 'Buscar'}</button>
       </div>
-      {err && <div className="warn soft pad">{err}</div>}
-      {res && res.length === 0 && <div className="muted small pad">Nada encontrado. Tente outro nome, inclua a cidade ou escreva em inglês.</div>}
-      {res && res.length > 0 && (
-        <ul className="geo-res">
-          {res.map((r) => {
-            const { title, local } = osmName(r);
-            return (
-              <li key={r.place_id} onClick={() => { onPick(parseFloat(r.lat), parseFloat(r.lon), r.display_name); setRes(null); }}>
-                <b>{title}{local && <small> {local}</small>}</b>
-                <span>{r.display_name}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {s.err && <div className="warn soft pad">{s.err}</div>}
+      <PlaceResults found={s.found} onPick={(r) => { onPick(r.lat, r.lng, r.name); s.clear(); }} />
+      {hint && !s.found && !s.err && <div className="muted small geo-hint">{GEO_HINT}</div>}
     </div>
   );
 }
@@ -77,42 +82,18 @@ function GeocodeBox({ initial, onPick, placeholder }) {
 // estação de embarque ou desembarque: nome + busca da posição no mapa
 function StationInput({ label, value, onChange }) {
   const v = value || {};
-  const [res, setRes] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
   const placed = v.lat != null && v.lng != null && v.lat !== '' && v.lng !== '';
-  const search = async () => {
-    const q = (v.name || '').trim();
-    if (!q) return;
-    setBusy(true); setErr(''); setRes(null);
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&${OSM_LANG}&q=${encodeURIComponent(/station|esta|駅/i.test(q) ? q : `${q} station`)}`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setRes(await r.json());
-    } catch (e) { setErr(`Não consegui buscar (${e.message}). Digite lat/lng abaixo.`); } finally { setBusy(false); }
-  };
+  const s = usePlaceSearch('Digite lat/lng abaixo.', (q) => (/station|esta|駅/i.test(q) ? '' : 'station'));
+  const search = () => s.run(v.name);
   return (
     <div className="station-in">
       <div className="legend small">{label} {placed ? <span className="ok">● no mapa</span> : <span className="muted">○ sem posição</span>}</div>
       <div className="row">
         <input value={v.name || ''} onChange={(e) => onChange({ ...v, name: e.target.value })} placeholder="Nome da estação (ex: Shiodome)" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); search(); } }} />
-        <button type="button" onClick={search} disabled={busy}>{busy ? '…' : 'Buscar'}</button>
+        <button type="button" onClick={search} disabled={s.busy}>{s.busy ? '…' : 'Buscar'}</button>
       </div>
-      {err && <div className="warn soft pad">{err}</div>}
-      {res && res.length === 0 && <div className="muted small pad">Nada encontrado. Tente o nome em inglês, com a cidade.</div>}
-      {res && res.length > 0 && (
-        <ul className="geo-res">
-          {res.map((r) => {
-            const { title, local } = osmName(r);
-            return (
-              <li key={r.place_id} onClick={() => { onChange({ ...v, name: v.name || title, lat: +parseFloat(r.lat).toFixed(5), lng: +parseFloat(r.lon).toFixed(5) }); setRes(null); }}>
-                <b>{title}{local && <small> {local}</small>}</b>
-                <span>{r.display_name}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {s.err && <div className="warn soft pad">{s.err}</div>}
+      <PlaceResults found={s.found} onPick={(r) => { onChange({ ...v, name: v.name || r.title, lat: +r.lat.toFixed(5), lng: +r.lng.toFixed(5) }); s.clear(); }} />
       <details className="coords">
         <summary>Digitar latitude e longitude</summary>
         <div className="row">
@@ -214,7 +195,7 @@ function TzInput({ value, onChange, placeholder }) {
   );
 }
 
-export function EditModal({ draft, isNew, isIdea, altInfo = null, onSplitAlt, onToIdeas, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap, files = [], onAddFile, onRemoveFile }) {
+export function EditModal({ draft, locating, isNew, isIdea, altInfo = null, onSplitAlt, onToIdeas, cities, days, fxCur, tripTz, onChange, onSave, onDelete, onClose, onPickMap, files = [], onAddFile, onRemoveFile }) {
   const set = (patch) => onChange({ ...draft, ...patch });
   const num = (v) => (v === '' || v == null ? null : Number(v));
   const valid = draft.title?.trim() && (isIdea || draft.day);
@@ -229,7 +210,7 @@ export function EditModal({ draft, isNew, isIdea, altInfo = null, onSplitAlt, on
           {!isNew && !isIdea && <button onClick={onToIdeas} title="Tira do dia e guarda na lista de ideias">Mover para ideias</button>}
           <span className="spacer" />
           <button onClick={onClose}>Cancelar</button>
-          <button className="primary" disabled={!valid} onClick={onSave}>Salvar</button>
+          <button className="primary" disabled={!valid || locating} onClick={onSave}>{locating ? 'Procurando no mapa…' : 'Salvar'}</button>
         </>
       }
     >
@@ -348,7 +329,8 @@ export function EditModal({ draft, isNew, isIdea, altInfo = null, onSplitAlt, on
           <GeocodeBox
             key={draft.location || draft.title}
             initial={draft.location || draft.title}
-            placeholder="Buscar pelo endereço ou nome do lugar"
+            placeholder="Endereço, nome, link do Google Maps ou “lat, lng”"
+            hint
             onPick={(lat, lng, name) => set({ lat, lng, location: draft.location || name.split(',').slice(0, 3).join(',').trim() })}
           />
           <div className="row">
