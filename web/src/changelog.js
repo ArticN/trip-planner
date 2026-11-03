@@ -15,6 +15,16 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.48',
+    date: '2026-11-03',
+    title: 'Buscar e marcar lugares no mapa',
+    items: [
+      'A busca do mapa sugere lugares enquanto você digita, começando pelos que estão na tela e mais perto, com a distância de cada um. Setas e Enter escolhem; Enter sem escolher busca também por endereço.',
+      'Escolher um resultado põe um marcador laranja no mapa com nome, endereço e coordenadas. Dá para arrastar o marcador até o lugar certo antes de criar a atividade ou guardar como ideia.',
+      'Para marcar um ponto direto no mapa: botão direito do mouse ou tocar e segurar no celular. O app descobre o nome do lugar e mostra o mesmo cartão.',
+    ],
+  },
+  {
     version: '1.47',
     date: '2026-11-03',
     title: 'Acha o lugar no mapa sozinho',

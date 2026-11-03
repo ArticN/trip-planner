@@ -174,14 +174,14 @@ function drawLeg(group, l, accent) {
 export default function MapView({
   mode, items, alts = [], onAltPick, stays, cities, stayByDay, checkout = null, selectedId, onSelect, onEdit, editPositions, onMove,
   picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
-  photos = [], photoThumb, onPhoto, countries = '',
+  photos = [], photoThumb, onPhoto, countries = '', preview = null, onPreviewMove, onHold,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const markersRef = useRef(new Map());
   const cb = useRef({});
-  cb.current = { onAltPick, onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground, onPhoto };
+  cb.current = { onAltPick, onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground, onPhoto, onPreviewMove, onHold };
   const photoLayer = useRef(null);
   const lastFit = useRef(null);
   // atividades do dia fora da área da viagem (ex.: voo saindo de Guarulhos): não entram no mapa, só num aviso
@@ -238,8 +238,36 @@ export default function MapView({
     layerRef.current = L.layerGroup().addTo(map);
     photoLayer.current = L.layerGroup().addTo(map); // fotos do diário: camada à parte, não redesenha com o roteiro
     map.on('click', (e) => { if (cb.current.picking) cb.current.onPick?.(e.latlng.lat, e.latlng.lng); else cb.current.onBackground?.(); });
+    // botão direito no computador, ou tocar e segurar no celular: marca um ponto novo ali
+    let lastHold = 0;
+    const hold = (ll) => { if (cb.current.picking || Date.now() - lastHold < 800) return; lastHold = Date.now(); cb.current.onHold?.(ll.lat, ll.lng); };
+    map.on('contextmenu', (e) => hold(e.latlng));
+    // o Safari do iPhone não avisa o "segurar": conta o tempo do toque parado
+    const el = elRef.current;
+    let t = null; let start = null;
+    const stop = () => { clearTimeout(t); t = null; };
+    el.addEventListener('touchstart', (e) => {
+      stop();
+      if (e.touches.length !== 1 || e.target.closest?.('.leaflet-marker-icon, .leaflet-control, button, a')) return;
+      const p = e.touches[0];
+      start = { x: p.clientX, y: p.clientY };
+      t = setTimeout(() => {
+        t = null;
+        const r = el.getBoundingClientRect();
+        hold(map.containerPointToLatLng([start.x - r.left, start.y - r.top]));
+      }, 600);
+    }, { passive: true });
+    el.addEventListener('touchmove', (e) => { const p = e.touches[0]; if (t && p && Math.hypot(p.clientX - start.x, p.clientY - start.y) > 10) stop(); }, { passive: true });
+    el.addEventListener('touchend', stop, { passive: true });
+    el.addEventListener('touchcancel', stop, { passive: true });
     mapRef.current = map;
-    if (centerRef) centerRef.current = () => { const c = map.getCenter(); return { lat: c.lat, lng: c.lng, zoom: map.getZoom() }; };
+    if (centerRef) {
+      centerRef.current = () => {
+        const c = map.getCenter();
+        const b = map.getBounds();
+        return { lat: c.lat, lng: c.lng, zoom: map.getZoom(), bounds: [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].map((v) => +v.toFixed(5)) };
+      };
+    }
     setTimeout(() => map.invalidateSize(), 50);
     const ro = new ResizeObserver(() => map.invalidateSize());
     ro.observe(elRef.current);
@@ -524,6 +552,26 @@ export default function MapView({
         .addTo(g);
     });
   }, [photoKey, mode]);
+
+  // marcador novo (resultado da busca ou ponto marcado à mão): arrastável, para acertar antes de cadastrar
+  const previewRef = useRef(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!preview) { previewRef.current?.remove(); previewRef.current = null; return; }
+    const ll = [preview.lat, preview.lng];
+    if (!previewRef.current) {
+      const icon = L.divIcon({ className: 'preview-pin', html: '<span></span>', iconSize: [30, 42], iconAnchor: [15, 40] });
+      previewRef.current = L.marker(ll, { icon, draggable: true, autoPan: true, zIndexOffset: 2000, keyboard: false })
+        .on('dragend', (e) => { const p = e.target.getLatLng(); cb.current.onPreviewMove?.(p.lat, p.lng); })
+        .addTo(map);
+    } else if (!previewRef.current.getLatLng().equals(ll)) previewRef.current.setLatLng(ll);
+    if (preview.fly) {
+      const mb = map.options.maxBounds;
+      if (!mb || mb.contains(ll)) map.flyTo(ll, Math.max(map.getZoom(), 16), { duration: 0.7 });
+    }
+  }, [preview?.lat, preview?.lng, preview?.nonce]);
+  useEffect(() => () => previewRef.current?.remove(), []);
 
   useEffect(() => {
     const mb = mapRef.current?.options.maxBounds;

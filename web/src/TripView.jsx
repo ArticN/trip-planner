@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { OSM_LANG, osmName } from './osmName.js';
 import { api } from './api.js';
 import { useTripChanged } from './offline/index.js';
 import { openOfflinePanel } from './OfflinePanel.jsx';
@@ -18,10 +17,11 @@ import { hasPlace, autoCaption } from './photoMeta.js';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch, Nearby } from './MapSearch.jsx';
 import PinPanel from './PinPanel.jsx';
+import PlaceCard from './PlaceCard.jsx';
 import { fetchRate, roundRate } from './fx.js';
 import { ShoppingModal } from './Shopping.jsx';
 import { useTripPlace } from './geo.js';
-import { autoLocate } from './geocode.js';
+import { autoLocate, describePoint } from './geocode.js';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal, RemindersModal } from './Modals.jsx';
 import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
@@ -41,6 +41,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
+  // marcador novo no mapa (busca, "Perto daqui", + No mapa ou tocar e segurar), antes de virar atividade/ideia
+  const [preview, setPreview] = useState(null);
+  useEffect(() => { if (selectedId != null) setPreview(null); }, [selectedId]);
   // celular: o roteiro é um painel deslizante por cima do mapa
   const sheet = useSheet('half');
   const isMobile = useIsMobile();
@@ -221,6 +224,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape' && picking) { setPicking(false); return; }
+      if (e.key === 'Escape' && preview && !editing && !modal) { setPreview(null); return; }
       const tag = document.activeElement?.tagName;
       if (modal || editing || ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
       if (sel === 'analise' || sel === 'ingressos' || sel === 'diario' || sel === 'notas') return; // páginas cheias têm os próprios atalhos
@@ -230,7 +234,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [step, modal, editing, picking, sel]);
+  }, [step, modal, editing, picking, sel, preview]);
 
   const toggleKind = (k) => setKinds((prev) => {
     const n = new Set(prev);
@@ -458,23 +462,39 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     (data.cities || []).filter((c) => c.key !== 'transito' && hasCoords(c)).forEach((c) => { const d = haversine(c, { lat, lng }); if (d < bd) { bd = d; best = c.key; } });
     return best || '';
   };
-  const quickOpen = (lat, lng, name, address, kind = 'sight') => {
+  const quickOpen = (lat, lng, name, address, kind = 'sight', asIdea = sel === 'trip') => {
     const base = { title: name || '', kind, city: nearestCity(lat, lng), location: address || '', details: '', cost: null, lat: +lat.toFixed(5), lng: +lng.toFixed(5) };
-    if (sel === 'trip') setEditing({ draft: base, isNew: true, idea: true });
+    if (asIdea) setEditing({ draft: base, isNew: true, idea: true });
     else setEditing({ draft: { ...base, day: sel, start: null, end: null, transport: '', done: 0 }, isNew: true });
   };
-  const quickAddAt = async (lat, lng) => {
+  // põe o marcador novo; sem nome, pergunta ao OpenStreetMap o que tem ali
+  const placeAt = (lat, lng, info = {}) => {
+    const id = ++nonce.current;
+    const p = { lat, lng, title: '', local: '', address: '', kind: 'sight', ...info, nonce: id, loading: !info.title };
+    setSelectedId(null);
+    setPreview(p);
+    if (!info.title) {
+      describePoint(lat, lng).then((d) => setPreview((cur) => (cur?.nonce === id ? { ...cur, ...d, loading: false } : cur)));
+    }
+  };
+  const movePreview = (lat, lng) => {
+    setPreview((cur) => {
+      if (!cur) return cur;
+      const keep = cur.title && cur.via !== 'Ponto marcado no mapa';
+      const id = keep ? cur.nonce : ++nonce.current;
+      if (!keep) describePoint(lat, lng).then((d) => setPreview((c) => (c?.nonce === id ? { ...c, ...d, loading: false } : c)));
+      return { ...cur, lat, lng, fly: false, approx: false, nonce: id, ...(keep ? {} : { loading: true }) };
+    });
+  };
+  const addPreview = (type) => {
+    const p = preview;
+    if (!p) return;
+    setPreview(null);
+    quickOpen(p.lat, p.lng, p.title, p.address, p.kind || 'sight', type === 'idea');
+  };
+  const quickAddAt = (lat, lng) => {
     setQuickAdd(false);
-    let name = ''; let address = '';
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&${OSM_LANG}&lat=${lat}&lon=${lng}`);
-      if (r.ok) {
-        const j = await r.json();
-        name = j.name ? osmName(j).title : '';
-        address = (j.display_name || '').split(',').slice(name ? 1 : 0, name ? 3 : 2).join(',').trim();
-      }
-    } catch { /* sem rede: abre só com a posição */ }
-    quickOpen(lat, lng, name, address);
+    placeAt(lat, lng, { via: 'Ponto marcado no mapa' });
   };
 
   const onMapPick = (lat, lng) => {
@@ -778,6 +798,9 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             editPositions={editPositions}
             onMove={onMarkerMove}
             picking={picking || quickAdd}
+            preview={preview}
+            onPreviewMove={movePreview}
+            onHold={(lat, lng) => { if (!editPositions) placeAt(lat, lng, { via: 'Ponto marcado no mapa' }); }}
             onPick={onMapPick}
             ideas={sel === 'trip' ? data.ideas : []}
             onIdea={openIdea}
@@ -791,7 +814,10 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             photoThumb={api.thumbUrl}
             onPhoto={(p) => showPhoto(p.id)}
           />
-          {pinned && !editPositions && !picking && !quickAdd && (
+          {preview && !picking && (
+            <PlaceCard place={preview} day={sel === 'trip' ? null : sel} onAdd={addPreview} onClose={() => setPreview(null)} />
+          )}
+          {pinned && !preview && !editPositions && !picking && !quickAdd && (
             <PinPanel
               a={pinned} n={mapItems.find((x) => x.id === pinned.id)?.n} group={mapItems.find((x) => x.id === pinned.id)} onAltStep={stepAlt} cityMap={cityMap} fx={fx} tripTz={trip.tz} files={filesOf('activity', pinned.id)}
               photos={(data.photos || []).filter((p) => p.activity_id === pinned.id)} photoThumb={api.thumbUrl} onPhoto={showPhoto}
@@ -799,12 +825,15 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             />
           )}
           <div className="map-tools">
-            <MapSearch onPick={(lat, lng, name, address) => { setFlyTarget({ lat, lng, nonce: ++nonce.current }); quickOpen(lat, lng, name, address); }} />
+            <MapSearch
+              getView={() => mapCenter.current?.()}
+              onPick={(r) => placeAt(r.lat, r.lng, { title: r.title, local: r.local, address: (r.name || '').split(',').slice(1, 4).join(',').trim(), approx: !!r.approx, via: r.exact ? 'Coordenadas ou link do Google' : 'Resultado da busca', fly: true })}
+            />
             <Nearby
               getOrigin={() => { const a = (data.activities || []).find((x) => x.id === selectedId); return hasCoords(a) ? { ...a, label: a.title } : mapCenter.current?.(); }}
-              onPick={(lat, lng, name, address, kind) => { setFlyTarget({ lat, lng, nonce: ++nonce.current }); quickOpen(lat, lng, name, address, kind); }}
+              onPick={(lat, lng, name, address, kind) => placeAt(lat, lng, { title: name, address, kind, via: 'Perto daqui', fly: true })}
             />
-            <button className={quickAdd ? 'on' : ''} onClick={() => setQuickAdd((v) => !v)} title={sel === 'trip' ? 'Clique no mapa para criar uma ideia ali' : 'Clique no mapa para criar uma atividade ali'}>{quickAdd ? 'Clique no mapa…' : '+ No mapa'}</button>
+            <button className={quickAdd ? 'on' : ''} onClick={() => setQuickAdd((v) => !v)} title="Toque no mapa para pôr um marcador ali (ou toque e segure no mapa a qualquer hora)">{quickAdd ? 'Toque no mapa…' : '+ Marcar ponto'}</button>
             {sel !== 'trip' && (
               <button className={labelNumbers ? 'on' : ''} onClick={() => setLabelNumbers((v) => !v)} title="Alternar entre números e ícones">{labelNumbers ? 'Números' : 'Ícones'}</button>
             )}
