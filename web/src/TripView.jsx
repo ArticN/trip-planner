@@ -21,6 +21,7 @@ import PinPanel from './PinPanel.jsx';
 import { fetchRate, roundRate } from './fx.js';
 import { ShoppingModal } from './Shopping.jsx';
 import { useTripPlace } from './geo.js';
+import { autoLocate } from './geocode.js';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal, RemindersModal } from './Modals.jsx';
 import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
@@ -283,8 +284,29 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     } catch { say('Erro ao mover'); }
   };
 
+  // atividade sem posição no mapa: ao salvar, procura sozinha pelo Local (endereço, link do Google
+  // Maps ou coordenadas) e pelo nome do lugar perto da cidade
+  const locateDraft = async (draft) => {
+    if (hasCoords(draft) || ['free', 'move', 'flight'].includes(draft.kind) || navigator.onLine === false) return { draft };
+    if (!String(draft.location || '').trim() && !String(draft.title || '').trim()) return { draft };
+    const c = cityMap[draft.city || railCity(draft.day)];
+    const near = hasCoords(c) ? { lat: c.lat, lng: c.lng } : null;
+    if (!near && !String(draft.location || '').trim()) return { draft }; // só o nome, sem cidade: arriscado demais
+    setEditing((e) => (e ? { ...e, locating: true } : e));
+    try {
+      const found = await autoLocate({ title: draft.title, location: draft.location, near });
+      return found ? { draft: { ...draft, lat: found.lat, lng: found.lng }, found } : { draft, missed: true };
+    } catch { return { draft, missed: true }; } finally { setEditing((e) => (e ? { ...e, locating: false } : e)); }
+  };
+  const locateNote = ({ found, missed }) => (found
+    ? (found.approx ? `Posição aproximada pelo ${found.via}: confira no mapa` : `Posição achada pelo ${found.via}`)
+    : missed ? 'Salvo sem posição: não achei no mapa. Cole o link ou as coordenadas do Google Maps em Posição no mapa.' : '');
+
   const saveEdit = async () => {
-    const { draft: { _pending: pending = [], _altOf: altOf = null, ...draft }, isNew } = editing;
+    const { draft: { _pending: pending = [], _altOf: altOf = null, ...first }, isNew } = editing;
+    const located = await locateDraft(first);
+    const { draft } = located;
+    const note = locateNote(located);
     const sendPending = async (owner, id) => {
       for (const f of pending) {
         try { const up = await api.uploadFile(owner, id, f); setData((d) => ({ ...d, files: [...(d.files || []), up] })); } catch (e) { say(`Não consegui anexar ${f.name}: ${e.message}`); }
@@ -301,6 +323,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           setData((d) => ({ ...d, ideas: d.ideas.map((x) => (x.id === saved.id ? saved : x)) }));
         }
         setEditing(null);
+        if (note) say(note);
       } catch { say('Erro ao salvar'); }
       return;
     }
@@ -317,7 +340,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         const saved = await api.updateActivity(draft.id, draft);
         setData((d) => ({ ...d, activities: d.activities.map((a) => (a.id === saved.id ? saved : a)) }));
       }
-      if (draft.day !== sel && sel !== 'trip') say(`Salvo no dia ${fmtDay(draft.day)}`);
+      if (draft.day !== sel && sel !== 'trip') say(`Salvo no dia ${fmtDay(draft.day)}${note ? `. ${note}` : ''}`);
+      else if (note) say(note);
       setEditing(null);
     } catch (e) { say('Erro ao salvar'); }
   };
@@ -828,7 +852,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             return g.length > 1 ? { index: g.findIndex((x) => x.id === draft.id) + 1, count: g.length } : null;
           })()}
           onSplitAlt={splitAlt}
-          draft={editing.draft} isNew={editing.isNew} isIdea={!!editing.idea} onToIdeas={toIdeas} cities={data.cities} days={days} fxCur={fx.cur}
+          draft={editing.draft} locating={!!editing.locating} isNew={editing.isNew} isIdea={!!editing.idea} onToIdeas={toIdeas} cities={data.cities} days={days} fxCur={fx.cur}
           onChange={(d) => setEditing((e) => ({ ...e, draft: d }))}
           onSave={saveEdit} onDelete={deleteEdit} onClose={() => setEditing(null)}
           onPickMap={() => setPicking(true)}

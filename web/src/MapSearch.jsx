@@ -1,51 +1,44 @@
 import { useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
-import { OSM_LANG, osmName } from './osmName.js';
+import { findPlace, parseCoords, parseMapsLink } from './geocode.js';
 
 // busca de lugares sobre o mapa (OpenStreetMap Nominatim); escolher um resultado abre o cadastro já preenchido
 export function MapSearch({ onPick }) {
   const [q, setQ] = useState('');
-  const [res, setRes] = useState(null);
+  const [found, setFound] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const inputRef = useRef(null);
 
-  const search = async () => {
-    if (!q.trim()) return;
-    setBusy(true); setErr(''); setRes(null);
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&${OSM_LANG}&q=${encodeURIComponent(q)}`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setRes(await r.json());
-    } catch (e) {
-      setErr(`Não consegui buscar (${e.message}).`);
-    } finally { setBusy(false); }
+  const search = async (text = q) => {
+    if (!text.trim()) return;
+    setBusy(true); setErr(''); setFound(null);
+    try { setFound(await findPlace(text)); } catch (e) { setErr(`Não consegui buscar (${e.message}).`); } finally { setBusy(false); }
   };
-  const close = () => { setRes(null); setErr(''); };
+  const close = () => { setFound(null); setErr(''); };
 
   return (
     <div className="map-search">
       <input
-        ref={inputRef} value={q} placeholder="Buscar lugar para adicionar"
+        ref={inputRef} value={q} placeholder="Buscar lugar, endereço ou link do Google Maps"
         onChange={(e) => setQ(e.target.value)}
+        onPaste={(e) => { const t = e.clipboardData.getData('text'); if (parseCoords(t) || parseMapsLink(t)) { e.preventDefault(); setQ(t.trim()); search(t); } }}
         onKeyDown={(e) => { if (e.key === 'Enter') search(); if (e.key === 'Escape') { close(); inputRef.current?.blur(); } }}
       />
       {busy && <div className="ms-pop muted small">Buscando…</div>}
       {err && <div className="ms-pop warn soft">{err}</div>}
-      {res && (
+      {found && (
         <ul className="ms-pop">
-          {res.length === 0 && <li className="muted small">Nada encontrado. Inclua a cidade no nome.</li>}
-          {res.map((r) => {
-            const { title, local } = osmName(r);
-            return (
-              <li key={r.place_id}>
-                <button onClick={() => { const parts = r.display_name.split(','); onPick(parseFloat(r.lat), parseFloat(r.lon), title, parts.slice(1, 3).join(',').trim()); close(); setQ(''); }}>
-                  <b>{title}{local && <small> {local}</small>}</b>
-                  <span>{r.display_name}</span>
-                </button>
-              </li>
-            );
-          })}
+          {found.results.length === 0 && <li className="muted small">Nada encontrado. Inclua a cidade, ou cole o link ou as coordenadas do Google Maps.</li>}
+          {found.note && <li className="muted small">{found.note}</li>}
+          {found.results.map((r) => (
+            <li key={r.key}>
+              <button onClick={() => { onPick(r.lat, r.lng, r.title, (r.name || '').split(',').slice(1, 3).join(',').trim()); close(); setQ(''); }}>
+                <b>{r.title}{r.local && <small> {r.local}</small>}</b>
+                <span>{r.detail}</span>
+              </button>
+            </li>
+          ))}
         </ul>
       )}
     </div>

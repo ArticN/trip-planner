@@ -561,6 +561,30 @@ app.use('/api', h(async (req, res, next) => {
 app.param('id', (req, _res, next, v) => { req.tripId = Number(v); next(); });
 const needTrip = h(async (req, res, next) => ((await db.get('SELECT 1 AS ok FROM trips WHERE id = ?', [req.tripId])) ? next() : res.status(404).json({ error: 'viagem não encontrada' })));
 
+// ── link curto do Google Maps (maps.app.goo.gl/…) → link longo, que traz as coordenadas.
+// O navegador não consegue seguir esse redirecionamento (CORS), então o servidor segue, só entre
+// endereços do Google, e devolve o link final sem baixar a página.
+const GOOGLE_HOST = /^(maps\.app\.goo\.gl|goo\.gl|g\.co|(?:[a-z0-9-]+\.)*google\.(?:com|[a-z]{2}|com?\.[a-z]{2}))$/i;
+export const isGoogleMapsUrl = (s) => {
+  try { const u = new URL(s); return u.protocol === 'https:' && GOOGLE_HOST.test(u.hostname); } catch { return false; }
+};
+app.get('/api/geo/expand', h(async (req, res) => {
+  let url = String(req.query.url || '').trim();
+  if (!isGoogleMapsUrl(url)) return res.status(400).json({ error: 'só links do Google Maps' });
+  for (let hop = 0; hop < 6; hop++) {
+    const r = await fetch(url, { redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 (trip-planner)' }, signal: AbortSignal.timeout(8000) })
+      .catch((e) => { throw Object.assign(new Error(e.message), { publicMessage: 'não consegui abrir o link do Google' }); });
+    const next = r.status >= 300 && r.status < 400 && r.headers.get('location');
+    r.body?.cancel?.().catch(() => {});
+    if (!next) break;
+    const abs = new URL(next, url).toString();
+    if (!isGoogleMapsUrl(abs)) break;
+    url = abs;
+  }
+  res.setHeader('Cache-Control', 'private, max-age=86400');
+  res.json({ url });
+}));
+
 // ── viagens
 app.get('/api/trips', h(async (_req, res) => {
   res.json(await db.all(`

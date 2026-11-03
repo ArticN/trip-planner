@@ -15,6 +15,16 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.47',
+    date: '2026-11-03',
+    title: 'Acha o lugar no mapa sozinho',
+    items: [
+      'Ao salvar uma atividade que ainda não está no mapa, o app procura a posição pelo endereço e pelo nome do lugar, perto da cidade da atividade. Funciona com endereços copiados do Google, mesmo com CEP, “1 Chome−17−5” e nome do prédio em japonês.',
+      'Em Posição no mapa e na busca sobre o mapa, dá para colar um link do Google Maps (inclusive o curto, de Compartilhar › Copiar link) ou as coordenadas (“35.6586, 139.7454”) e o ponto já aparece.',
+      'Quando só acha o bairro, avisa que a posição é aproximada; quando não acha nada, a atividade é salva assim mesmo e o aviso explica como colar o link do Google.',
+    ],
+  },
+  {
     version: '1.46',
     date: '2026-11-02',
     title: 'Funciona e edita sem internet',

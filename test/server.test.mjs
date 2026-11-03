@@ -115,3 +115,14 @@ test('backup exportado não leva os tokens secretos', async () => {
   assert.equal(e.json.trip.share_token, undefined);
   assert.equal(e.json.shares, undefined);
 });
+
+test('link curto do Google: só segue endereços do Google', async () => {
+  assert.equal((await call('GET', '/api/geo/expand?url=' + encodeURIComponent('https://example.com/x'))).status, 400);
+  assert.equal((await call('GET', '/api/geo/expand?url=' + encodeURIComponent('http://maps.app.goo.gl/x'))).status, 400);
+  const { isGoogleMapsUrl } = await import('../server/app.js');
+  assert.ok(isGoogleMapsUrl('https://maps.app.goo.gl/AbC'));
+  assert.ok(isGoogleMapsUrl('https://www.google.com/maps/place/x'));
+  assert.ok(isGoogleMapsUrl('https://www.google.co.jp/maps/@1,2'));
+  assert.ok(!isGoogleMapsUrl('https://google.com.evil.io/maps'));
+  assert.ok(!isGoogleMapsUrl('https://127.0.0.1/'));
+});

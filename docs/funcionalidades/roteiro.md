@@ -26,7 +26,15 @@ Campos do editor:
 | Trecho (voo, trem, ônibus) | Só em Voo e Deslocamento: número, códigos, escalas e fusos. Ver [voos](voos.md). |
 | Links e comprovantes, Anexos | Ver [notas, links e anexos](organizacao.md#notas-links-e-anexos). |
 | Depois de visitar | 1 a 5 estrelas e um comentário de como foi. Aparece no roteiro e no painel do pin. |
-| Posição no mapa | **Buscar** (já vem com o endereço preenchido), **Marcar no mapa** ou digitar latitude e longitude. |
+| Posição no mapa | **Buscar** aceita endereço, nome do lugar, link do Google Maps (longo ou curto, `maps.app.goo.gl`) ou coordenadas coladas (`35.6586, 139.7454` ou `35°39'31.0"N 139°44'43.4"E`). Também dá para **Marcar no mapa** ou digitar latitude e longitude. |
+
+Ao **Salvar** uma atividade sem posição, o app procura sozinho: primeiro o que estiver em Endereço (coordenadas, link
+do Google Maps ou o endereço em si), depois o nome do lugar perto da cidade da atividade, e por último o bairro do
+endereço (aí avisa que a posição é aproximada). Endereços copiados do Google com CEP, `1 Chome−17−5` e nome do prédio
+em japonês funcionam: o app tira esses pedaços quando o endereço completo não é achado. Limitações: precisa de
+internet (sem internet a atividade é salva sem posição), usa o OpenStreetMap (Nominatim e Photon), que às vezes não tem
+lojas pequenas, e não procura em Voo, Deslocamento e Tempo livre. Quando não acha, o aviso pede para colar o link ou as
+coordenadas do Google Maps.
 
 No roteiro, cada atividade é um "ingresso": horário no canhoto, título, local, detalhes, notas, links, anexos,
 **Como chegar** (rota no Google Maps) e etiquetas (tipo, duração, transporte, custo). O círculo à direita marca como
