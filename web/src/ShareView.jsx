@@ -6,10 +6,12 @@ import { setTripAccent } from './theme.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import PinPanel from './PinPanel.jsx';
 import Metro from './Metro.jsx';
-import Analysis from './Analysis.jsx';
-import Tickets from './Tickets.jsx';
-import Journal from './Journal.jsx';
+import { lazyPage } from './lazyPage.jsx';
 import { KINDS, SLOTS, orderBySlots, principals, collapseAlts, rangeDays, dayNum, dayWeek, fmtDay, fmtDayLong, makeFx } from './util.js';
+
+const Analysis = lazyPage(() => import('./Analysis.jsx'));
+const Tickets = lazyPage(() => import('./Tickets.jsx'));
+const Journal = lazyPage(() => import('./Journal.jsx'));
 
 const noop = () => {};
 

@@ -2,6 +2,8 @@
 // - até 16 dias à frente (e até 3 meses atrás): previsão/observado do próprio dia
 // - mais longe no futuro: média do mesmo período nos 3 anos anteriores ("como costuma ser")
 // - antes disso: o tempo que fez, do arquivo histórico
+import { timeoutSignal } from './util.js';
+
 const DAY = 86400000;
 const iso = (t) => new Date(t).toISOString().slice(0, 10);
 const shiftYear = (d, n) => `${Number(d.slice(0, 4)) + n}${d.slice(4)}`;
@@ -9,7 +11,8 @@ const addDays = (d, n) => iso(new Date(`${d}T12:00:00Z`).getTime() + n * DAY);
 
 const DAILY = 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum';
 async function get(url) {
-  const r = await fetch(url);
+  // sem resposta em 10 s, desiste (internet ruim no celular não deixa o aviso do tempo carregando para sempre)
+  const r = await fetch(url, { signal: timeoutSignal(10000) });
   if (!r.ok) throw new Error(`Open-Meteo ${r.status}`);
   return r.json();
 }

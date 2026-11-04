@@ -742,7 +742,7 @@ app.post('/api/trips/:id/checklist', needTrip, h(async (req, res) => {
 app.put('/api/checklist/:cid', h(async (req, res) => {
   const cur = await db.get('SELECT * FROM checklist WHERE id = ?', [Number(req.params.cid)]);
   if (!cur) return res.status(404).json({ error: 'não encontrado' });
-  const row = { ...cur, ...req.body, done: (req.body.done ?? cur.done) ? 1 : 0 };
+  const row = { ...cur, ...req.body, done: (req.body?.done ?? cur.done) ? 1 : 0 };
   await db.run(`UPDATE checklist SET ${setList(CHECK_FIELDS)} WHERE id = ?`, [...pick(row, CHECK_FIELDS), cur.id]);
   res.json(await db.get('SELECT * FROM checklist WHERE id = ?', [cur.id]));
 }));
@@ -871,8 +871,8 @@ app.put('/api/activities/:id', h(async (req, res) => {
   const id = Number(req.params.id);
   const cur = await db.get('SELECT * FROM activities WHERE id = ?', [id]);
   if (!cur) return res.status(404).json({ error: 'não encontrada' });
-  const row = { ...cur, ...req.body, done: (req.body.done ?? cur.done) ? 1 : 0 };
-  if (row.day !== cur.day && !('sort' in req.body)) row.sort = await nextSort('activities', 'trip_id = ? AND day = ?', [cur.trip_id, row.day]);
+  const row = { ...cur, ...req.body, done: (req.body?.done ?? cur.done) ? 1 : 0 };
+  if (row.day !== cur.day && !('sort' in (req.body || {}))) row.sort = await nextSort('activities', 'trip_id = ? AND day = ?', [cur.trip_id, row.day]);
   await db.run(`UPDATE activities SET ${setList(ACT_FIELDS)} WHERE id = ?`, [...pick(row, ACT_FIELDS), id]);
   res.json(await db.get('SELECT * FROM activities WHERE id = ?', [id]));
 }));
@@ -902,8 +902,8 @@ async function saveFile(req, res, { tripId, activityId = null, ideaId = null, ch
   res.status(201).json(await db.get(`SELECT ${FILE_COLS} FROM files WHERE id = ?`, [r.lastInsertRowid]));
 }
 const rawFile = express.raw({ type: () => true, limit: MAX_FILE });
-app.post('/api/:kind(activities|ideas)/:oid/files', rawFile, h(async (req, res) => {
-  const isAct = req.params.kind === 'activities';
+app.post(['/api/activities/:oid/files', '/api/ideas/:oid/files'], rawFile, h(async (req, res) => {
+  const isAct = req.path.startsWith('/api/activities/');
   const owner = await db.get(`SELECT id, trip_id FROM ${isAct ? 'activities' : 'ideas'} WHERE id = ?`, [Number(req.params.oid)]);
   if (!owner) return res.status(404).json({ error: 'não encontrada' });
   return saveFile(req, res, { tripId: owner.trip_id, activityId: isAct ? owner.id : null, ideaId: isAct ? null : owner.id });

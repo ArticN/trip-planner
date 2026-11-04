@@ -15,6 +15,18 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.51',
+    date: '2026-11-04',
+    title: 'Mais rápido e mais leve por dentro',
+    items: [
+      'O app abre mais rápido: Diário, Análise, Ingressos, Notas e Nova viagem só são baixados quando você abre, e sem internet continuam funcionando.',
+      'Ocupa menos espaço no celular: a cada atualização, os arquivos da versão anterior são apagados do aparelho. Os mapas offline e as viagens guardadas não são tocados.',
+      'Com internet ruim, câmbio e previsão do tempo desistem depois de alguns segundos em vez de ficar carregando.',
+      'O mapa traduzido não fica mais preso no OpenStreetMap comum quando você troca de camada rápido.',
+      'Bibliotecas atualizadas para as versões mais novas (React 19, Vite 8, Express 5, MapLibre 6.16), sem nenhuma falha de segurança conhecida.',
+    ],
+  },
+  {
     version: '1.50',
     date: '2026-11-04',
     title: 'Explorar uma área do mapa',

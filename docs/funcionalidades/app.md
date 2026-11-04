@@ -47,7 +47,17 @@ A faixa embaixo (no celular, em cima) mostra o estado: "Sem internet", "N ediç�
 
 O que precisa de internet: criar, duplicar, importar ou apagar viagem; enviar anexos e fotos; links de visitante e
 agenda; previsão do tempo, câmbio, busca de lugares, "Explorar área" e Wikipédia. Sem conexão, esses botões avisam
-"Isso precisa de internet".
+"Isso precisa de internet". Com internet muito ruim, câmbio e previsão do tempo desistem depois de alguns segundos em vez
+de ficar carregando.
+
+### Espaço usado no aparelho
+
+As telas maiores (Diário, Análise, Ingressos, Notas, Nova viagem e o link de visitante) são baixadas quando abertas,
+então o app abre mais rápido; sem internet elas já estão no aparelho, porque o app guarda todos os arquivos na
+instalação. A cada versão nova, os arquivos da versão anterior são apagados do aparelho (sem internet nada é apagado).
+Isso evita que o espaço usado cresça a cada atualização, o que podia levar o navegador a apagar tudo de uma vez,
+inclusive os mapas offline. Se uma versão nova sair enquanto o app está aberto, ele recarrega sozinho ao abrir uma
+dessas telas.
 
 ### Como as edições ficam seguras
 

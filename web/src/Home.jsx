@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
-import NewTripWizard from './NewTrip.jsx';
+import { lazyPage } from './lazyPage.jsx';
 import { daysBetween, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
 import AppearanceModal from './Look.jsx';
 import Mark from './Mark.jsx';
 import WhatsNew from './WhatsNew.jsx';
 import WorldMap from './WorldMap.jsx';
+
+const NewTripWizard = lazyPage(() => import('./NewTrip.jsx'), null);
 
 const coverUrl = (c) => `url("${String(c).replace(/"/g, '%22')}")`;
 

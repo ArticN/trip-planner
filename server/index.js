@@ -11,7 +11,7 @@ const PORT = Number(process.env.PORT || 3000);
 const DIST = path.join(ROOT, 'dist');
 if (fs.existsSync(DIST)) {
   app.use(express.static(DIST));
-  app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
+  app.get('/{*rota}', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
 } else {
   app.get('/', (_req, res) => res.send('Front-end não compilado. Rode: npm run build (ou npm run dev:web).'));
 }

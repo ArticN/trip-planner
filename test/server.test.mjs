@@ -29,7 +29,8 @@ before(async () => {
   await new Promise((r) => { server = app.listen(0, r); });
   base = `http://127.0.0.1:${server.address().port}`;
 });
-after(() => { server?.close(); fs.rmSync(dir, { recursive: true, force: true }); });
+// no Windows o arquivo do banco continua aberto até o processo sair (EBUSY): a pasta temporária fica para o sistema limpar
+after(() => { server?.close(); try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* arquivo em uso */ } });
 
 test('sem login a API recusa; senha errada recusa; senha certa entra', async () => {
   assert.equal((await call('GET', '/api/trips')).status, 401);
@@ -154,4 +155,22 @@ test('arquivos da página de ingressos: soltos ou de um item da checklist, priva
   await call('DELETE', `/api/checklist/${c.json.id}`);
   const d2 = await call('GET', `/api/trips/${tripId}`);
   assert.equal(d2.json.files.find((f) => f.id === ligado.id).check_id, null);
+});
+
+// rotas que mudaram de formato no Express 5 (parâmetro com extensão, rota com alternativas, PUT sem corpo)
+test('Express 5: agenda .ics, anexo de atividade/ideia e PUT sem corpo', async () => {
+  const t = (await call('GET', `/api/trips/${tripId}`)).json;
+  const act = t.activities[0];
+  assert.ok(act, 'a viagem de teste tem atividade');
+  assert.equal((await fetch(`${base}/api/cal/aaaaaaaaaaaaaaaaaaaa.ics`)).status, 404);
+  const { cal_token: tok } = (await call('POST', `/api/trips/${tripId}/calendar`)).json;
+  const ics = await fetch(`${base}/api/cal/${tok}.ics`);
+  assert.equal(ics.status, 200);
+  assert.match(await ics.text(), /BEGIN:VCALENDAR/);
+  const up = await fetch(`${base}/api/activities/${act.id}/files`, { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/pdf', 'X-File-Name': 'a.pdf' }, body: Buffer.from('%PDF-1.4') });
+  assert.equal(up.status, 201);
+  const bad = await fetch(`${base}/api/outra/${act.id}/files`, { method: 'POST', headers: { Cookie: cookie }, body: 'x' });
+  assert.equal(bad.status, 404);
+  const put = await fetch(`${base}/api/activities/${act.id}`, { method: 'PUT', headers: { Cookie: cookie } });
+  assert.ok(put.status < 500, `PUT sem corpo não pode dar erro do servidor (${put.status})`);
 });

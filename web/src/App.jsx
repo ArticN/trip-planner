@@ -3,9 +3,11 @@ import Home from './Home.jsx';
 import TripView from './TripView.jsx';
 import Login from './Login.jsx';
 import Setup, { NoPasswordBar } from './Setup.jsx';
-import ShareView from './ShareView.jsx';
+import { lazyPage } from './lazyPage.jsx';
 import { api } from './api.js';
 import { SyncBar } from './OfflinePanel.jsx';
+
+const ShareView = lazyPage(() => import('./ShareView.jsx'), 'Carregando roteiro…');
 
 // rotas por hash: #/ (viagens) · #/t/<id> (visão geral) · #/t/<id>/<aaaa-mm-dd> (dia) · #/t/<id>/analise · #/t/<id>/ingressos · #/t/<id>/diario · #/t/<id>/notas
 function parseHash() {
