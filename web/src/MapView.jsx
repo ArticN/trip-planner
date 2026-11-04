@@ -8,6 +8,9 @@ import { Icon, iconSvg } from './icons.jsx';
 import { travelLegs, parseRoute, rideColor, rideLabel, dayStart, isStraightTravel } from './travel.js';
 import { loadAirports, flightRoute } from './flights.js';
 import { loadCountries, polys } from './geo.js';
+import { CAT } from './places.js';
+
+const CAT_COLOR = (k) => CAT[k]?.color || '#888';
 
 // Leaflet 1.9: um redesenho do canvas agendado logo antes do mapa sair da tela roda depois que o canvas
 // foi destruído e lança "Cannot read properties of undefined (reading 'clearRect')" (aparece ao abrir uma
@@ -27,6 +30,7 @@ const BASE_KEY = 'trip-planner-basemap';
 
 const BASES = [
   { key: 'map', name: 'Mapa', hint: 'nomes em português', icon: <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" /> },
+  { key: 'detail', name: 'Detalhado', hint: 'lojas, restaurantes e prédios', icon: <><path d="M4 21V9l8-6 8 6v12" /><path d="M9 21v-6h6v6" /></> },
   { key: 'local', name: 'Nomes locais', hint: 'como nas placas', icon: <path d="M4 6h16M4 12h10M4 18h7M17 14l3 6M20 14l-3 6" /> },
   { key: 'topo', name: 'Relevo', hint: 'trilhas e montanhas', icon: <path d="m3 19 6-10 4 6 2-3 6 7H3z" /> },
   { key: 'sat', name: 'Satélite', hint: 'foto aérea', icon: <><circle cx="12" cy="12" r="8" /><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16" /></> },
@@ -175,13 +179,14 @@ export default function MapView({
   mode, items, alts = [], onAltPick, stays, cities, stayByDay, checkout = null, selectedId, onSelect, onEdit, editPositions, onMove,
   picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
   photos = [], photoThumb, onPhoto, countries = '', preview = null, onPreviewMove, onHold,
+  area = null, areaPlaces = [], onAreaPick, onAreaMove,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const markersRef = useRef(new Map());
   const cb = useRef({});
-  cb.current = { onAltPick, onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground, onPhoto, onPreviewMove, onHold };
+  cb.current = { onAltPick, onSelect, onEdit, onMove, onPick, picking, onIdea, onBackground, onPhoto, onPreviewMove, onHold, onAreaPick, onAreaMove };
   const photoLayer = useRef(null);
   const lastFit = useRef(null);
   // atividades do dia fora da área da viagem (ex.: voo saindo de Guarulhos): não entram no mapa, só num aviso
@@ -231,7 +236,7 @@ export default function MapView({
     const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap' });
     const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' });
     // no tema escuro o CSS inverte os tiles do OpenStreetMap (.osm-tiles)
-    basesRef.current = { map: base, local: osm, topo, sat };
+    basesRef.current = { map: base, detail: translatedBasemap('detail'), local: osm, topo, sat };
     (basesRef.current[baseKey] || base).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
@@ -572,6 +577,79 @@ export default function MapView({
     }
   }, [preview?.lat, preview?.lng, preview?.nonce]);
   useEffect(() => () => previewRef.current?.remove(), []);
+
+  // "Explorar área": o círculo, o ponto do meio (arrastável) e os lugares achados, com a cor da categoria
+  const areaRef = useRef(null);
+  const areaKey = area ? `${area.lat},${area.lng},${area.radius}` : '';
+  // espaço que o painel da lista ocupa por cima do mapa (do lado no computador, embaixo no celular)
+  const panelPad = (map) => {
+    const el = map.getContainer();
+    const r = el.getBoundingClientRect();
+    const q = el.parentElement?.querySelector('.area-panel')?.getBoundingClientRect();
+    if (!q || !q.width) return { paddingTopLeft: [30, 70], paddingBottomRight: [30, 30] };
+    if (q.width < r.width * 0.7) return { paddingTopLeft: [Math.max(30, q.right - r.left + 24), 70], paddingBottomRight: [30, 30] };
+    return { paddingTopLeft: [20, 64], paddingBottomRight: [20, Math.max(30, r.bottom - q.top + 16)] };
+  };
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return undefined;
+    if (!area) { const a = areaRef.current; a?.group.remove(); a?.dots.remove(); a?.hi?.remove(); areaRef.current = null; return undefined; }
+    if (!areaRef.current) areaRef.current = { group: L.layerGroup().addTo(map), dots: L.layerGroup().addTo(map), hi: null };
+    const { group } = areaRef.current;
+    group.clearLayers();
+    const color = accentColor();
+    const ll = [area.lat, area.lng];
+    const circle = L.circle(ll, { radius: area.radius, color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.07, interactive: false }).addTo(group);
+    const icon = L.divIcon({ className: 'area-center', html: '<span></span>', iconSize: [26, 26], iconAnchor: [13, 13] });
+    L.marker(ll, { icon, draggable: true, zIndexOffset: 1500, keyboard: false, title: 'Arraste para mudar o centro' })
+      .on('drag', (e) => circle.setLatLng(e.target.getLatLng()))
+      .on('dragend', (e) => { const p = e.target.getLatLng(); cb.current.onAreaMove?.(p.lat, p.lng); })
+      .addTo(group);
+    // espera o painel aparecer para saber quanto espaço ele tira
+    const t = setTimeout(() => { if (mapRef.current) map.fitBounds(circle.getBounds(), { ...panelPad(map), animate: true, duration: 0.6 }); }, 30);
+    return () => clearTimeout(t);
+  }, [areaKey, look]);
+  useEffect(() => () => { areaRef.current?.group.remove(); areaRef.current?.dots.remove(); areaRef.current?.hi?.remove(); }, []);
+
+  useEffect(() => {
+    const a = areaRef.current;
+    if (!a) return;
+    a.dots.clearLayers();
+    if (!area) return;
+    areaPlaces.forEach((p) => {
+      L.circleMarker([p.lat, p.lng], { radius: p.star ? 7 : 5.5, color: '#fff', weight: 1.5, fillColor: CAT_COLOR(p.cat), fillOpacity: 0.95 })
+        .bindTooltip(esc(p.name), { direction: 'top', offset: [0, -6] })
+        .on('click', (e) => { L.DomEvent.stop(e); cb.current.onAreaPick?.(p.id); })
+        .addTo(a.dots);
+    });
+  }, [areaPlaces, !!area]);
+
+  // o lugar escolhido na lista: marcador maior com o nome, e o mapa vai até ele se estiver escondido
+  const activePlace = area?.active ? areaPlaces.find((p) => p.id === area.active) : null;
+  useEffect(() => {
+    const map = mapRef.current;
+    const a = areaRef.current;
+    if (!map) return;
+    a?.hi?.remove();
+    if (a) a.hi = null;
+    if (!a || !activePlace) return;
+    const p = activePlace;
+    a.hi = L.layerGroup([
+      L.circleMarker([p.lat, p.lng], { radius: 15, stroke: false, fillColor: CAT_COLOR(p.cat), fillOpacity: 0.25, interactive: false }),
+      L.circleMarker([p.lat, p.lng], { radius: 9, color: '#fff', weight: 2.5, fillColor: CAT_COLOR(p.cat), fillOpacity: 1 })
+        .bindTooltip(esc(p.name), { permanent: true, direction: 'top', offset: [0, -10], className: 'area-tip' }),
+    ]).addTo(map);
+    const pad = panelPad(map);
+    const size = map.getSize();
+    const pt = map.latLngToContainerPoint([p.lat, p.lng]);
+    const inside = pt.x > pad.paddingTopLeft[0] && pt.y > pad.paddingTopLeft[1] && pt.x < size.x - pad.paddingBottomRight[0] && pt.y < size.y - pad.paddingBottomRight[1];
+    if (!inside) {
+      // centro da parte do mapa que fica visível, ao lado ou acima do painel
+      const cx = (pad.paddingTopLeft[0] + size.x - pad.paddingBottomRight[0]) / 2;
+      const cy = (pad.paddingTopLeft[1] + size.y - pad.paddingBottomRight[1]) / 2;
+      map.panBy([pt.x - cx, pt.y - cy], { animate: true, duration: 0.5 });
+    }
+  }, [activePlace?.id]);
 
   useEffect(() => {
     const mb = mapRef.current?.options.maxBounds;

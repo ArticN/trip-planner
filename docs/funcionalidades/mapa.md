@@ -17,13 +17,13 @@ Ferramentas do mapa (no celular ficam numa linha que desliza para o lado):
 | Botão | O que faz |
 | --- | --- |
 | Buscar lugar, endereço, link ou coordenadas | Sugere lugares enquanto você digita, primeiro os que estão na tela e mais perto. Enter busca também por endereço. Escolher um resultado põe um marcador no mapa (ver [abaixo](#adicionar-pelo-mapa)). |
-| Perto daqui | Ver [abaixo](#perto-daqui). |
+| Explorar área | Um círculo no mapa e a lista de tudo o que tem dentro dele. Ver [abaixo](#explorar-área). |
 | + Marcar ponto | Clique em qualquer ponto do mapa para pôr ali um marcador. O mesmo vale para o botão direito do mouse ou tocar e segurar no celular. |
 | Números / Ícones | No dia: pinos com o número da ordem ou com o ícone do tipo. |
 | Fotos | Aparece quando há fotos do [diário](diario.md#o-que-o-app-lê-de-cada-foto) com GPS. Mostra ou esconde as miniaturas (ver [abaixo](#fotos-do-diário)). A escolha fica salva. |
 | Hotéis | Mostra ou esconde as hospedagens. |
 | Mover pontos | No dia: arraste os pinos para corrigir a posição. Salva sozinho. |
-| Tipo de mapa (canto) | **Mapa** (nomes em português ou inglês), **Nomes locais** (como nas placas), **Relevo** e **Satélite**. A escolha fica salva. |
+| Tipo de mapa (canto) | **Mapa** (nomes em português ou inglês, visual limpo), **Detalhado** (o estilo mais completo do OpenFreeMap: ícones de lojas, restaurantes e atrações, prédios; nomes em português ou inglês; sempre claro), **Nomes locais** (o mapa padrão do openstreetmap.org, como nas placas), **Relevo** e **Satélite**. A escolha fica salva. |
 
 **Painel do pin:** tocar num pino abre horário, detalhes, notas, links, anexos, custos, **Como chegar**,
 **Google Maps**, **Marcar como feita** e **Editar**. Em pontos turísticos, compras e hospedagens,
@@ -40,21 +40,42 @@ painel do pino de uma atividade mostra as fotos ligadas a ela.
 
 ## Adicionar pelo mapa
 
-Três caminhos, todos põem um marcador laranja no mapa com um cartão que mostra o nome, o endereço e as coordenadas:
+Dois caminhos, os dois põem um marcador laranja no mapa com um cartão que mostra o nome, o endereço e as coordenadas:
 
 1. **Buscar**: digite o nome (a partir de 3 letras aparecem sugestões, as mais próximas do que está na tela primeiro, com a distância). Use as setas e Enter para escolher, ou Enter sem escolher para buscar também por endereço. Colar um link do Google Maps ou coordenadas leva direto ao ponto. Fora do Brasil, o resultado mostra o nome em português ou inglês e, ao lado, o nome local (kanji, por exemplo). No Japão, escreva em romaji ("Shirakawa-go Ogimachi") ou em japonês.
 2. **Marcar no mapa**: botão direito do mouse no lugar, tocar e segurar no celular, ou **+ Marcar ponto** e clique. O app tenta descobrir o nome e o endereço do ponto.
-3. **Perto daqui** e escolha um resultado.
 
 O marcador pode ser arrastado para acertar a posição (num ponto marcado à mão, o app busca o nome de novo). No cartão, **Criar atividade** abre o editor já preenchido para o dia aberto, e **Guardar como ideia** guarda para depois. O X ou Esc tiram o marcador.
 
 Estando num dia, vira atividade daquele dia; na visão geral, vira ideia. A cidade é escolhida pela mais próxima (até 80 km).
 
-## Perto daqui
+## Explorar área
 
-Lista lugares a até 900 m da atividade selecionada (ou do centro do mapa, se nenhuma estiver selecionada), em três
-categorias: **Atrações**, **Comida** e **Compras**, ordenados pela distância. Usa o Overpass, a busca pública do
-OpenStreetMap. Se aparecer "muitas buscas seguidas", espere alguns segundos.
+Para descobrir o que tem em volta de um lugar, como a lista do Google Maps:
+
+1. Selecione uma atividade (ou deixe o mapa onde quer) e toque em **Explorar área**. Um círculo aparece no mapa com a
+   atividade (ou o centro do mapa) no meio, e ao lado (no celular, embaixo) a lista de cada lugar dentro dele.
+2. **Raio**: 300 m, 500 m, 1 km, 2 km ou 5 km. Diminuir o raio no mesmo centro não busca de novo.
+3. **Centro**: arraste o ponto do meio do círculo, toque e segure no mapa, digite uma cidade, bairro ou lugar em
+   "Mudar o centro", ou use **Centro do mapa**.
+4. **Categorias**: Tudo, Comida, Cafés e doces, Atrações, Templos, Parques, Compras e Bares e noite, com quantos
+   lugares cada uma tem. Os pontos no mapa têm a cor da categoria e mostram só o filtro escolhido.
+5. **Ordem**: **Destaques** (lugares mais conhecidos primeiro, a distância desempata) ou **Mais perto**.
+
+Cada lugar mostra nome (e o nome local, em kanji por exemplo), tipo (ex.: "Restaurante · ramen", "Santuário xintoísta"),
+distância do centro e endereço. Tocar num lugar marca ele no mapa (e o mapa vai até ele se estiver escondido atrás da
+lista); tocar num ponto do mapa marca o lugar na lista. Aberto, o lugar mostra o horário (quando o OpenStreetMap tem),
+**Adicionar em [dia]** (abre o editor já com nome, endereço, posição, tipo e horário nos detalhes), **Guardar como
+ideia**, **Notas e fotos no Google Maps** e o site. Lugares que já estão no roteiro aparecem com "No roteiro".
+
+Limitações:
+
+- Os dados vêm do OpenStreetMap pelo Overpass (grátis, sem chave). Ele não tem notas nem fotos: "Destaque" quer dizer
+  que o lugar tem página na Wikipédia/Wikidata. Para notas, use o link do Google Maps de cada lugar.
+- Cada categoria traz no máximo um número de lugares (300 de comida, 200 de compras, 150 nas outras). Em raios grandes
+  de cidades cheias, a lista avisa que há mais lugares e pede para diminuir o raio.
+- Lugares pequenos ou novos podem não estar no OpenStreetMap. Sem internet, a busca não funciona. Se aparecer "muitas
+  buscas seguidas", espere alguns segundos (o app tenta um segundo servidor sozinho).
 
 ## Caminho a pé e linhas de trem e metrô
 

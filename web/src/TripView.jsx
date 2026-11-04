@@ -15,7 +15,9 @@ import Journal from './Journal.jsx';
 import Notes from './Notes.jsx';
 import { hasPlace, autoCaption } from './photoMeta.js';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
-import { MapSearch, Nearby } from './MapSearch.jsx';
+import { MapSearch } from './MapSearch.jsx';
+import { useAreaSearch, AreaPanel, visiblePlaces } from './AreaSearch.jsx';
+import { CAT as AREA_CAT } from './places.js';
 import PinPanel from './PinPanel.jsx';
 import PlaceCard from './PlaceCard.jsx';
 import { fetchRate, roundRate } from './fx.js';
@@ -41,9 +43,13 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   const [editing, setEditing] = useState(null);
   const [picking, setPicking] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
-  // marcador novo no mapa (busca, "Perto daqui", + No mapa ou tocar e segurar), antes de virar atividade/ideia
+  // marcador novo no mapa (busca, + Marcar ponto ou tocar e segurar), antes de virar atividade/ideia
   const [preview, setPreview] = useState(null);
   useEffect(() => { if (selectedId != null) setPreview(null); }, [selectedId]);
+  // "Explorar área": círculo no mapa + lista dos lugares dentro dele
+  const area = useAreaSearch();
+  const areaKnown = useMemo(() => (data?.activities || []).concat(data?.ideas || []).filter(hasCoords), [data]);
+  const areaPlaces = useMemo(() => visiblePlaces(area.state), [area.state?.res, area.state?.cat, area.state?.sort, area.state?.radius]); // eslint-disable-line react-hooks/exhaustive-deps
   // celular: o roteiro é um painel deslizante por cima do mapa
   const sheet = useSheet('half');
   const isMobile = useIsMobile();
@@ -225,6 +231,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     const onKey = (e) => {
       if (e.key === 'Escape' && picking) { setPicking(false); return; }
       if (e.key === 'Escape' && preview && !editing && !modal) { setPreview(null); return; }
+      if (e.key === 'Escape' && area.state && !editing && !modal && document.activeElement?.tagName !== 'INPUT') { area.close(); return; }
       const tag = document.activeElement?.tagName;
       if (modal || editing || ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
       if (sel === 'analise' || sel === 'ingressos' || sel === 'diario' || sel === 'notas') return; // páginas cheias têm os próprios atalhos
@@ -234,7 +241,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [step, modal, editing, picking, sel, preview]);
+  }, [step, modal, editing, picking, sel, preview, area.state]);
 
   const toggleKind = (k) => setKinds((prev) => {
     const n = new Set(prev);
@@ -479,8 +486,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     (data.cities || []).filter((c) => c.key !== 'transito' && hasCoords(c)).forEach((c) => { const d = haversine(c, { lat, lng }); if (d < bd) { bd = d; best = c.key; } });
     return best || '';
   };
-  const quickOpen = (lat, lng, name, address, kind = 'sight', asIdea = sel === 'trip') => {
-    const base = { title: name || '', kind, city: nearestCity(lat, lng), location: address || '', details: '', cost: null, lat: +lat.toFixed(5), lng: +lng.toFixed(5) };
+  const quickOpen = (lat, lng, name, address, kind = 'sight', asIdea = sel === 'trip', details = '') => {
+    const base = { title: name || '', kind, city: nearestCity(lat, lng), location: address || '', details, cost: null, lat: +lat.toFixed(5), lng: +lng.toFixed(5) };
     if (asIdea) setEditing({ draft: base, isNew: true, idea: true });
     else setEditing({ draft: { ...base, day: sel, start: null, end: null, transport: '', done: 0 }, isNew: true });
   };
@@ -489,6 +496,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     const id = ++nonce.current;
     const p = { lat, lng, title: '', local: '', address: '', kind: 'sight', ...info, nonce: id, loading: !info.title };
     setSelectedId(null);
+    area.close();
     setPreview(p);
     if (!info.title) {
       describePoint(lat, lng).then((d) => setPreview((cur) => (cur?.nonce === id ? { ...cur, ...d, loading: false } : cur)));
@@ -508,6 +516,19 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     if (!p) return;
     setPreview(null);
     quickOpen(p.lat, p.lng, p.title, p.address, p.kind || 'sight', type === 'idea');
+  };
+  // lugar da lista do "Explorar área" → editor da atividade (ou ideia) já preenchido
+  const addAreaPlace = (p, type) => {
+    const details = [p.type, p.local && p.local !== p.name ? p.local : '', p.hours && `Horário: ${p.hours}`, p.website].filter(Boolean).join('\n');
+    quickOpen(p.lat, p.lng, p.name, p.address, AREA_CAT[p.cat]?.kind || 'sight', type === 'idea' || sel === 'trip', details);
+  };
+  const toggleArea = () => {
+    if (area.state) { area.close(); return; }
+    const a = (data.activities || []).find((x) => x.id === selectedId);
+    const o = hasCoords(a) ? { lat: a.lat, lng: a.lng, label: `de ${a.title}` } : { ...mapCenter.current?.(), label: 'do centro do mapa' };
+    if (o.lat == null) return;
+    setPreview(null); setSelectedId(null); setQuickAdd(false);
+    area.open(o);
   };
   const quickAddAt = (lat, lng) => {
     setQuickAdd(false);
@@ -750,7 +771,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
         </details>
       </header>
 
-      <div className="main" data-detent={sheet.detent}>
+      <div className="main" data-detent={sheet.detent} data-area={area.state && !picking ? '' : undefined}>
         <aside className="side" ref={sheet.ref}>
           <SheetHandle detent={sheet.detent} handleProps={sheet.handleProps} onKey={() => sheet.setDetent((d) => (d === 'full' ? 'half' : d === 'half' ? 'full' : 'half'))} />
           <nav className="strip" aria-label="Dias da viagem" ref={stripRef}>
@@ -817,7 +838,11 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             picking={picking || quickAdd}
             preview={preview}
             onPreviewMove={movePreview}
-            onHold={(lat, lng) => { if (!editPositions) placeAt(lat, lng, { via: 'Ponto marcado no mapa' }); }}
+            onHold={(lat, lng) => { if (editPositions) return; if (area.state) area.move(lat, lng, 'do ponto marcado'); else placeAt(lat, lng, { via: 'Ponto marcado no mapa' }); }}
+            area={picking ? null : area.state}
+            areaPlaces={areaPlaces}
+            onAreaPick={(id) => area.set({ active: id })}
+            onAreaMove={(lat, lng) => area.move(lat, lng, 'do ponto marcado')}
             onPick={onMapPick}
             ideas={sel === 'trip' ? data.ideas : []}
             onIdea={openIdea}
@@ -834,7 +859,13 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
           {preview && !picking && (
             <PlaceCard place={preview} day={sel === 'trip' ? null : sel} onAdd={addPreview} onClose={() => setPreview(null)} />
           )}
-          {pinned && !preview && !editPositions && !picking && !quickAdd && (
+          {area.state && !picking && (
+            <AreaPanel
+              area={area} day={sel === 'trip' ? null : sel} getView={() => mapCenter.current?.()}
+              known={areaKnown} onAdd={addAreaPlace}
+            />
+          )}
+          {pinned && !preview && !area.state && !editPositions && !picking && !quickAdd && (
             <PinPanel
               a={pinned} n={mapItems.find((x) => x.id === pinned.id)?.n} group={mapItems.find((x) => x.id === pinned.id)} onAltStep={stepAlt} cityMap={cityMap} fx={fx} tripTz={trip.tz} files={filesOf('activity', pinned.id)}
               photos={(data.photos || []).filter((p) => p.activity_id === pinned.id)} photoThumb={api.thumbUrl} onPhoto={showPhoto}
@@ -846,10 +877,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
               getView={() => mapCenter.current?.()}
               onPick={(r) => placeAt(r.lat, r.lng, { title: r.title, local: r.local, address: (r.name || '').split(',').slice(1, 4).join(',').trim(), approx: !!r.approx, via: r.exact ? 'Coordenadas ou link do Google' : 'Resultado da busca', fly: true })}
             />
-            <Nearby
-              getOrigin={() => { const a = (data.activities || []).find((x) => x.id === selectedId); return hasCoords(a) ? { ...a, label: a.title } : mapCenter.current?.(); }}
-              onPick={(lat, lng, name, address, kind) => placeAt(lat, lng, { title: name, address, kind, via: 'Perto daqui', fly: true })}
-            />
+            <button className={area.state ? 'on' : ''} onClick={toggleArea} aria-pressed={!!area.state} title="Tudo o que tem num raio em volta da atividade selecionada (ou do centro do mapa): restaurantes, cafés, atrações, lojas">Explorar área</button>
             <button className={quickAdd ? 'on' : ''} onClick={() => setQuickAdd((v) => !v)} title="Toque no mapa para pôr um marcador ali (ou toque e segure no mapa a qualquer hora)">{quickAdd ? 'Toque no mapa…' : '+ Marcar ponto'}</button>
             {sel !== 'trip' && (
               <button className={labelNumbers ? 'on' : ''} onClick={() => setLabelNumbers((v) => !v)} title="Alternar entre números e ícones">{labelNumbers ? 'Números' : 'Ícones'}</button>

@@ -46,7 +46,7 @@ A faixa embaixo (no celular, em cima) mostra o estado: "Sem internet", "N ediç�
 "edições não foram salvas". Tocar nela abre **Dados no aparelho** (também no menu ⋯ › Dados offline e backups).
 
 O que precisa de internet: criar, duplicar, importar ou apagar viagem; enviar anexos e fotos; links de visitante e
-agenda; previsão do tempo, câmbio, busca de lugares, "Perto daqui" e Wikipédia. Sem conexão, esses botões avisam
+agenda; previsão do tempo, câmbio, busca de lugares, "Explorar área" e Wikipédia. Sem conexão, esses botões avisam
 "Isso precisa de internet".
 
 ### Como as edições ficam seguras
