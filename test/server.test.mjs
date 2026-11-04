@@ -29,7 +29,8 @@ before(async () => {
   await new Promise((r) => { server = app.listen(0, r); });
   base = `http://127.0.0.1:${server.address().port}`;
 });
-after(() => { server?.close(); fs.rmSync(dir, { recursive: true, force: true }); });
+// no Windows o arquivo do banco continua aberto até o processo sair (EBUSY): a pasta temporária fica para o sistema limpar
+after(() => { server?.close(); try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* arquivo em uso */ } });
 
 test('sem login a API recusa; senha errada recusa; senha certa entra', async () => {
   assert.equal((await call('GET', '/api/trips')).status, 401);

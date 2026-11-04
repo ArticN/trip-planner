@@ -13,6 +13,9 @@ import react from '@vitejs/plugin-react';
 let buildId = 'dev';
 const precacheList = () => ({
   name: 'precache-list',
+  // depois dos plugins do Vite: antes disso o pacote ainda tem um pedaço do MapLibre que não chega ao disco
+  // (a lista pedia um arquivo inexistente e o service worker tentava baixá-lo a cada instalação)
+  enforce: 'post',
   generateBundle(_opts, bundle) {
     const all = Object.keys(bundle).filter((f) => f.startsWith('assets/')).map((f) => `/${f}`).sort();
     const files = all.filter((f) => !/^\/assets\/[A-Z]{2}-[\w-]+\.(js|json)$/.test(f));
