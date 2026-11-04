@@ -5,7 +5,10 @@ import { getTheme } from './theme.js';
 const STYLE = {
   light: 'https://tiles.openfreemap.org/styles/positron',
   dark: 'https://tiles.openfreemap.org/styles/dark',
+  // "Detalhado": o estilo mais completo do OpenFreeMap, com ícones de lojas, restaurantes e atrações e prédios
+  detail: 'https://tiles.openfreemap.org/styles/liberty',
 };
+const styleFor = (variant, theme) => (variant === 'detail' ? STYLE.detail : STYLE[theme]);
 // nome em português; senão inglês; senão a escrita latina; só então o nome local (kanji etc.)
 const NAME = ['coalesce', ['get', 'name:pt'], ['get', 'name:en'], ['get', 'name_en'], ['get', 'name:latin'], ['get', 'name']];
 const ATTR = '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
@@ -21,7 +24,7 @@ function relabel(gl) {
 }
 
 // Camada "Mapa": carrega o MapLibre só quando é usada; se o estilo não carregar, cai no OpenStreetMap comum.
-export function translatedBasemap() {
+export function translatedBasemap(variant = 'clean') {
   const group = L.layerGroup();
   let inner = null;
   let onTheme = null;
@@ -44,7 +47,7 @@ export function translatedBasemap() {
       let theme = getTheme();
       let loaded = false;
       inner = L.maplibreGL({
-        style: STYLE[theme], attribution: ATTR, maplibregl,
+        style: styleFor(variant, theme), attribution: ATTR, maplibregl,
         // mais leve: sem cópias do mundo lado a lado, sem animação de fade dos rótulos,
         // resolução no máximo 2x (telas 3x desenham 2,25x mais pixels sem ganho visível) e cache de tiles menor
         renderWorldCopies: false, fadeDuration: 0, pixelRatio: Math.min(window.devicePixelRatio || 1, 2), maxTileCacheSize: 120,
@@ -54,7 +57,7 @@ export function translatedBasemap() {
       gl.on('style.load', () => { loaded = true; relabel(gl); });
       gl.on('error', (e) => { if (!loaded) { console.warn('mapa traduzido indisponível, usando OpenStreetMap', e?.error); fallback(); } });
       setTimeout(() => { if (!loaded) fallback(); }, 10000);
-      onTheme = () => { const t = getTheme(); if (t !== theme && loaded) { theme = t; gl.setStyle(STYLE[t]); } };
+      onTheme = () => { const t = getTheme(); if (t !== theme && loaded) { theme = t; if (variant !== 'detail') gl.setStyle(STYLE[t]); } };
       window.addEventListener('themechange', onTheme);
     } catch (e) {
       console.warn('mapa traduzido indisponível, usando OpenStreetMap', e);

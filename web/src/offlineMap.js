@@ -2,7 +2,7 @@
 // mais estilo, ícones e fontes, num cache que o service worker consulta antes da rede (web/public/sw.js)
 export const OFFLINE_CACHE = 'maps-offline';
 const HOST = 'https://tiles.openfreemap.org';
-const STYLES = [`${HOST}/styles/positron`, `${HOST}/styles/dark`];
+const STYLES = [`${HOST}/styles/positron`, `${HOST}/styles/dark`, `${HOST}/styles/liberty`];
 const AVG_KB = 45; // tamanho médio de um tile vetorial urbano
 const tileKey = (url) => url.replace(/(tiles\.openfreemap\.org\/planet\/)[^/]+(\/\d+\/\d+\/\d+\.pbf)/, '$1_$2');
 

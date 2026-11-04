@@ -15,6 +15,17 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.50',
+    date: '2026-11-04',
+    title: 'Explorar uma área do mapa',
+    items: [
+      'Novo botão “Explorar área” no mapa: um círculo em volta da atividade selecionada (ou do centro do mapa) e, ao lado, a lista de cada restaurante, café, atração, templo, parque, loja e bar dentro dele, como no Google Maps.',
+      'Escolha o raio (300 m a 5 km), filtre por categoria e ordene por destaques ou pelos mais perto. Para mudar o centro, arraste o ponto do meio, toque e segure no mapa ou digite um bairro.',
+      'Tocar num lugar marca ele no mapa; tocar no ponto do mapa acha ele na lista. Dali dá para adicionar ao dia, guardar como ideia ou abrir no Google Maps para ver notas e fotos.',
+      'Novo tipo de mapa “Detalhado”, o mais completo do OpenFreeMap, com ícones de lojas, restaurantes e atrações.',
+    ],
+  },
+  {
     version: '1.49',
     date: '2026-11-03',
     title: 'Todos os ingressos num lugar só',
