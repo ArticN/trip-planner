@@ -75,8 +75,8 @@ A seção "Novidades" da tela inicial (arquivo `web/src/changelog.js`) conta a h
 
 | Parte | O que usa |
 | --- | --- |
-| Front-end | React 18, Vite 5, Leaflet + MapLibre (mapa vetorial OpenFreeMap) |
-| API | Express 4, rodando como uma única função serverless na Vercel (`api/index.js`) |
+| Front-end | React 19, Vite 8, Leaflet + MapLibre (mapa vetorial OpenFreeMap) |
+| API | Express 5, rodando como uma única função serverless na Vercel (`api/index.js`) |
 | Banco | SQLite via `@libsql/client`: arquivo local no computador, [Turso](https://turso.tech) quando publicado |
 | Hospedagem | Vercel (plano grátis) + Turso (plano grátis) |
 | Serviços públicos | OpenFreeMap/OpenStreetMap (mapa e busca), OSRM (rotas a pé), Open-Meteo (tempo), Frankfurter (câmbio), Wikipédia |

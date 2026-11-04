@@ -5,6 +5,7 @@
 //   e as miniaturas das fotos ao abrir o diário
 // - tiles do mapa: cópia salva primeiro, atualizando em segundo plano; guarda só os que você já viu
 const V = 'v1';
+const BUILD = 'dev'; // trocado no build pela marca da versão (vite.config.js): cada versão nova reinstala o service worker
 const APP = `app-${V}`;
 const API = `api-${V}`;
 const TILES = `tiles-${V}`;
@@ -27,9 +28,24 @@ self.addEventListener('install', (e) => {
   e.waitUntil(precache().catch(() => {}).then(() => self.skipWaiting()));
 });
 
+// cada versão nova do app troca os nomes dos arquivos (hash): apaga os das versões anteriores para o
+// espaço usado não crescer a cada atualização (o navegador pode apagar TUDO, até os mapas baixados,
+// quando o aparelho fica sem espaço). assets.json lista todos os arquivos desta versão, inclusive os
+// contornos de estados. Sem internet não apaga nada.
+async function pruneOldAssets() {
+  let list;
+  try { list = await (await fetch('/assets.json', { cache: 'no-store' })).json(); } catch { return; }
+  if (!Array.isArray(list) || !list.length) return;
+  const keep = new Set(list);
+  const c = await caches.open(APP);
+  const old = (await c.keys()).filter((req) => { const p = new URL(req.url).pathname; return p.startsWith('/assets/') && !keep.has(p); });
+  await Promise.all(old.map((req) => c.delete(req)));
+}
+
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys()
     .then((keys) => Promise.all(keys.filter((k) => ![APP, API, TILES, FILES, OFFLINE].includes(k)).map((k) => caches.delete(k))))
+    .then(() => pruneOldAssets().catch(() => {}))
     .then(() => self.clients.claim()));
 });
 

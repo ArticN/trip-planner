@@ -280,3 +280,7 @@ export function collapseAlts(list, view = {}) {
   });
   return out;
 }
+
+// sinal para fetch que desiste depois de `ms` (internet ruim não deixa a tela carregando para sempre);
+// navegador antigo sem AbortSignal.timeout: sem limite, como antes
+export const timeoutSignal = (ms) => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined);

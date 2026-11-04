@@ -28,13 +28,19 @@ export function translatedBasemap(variant = 'clean') {
   const group = L.layerGroup();
   let inner = null;
   let onTheme = null;
-  const fallback = () => {
+  // cada vez que a camada entra no mapa ganha um número; se ela sair antes do MapLibre terminar de
+  // carregar (trocar de camada rápido, ou o React montar duas vezes no modo dev), o carregamento antigo
+  // desiste em vez de criar um mapa solto e deixar a camada presa no OpenStreetMap
+  let gen = 0;
+  const fallback = (g = gen) => {
+    if (g !== gen) return;
     if (inner) group.removeLayer(inner);
     inner = osmLayer();
     group.addLayer(inner);
   };
   group.on('add', async () => {
     if (inner) return;
+    const g = ++gen;
     try {
       const [maplibregl, { default: workerUrl }] = await Promise.all([
         import('maplibre-gl'),
@@ -44,6 +50,7 @@ export function translatedBasemap(variant = 'clean') {
       maplibregl.setWorkerUrl(workerUrl);
       await import('@maplibre/maplibre-gl-leaflet');
       if (!L.maplibreGL) throw new Error('plugin do MapLibre não carregou');
+      if (g !== gen) return;
       let theme = getTheme();
       let loaded = false;
       inner = L.maplibreGL({
@@ -55,15 +62,16 @@ export function translatedBasemap(variant = 'clean') {
       group.addLayer(inner);
       const gl = inner.getMaplibreMap();
       gl.on('style.load', () => { loaded = true; relabel(gl); });
-      gl.on('error', (e) => { if (!loaded) { console.warn('mapa traduzido indisponível, usando OpenStreetMap', e?.error); fallback(); } });
-      setTimeout(() => { if (!loaded) fallback(); }, 10000);
+      gl.on('error', (e) => { if (!loaded) { console.warn('mapa traduzido indisponível, usando OpenStreetMap', e?.error); fallback(g); } });
+      setTimeout(() => { if (!loaded) fallback(g); }, 10000);
       onTheme = () => { const t = getTheme(); if (t !== theme && loaded) { theme = t; if (variant !== 'detail') gl.setStyle(STYLE[t]); } };
       window.addEventListener('themechange', onTheme);
     } catch (e) {
+      if (g !== gen) return;
       console.warn('mapa traduzido indisponível, usando OpenStreetMap', e);
-      fallback();
+      fallback(g);
     }
   });
-  group.on('remove', () => { if (onTheme) window.removeEventListener('themechange', onTheme); onTheme = null; if (inner) group.removeLayer(inner); inner = null; });
+  group.on('remove', () => { gen++; if (onTheme) window.removeEventListener('themechange', onTheme); onTheme = null; if (inner) group.removeLayer(inner); inner = null; });
   return group;
 }

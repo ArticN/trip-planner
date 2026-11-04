@@ -9,10 +9,7 @@ import Mark from './Mark.jsx';
 import DayPanel from './DayPanel.jsx';
 import TripPanel from './TripPanel.jsx';
 import Metro from './Metro.jsx';
-import Analysis from './Analysis.jsx';
-import Tickets from './Tickets.jsx';
-import Journal from './Journal.jsx';
-import Notes from './Notes.jsx';
+import { lazyPage } from './lazyPage.jsx';
 import { hasPlace, autoCaption } from './photoMeta.js';
 import { ChecklistModal, StatsModal, CalendarModal, SearchModal, OfflineMapModal, downloadIcs, parseLinks } from './Extras.jsx';
 import { MapSearch } from './MapSearch.jsx';
@@ -32,6 +29,10 @@ import {
   principals, collapseAlts, altGroups, altKey, newAltKey,
 } from './util.js';
 
+const Analysis = lazyPage(() => import('./Analysis.jsx'));
+const Tickets = lazyPage(() => import('./Tickets.jsx'));
+const Journal = lazyPage(() => import('./Journal.jsx'));
+const Notes = lazyPage(() => import('./Notes.jsx'));
 
 export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChanged }) {
   const [data, setData] = useState(null);
