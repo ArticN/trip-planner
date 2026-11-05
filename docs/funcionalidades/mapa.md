@@ -31,6 +31,13 @@ Ferramentas do mapa (no celular ficam numa linha que desliza para o lado):
 da página (em português, ou inglês se não houver), só se a página for de um lugar perto do pino, para evitar homônimos.
 Num grupo de [opções](roteiro.md#opções-no-mesmo-horário), o painel também tem as setas do carrossel.
 
+## Onde estou
+
+O botão com a mira, abaixo do tipo de mapa, mostra um ponto azul onde você está, com o círculo da precisão do GPS.
+O primeiro toque pede a permissão e centraliza o mapa em você; os seguintes centralizam de novo. Usa o GPS do aparelho,
+então funciona sem internet (com o mapa offline baixado, dá para se achar sem dados). Com o app no fundo o GPS pausa
+para poupar bateria. Se você estiver fora do recorte do mapa da viagem, ele avisa em vez de mover o mapa.
+
 ## Fotos do diário
 
 As fotos do [diário](diario.md) que vieram com GPS aparecem como miniaturas onde foram tiradas: todas na visão geral, e

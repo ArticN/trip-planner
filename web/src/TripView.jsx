@@ -24,6 +24,7 @@ import { autoLocate, describePoint } from './geocode.js';
 import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal, RemindersModal } from './Modals.jsx';
 import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
+import { useNow } from './useNow.js';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, orderBySlots, SLOTS, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
   principals, collapseAlts, altGroups, altKey, newAltKey,
@@ -128,6 +129,16 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
 
   // ── derivados
   const trip = data?.trip;
+  const now = useNow(trip?.tz);
+  // virou o dia com o app aberto (ou ele voltou do fundo no dia seguinte): quem estava em "hoje" vai para o novo hoje
+  const lastToday = useRef(null);
+  useEffect(() => {
+    if (!trip || now.tz !== trip.tz) return; // a hora ainda é do aparelho, não do destino: não é virada de dia
+    const prev = lastToday.current;
+    lastToday.current = now.day;
+    if (!prev || prev === now.day) return;
+    if (sel === prev && now.day >= trip.start && now.day <= trip.end) onNavigate(now.day);
+  }, [now.day, now.tz]);
   const fx = useMemo(() => (trip ? makeFx(trip) : null), [trip]);
   // nacional ou internacional (escolhido na viagem ou descoberto pelas cidades e o país onde mora)
   const place = useTripPlace(trip, data?.cities);
@@ -714,7 +725,6 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   if (sel === 'notas') return <Notes data={data} setData={setData} onBack={() => go('trip')} />;
   if (sel === 'diario') return <Journal key={openPhoto || 'album'} data={data} setData={setData} initialPhoto={openPhoto} onBack={() => { setOpenPhoto(null); go('trip'); }} />;
 
-  const now = nowIn(trip.tz);
   const today = now.day;
   const countdown = today < trip.start ? `Faltam ${daysBetween(today, trip.start)} dias`
     : today <= trip.end ? `Dia ${daysBetween(trip.start, today) + 1} da viagem` : 'Viagem concluída';
