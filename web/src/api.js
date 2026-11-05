@@ -30,6 +30,8 @@ export const api = {
   deleteTrip: (id) => req('DELETE', `/api/trips/${id}`),
   duplicateTrip: (id) => req('POST', `/api/trips/${id}/duplicate`),
   importTrip: (data) => req('POST', '/api/trips/import', data),
+  // atividades/ideias de um JSON para dentro desta viagem; preview só confere (server/importItems.js)
+  importItems: (id, data, day, preview) => req('POST', `/api/trips/${id}/import-items?${new URLSearchParams({ ...(day ? { day } : {}), ...(preview ? { preview: '1' } : {}) })}`, data),
   loadExample: (key) => req('POST', `/api/examples/${encodeURIComponent(key)}`),
   createShare: (id, link) => req('POST', `/api/trips/${id}/shares`, link),
   updateShare: (sid, patch) => req('PUT', `/api/shares/${sid}`, patch),

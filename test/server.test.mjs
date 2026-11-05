@@ -187,3 +187,84 @@ test('Express 5: agenda .ics, anexo de atividade/ideia e PUT sem corpo', async (
   const put = await fetch(`${base}/api/activities/${act.id}`, { method: 'PUT', headers: { Cookie: cookie } });
   assert.ok(put.status < 500, `PUT sem corpo não pode dar erro do servidor (${put.status})`);
 });
+
+test('importar atividades na viagem: prévia, cria pelo horário, atualiza, move, apaga e mantém os links', async () => {
+  const t = await call('POST', '/api/trips', { name: 'Importar', start: '2026-11-10', end: '2026-11-15' });
+  const tid = t.json.trip?.id ?? t.json.id;
+  const link = await call('POST', `/api/trips/${tid}/shares`, { name: 'Família', plan: 1 });
+  const cafe = await call('POST', `/api/trips/${tid}/activities`, { day: '2026-11-13', start: '08:00', title: 'Café da manhã' });
+  const jantar = await call('POST', `/api/trips/${tid}/activities`, { day: '2026-11-13', start: '19:00', title: 'Jantar' });
+  const tele = await call('POST', `/api/trips/${tid}/activities`, { day: '2026-11-13', start: '15:00', title: 'Teleférico' });
+  const anexo = await fetch(`${base}/api/activities/${tele.json.id}/files`, { method: 'POST', headers: { Cookie: cookie, 'X-File-Name': 'bilhete.txt', 'X-File-Type': 'text/plain' }, body: 'oi' });
+  assert.equal(anexo.status, 201);
+  const fileId = (await anexo.json()).id;
+  const idea = await call('POST', `/api/trips/${tid}/ideas`, { title: 'Museu extra' });
+
+  const body = {
+    activities: [
+      { start: '10:30', end: '13:00', title: 'Aokigahara', lat: 35.47, lng: 138.62, links: ['https://example.com/trilha'], kind: 'sight' },
+      { start: '8:00', title: 'café da manha' }, // já existe (mesmo dia, título e horário)
+      { id: jantar.json.id, notes: 'reservado' },
+      { id: tele.json.id, _move: 'ideas' },
+      { id: cafe.json.id, start: '08:00' }, // nada muda
+    ],
+    ideas: [{ id: idea.json.id, _move: '2026-11-13', start: '16:00' }, { title: 'Onsen' }],
+  };
+  // sem dia escolhido e sem "day": erro no item
+  const noDay = await call('POST', `/api/trips/${tid}/import-items?preview=1`, body);
+  assert.equal(noDay.status, 200);
+  assert.equal(noDay.json.summary.error, 2);
+  assert.equal((await call('POST', `/api/trips/${tid}/import-items`, body)).status, 400);
+
+  const pv = await call('POST', `/api/trips/${tid}/import-items?preview=1&day=2026-11-13`, body);
+  assert.deepEqual(pv.json.summary, { create: 2, update: 1, delete: 0, move: 2, skip: 1, same: 1, error: 0 });
+  assert.equal((await call('GET', `/api/trips/${tid}`)).json.activities.length, 3); // prévia não grava
+
+  const ok = await call('POST', `/api/trips/${tid}/import-items?day=2026-11-13`, body);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.json.applied, true);
+  const d = (await call('GET', `/api/trips/${tid}`)).json;
+  assert.equal(d.trip.id, tid);
+  const day = d.activities.filter((a) => a.day === '2026-11-13').sort((a, b) => a.sort - b.sort).map((a) => a.title);
+  assert.deepEqual(day, ['Café da manhã', 'Aokigahara', 'Museu extra', 'Jantar']);
+  assert.equal(d.activities.find((a) => a.title === 'Jantar').notes, 'reservado');
+  assert.equal(JSON.parse(d.activities.find((a) => a.title === 'Aokigahara').links)[0].url, 'https://example.com/trilha');
+  const teleIdea = d.ideas.find((x) => x.title === 'Teleférico');
+  assert.ok(teleIdea);
+  assert.equal(d.files.find((f) => f.id === fileId).idea_id, teleIdea.id); // o anexo foi junto
+  assert.ok(d.ideas.find((x) => x.title === 'Onsen'));
+  // o link de visitante continua o mesmo e já mostra o que entrou
+  const saved = cookie;
+  cookie = '';
+  const v = await call('GET', `/api/share/${link.json.token}`);
+  cookie = saved;
+  assert.equal(v.status, 200);
+  assert.ok(v.json.activities.some((a) => a.title === 'Aokigahara'));
+
+  // apagar pelo id; id de outra viagem é recusado
+  assert.equal((await call('POST', `/api/trips/${tid}/import-items`, { activities: [{ id: cafe.json.id, _delete: true }] })).status, 200);
+  assert.ok(!(await call('GET', `/api/trips/${tid}`)).json.activities.some((a) => a.id === cafe.json.id));
+  const foreign = await call('POST', `/api/trips/${tid}/import-items?preview=1`, { activities: [{ id: 999999, title: 'x' }] });
+  assert.equal(foreign.json.items[0].action, 'error');
+  // dia fora da viagem, horário inválido
+  const bad = await call('POST', `/api/trips/${tid}/import-items?preview=1`, [{ day: '2027-01-01', title: 'x' }, { day: '2026-11-12', title: 'y', start: '25:00' }]);
+  assert.equal(bad.json.summary.error, 2);
+});
+
+test('importar: apagar e recriar no mesmo arquivo não perde o item; sort do backup não bagunça a ordem', async () => {
+  const t = await call('POST', '/api/trips', { name: 'Importar 2', start: '2026-11-10', end: '2026-11-15' });
+  const tid = t.json.trip?.id ?? t.json.id;
+  const a = await call('POST', `/api/trips/${tid}/activities`, { day: '2026-11-12', start: '08:00', title: 'A' });
+  const b = await call('POST', `/api/trips/${tid}/activities`, { day: '2026-11-12', start: '12:00', title: 'Museu' });
+  const r = await call('POST', `/api/trips/${tid}/import-items`, { activities: [
+    { id: b.json.id, _delete: true },
+    { day: '2026-11-12', start: '12:00', title: 'Museu', notes: 'novo' },
+    { day: '2026-11-12', start: '09:00', title: 'N' },
+    { id: a.json.id, sort: 5, notes: 'x' },
+  ] });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.summary.create, 2);
+  const d = (await call('GET', `/api/trips/${tid}`)).json.activities.sort((x, y) => x.sort - y.sort || x.id - y.id);
+  assert.deepEqual(d.map((x) => x.title), ['A', 'N', 'Museu']);
+  assert.equal(d.find((x) => x.title === 'Museu').notes, 'novo');
+});

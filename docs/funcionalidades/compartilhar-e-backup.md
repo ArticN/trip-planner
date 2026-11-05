@@ -43,7 +43,8 @@ O link único das versões anteriores virou o link **"Link do roteiro"**, com o 
 
 - **Exportar**: menu **⋯ › Exportar backup (JSON)** baixa um arquivo com a viagem inteira.
 - **Importar**: na tela inicial, **Importar backup**, e escolha o arquivo. A viagem é criada de novo, como uma viagem nova
-  (não substitui nenhuma existente).
+  (não substitui nenhuma existente, e os links de visitante da viagem antiga não passam para ela). Para acrescentar ou
+  corrigir atividades de uma viagem que já existe, use [Importar atividades](#importar-atividades-numa-viagem-que-já-existe).
 - **Backups automáticos no aparelho**: o app guarda sozinho até 20 versões de cada viagem no próprio aparelho, que
   dá para baixar ou restaurar como cópia, mesmo sem internet. Ver [backups no aparelho](app.md#backups-no-aparelho).
 
@@ -51,6 +52,51 @@ O backup leva viagem, cidades, hospedagens, atividades (com opções, trechos de
 temas do dia e compras. **Não leva os anexos** (só a lista com os nomes) nem os links de compartilhamento e de agenda,
 que são gerados de novo se você quiser. Também serve para mudar de instalação ou para montar uma viagem inteira fora do
 app (numa planilha, num script ou pedindo a uma IA) e importar de uma vez.
+
+## Importar atividades numa viagem que já existe
+
+Menu **⋯ › Importar atividades (JSON)**. Diferente de **Importar backup**, não cria viagem nova: os itens entram
+**nesta** viagem, então o endereço da viagem, os links de visitante, a agenda (.ics), os anexos, as fotos e o diário
+continuam como estão. (Os links de visitante ficam presos ao id da viagem; importar o backup inteiro cria outra viagem,
+com outro id, e por isso os links antigos continuariam mostrando a viagem antiga.)
+
+1. Cole o JSON ou escolha o arquivo `.json`.
+2. Escolha o dia para as atividades que vêm sem `day` (ou deixe "Usar o day de cada item").
+3. **Conferir** mostra, item por item, o que vai acontecer: Nova, Atualiza, Apaga, Vai para as ideias, Vai para o
+   roteiro, Já existe, Sem mudança ou Erro. Nada é gravado ainda.
+4. **Importar** grava tudo de uma vez. Se algum item tiver erro, nada é gravado.
+
+Formato: um objeto com `activities` e/ou `ideas` (e `day` opcional, o dia padrão), só a lista de atividades, ou uma
+atividade sozinha. Os campos são os mesmos do backup (ver [`activities`](#activities)); `links` aceita também uma lista
+de endereços em texto e `city` aceita a chave ou o nome da cidade.
+
+```json
+{
+  "day": "2026-11-13",
+  "activities": [
+    { "start": "10:30", "end": "13:00", "title": "Aokigahara", "kind": "sight", "location": "Narusawa",
+      "lat": 35.4707, "lng": 138.6216, "transport": "🚌 Ônibus", "notes": "levar água", "links": ["https://…"] },
+    { "id": 412, "notes": "reservado às 19h" },
+    { "id": 415, "_move": "ideas" },
+    { "id": 418, "_delete": true }
+  ],
+  "ideas": [
+    { "title": "Onsen em Kawaguchiko" },
+    { "id": 37, "_move": "2026-11-14", "start": "09:00" }
+  ]
+}
+```
+
+- **Sem `id`**: item novo. Atividade com `start` entra no dia pelo horário (antes da primeira que começa mais tarde);
+  sem horário vai para o fim do dia. Precisa de `title` e de um dia dentro da viagem.
+- **Com `id`** (o mesmo do backup exportado desta viagem): atualiza só os campos enviados; o resto, os anexos e as
+  fotos ficam. Um `id` que não é desta viagem dá erro.
+- **`"_delete": true`** (com `id`): apaga o item e os anexos dele.
+- **`"_move": "ideas"`** numa atividade manda para as ideias; **`"_move": "AAAA-MM-DD"`** numa ideia agenda nesse dia.
+  Os anexos acompanham.
+- **Duplicados**: atividade nova com o mesmo título no mesmo dia (e o mesmo horário, quando os dois têm) é pulada como
+  "Já existe"; ideia nova com o mesmo título de uma ideia existente também. Repetidos dentro do arquivo também são pulados.
+- Até 300 itens por importação. Precisa de internet. `sort` é ignorado (a ordem sai do horário) e campos desconhecidos também (aparecem como aviso).
 
 ## Formato do JSON
 
