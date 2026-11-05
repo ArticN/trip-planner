@@ -1905,3 +1905,17 @@ input.dj-lb-cap:focus-visible { outline: none; box-shadow: none; background: #f2
 .tk-attach:hover { color: var(--ink); text-decoration: underline; }
 .tk-attach.disabled { opacity: .6; pointer-events: none; }
 @media print { .tk-up, .tk-attach, #tk-arquivos .icon-btn { display: none; } }
+
+/* contagem regressiva DD:HH:MM:SS até o voo de ida (Countdown.jsx) */
+.ft-count { display: grid; gap: 6px; margin-top: 12px; }
+.ft-count-label { font-size: 15px; color: var(--muted); }
+.clock { display: flex; align-items: flex-start; font-variant-numeric: tabular-nums; }
+.clock-seg { display: flex; align-items: flex-start; }
+.clock-seg > span { display: grid; justify-items: center; gap: 4px; }
+.clock b { font-family: var(--serif); font-weight: 400; font-size: 64px; line-height: 0.9; }
+.clock small { font-size: 12px; color: var(--muted); letter-spacing: 0.02em; }
+.clock-sep { font-style: normal; font-family: var(--serif); font-size: 52px; line-height: 0.9; color: var(--muted); padding: 0 6px; }
+@media (max-width: 720px) {
+  .clock b { font-size: clamp(36px, 12vw, 52px); }
+  .clock-sep { font-size: clamp(28px, 9vw, 42px); padding: 0 3px; }
+}

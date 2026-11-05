@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { lazyPage } from './lazyPage.jsx';
-import { daysBetween, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
+import { daysBetween, departureOf, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
+import { Clock, departureText, firstActOf, useTripPhase } from './Countdown.jsx';
 import { useNow } from './useNow.js';
 import AppearanceModal from './Look.jsx';
 import Mark from './Mark.jsx';
@@ -12,8 +13,13 @@ const NewTripWizard = lazyPage(() => import('./NewTrip.jsx'), null);
 
 const coverUrl = (c) => `url("${String(c).replace(/"/g, '%22')}")`;
 
+// selo dos cartões: dias inteiros até a saída real (voo do primeiro dia, no fuso de onde sai)
 function status(t, today = nowIn(t.tz).day) {
-  if (today < t.start) return { label: `Faltam ${daysBetween(today, t.start)} dias`, cls: 'soon' };
+  const left = departureOf(t, firstActOf(t)).ms - Date.now();
+  if (left > 0) {
+    const d = Math.floor(left / 86400000);
+    return { label: d >= 1 ? `Faltam ${d} ${d === 1 ? 'dia' : 'dias'}` : 'Sai hoje', cls: 'soon' };
+  }
   if (today <= t.end) return { label: `Dia ${daysBetween(t.start, today) + 1} da viagem`, cls: 'now' };
   return { label: 'Concluída', cls: 'past' };
 }
@@ -148,10 +154,10 @@ export default function Home({ version, onOpen, onChanged }) {
 // cartão grande da viagem em andamento (com a próxima atividade) ou da próxima viagem
 function Featured({ trip, detail, onOpen }) {
   const now = useNow(trip.tz);
-  const total = daysBetween(trip.start, trip.end) + 1;
-  const going = now.day >= trip.start;
-  const dayN = daysBetween(trip.start, now.day) + 1;
-  const acts = detail?.activities || [];
+  const acts = detail?.activities || firstActOf(trip);
+  const ph = useTripPhase(trip, acts);
+  const { total, dayN } = ph;
+  const going = ph.phase !== 'before';
   const todays = acts.filter((a) => a.day === now.day).sort((a, b) => a.sort - b.sort);
   const cur = todays.find((a) => !a.done && a.start && a.end && toMin(a.start) <= now.min && now.min < toMin(a.end));
   const next = cur || todays.find((a) => !a.done && a.start && toMin(a.start) >= now.min) || todays.find((a) => !a.done);
@@ -160,18 +166,22 @@ function Featured({ trip, detail, onOpen }) {
   const firstDay = acts.filter((a) => a.day === trip.start);
   return (
     <section className={`featured${trip.cover ? ' has-cover' : ''}`} style={trip.cover ? { '--cover': coverUrl(trip.cover) } : undefined}>
-      <div className="ft-kicker">{going ? 'Em andamento' : 'Próxima viagem'}</div>
+      <div className="ft-kicker">{ph.phase === 'flying' ? 'Em voo' : going ? 'Em andamento' : 'Próxima viagem'}</div>
       <h1 className="ft-name">{trip.name}</h1>
-      <div className="ft-big">
-        {going ? <><b>Dia {dayN}</b><span>de {total}</span></> : <><b>{daysBetween(now.day, trip.start)}</b><span>{daysBetween(now.day, trip.start) === 1 ? 'dia para ir' : 'dias para ir'}</span></>}
-      </div>
+      {ph.phase === 'before' ? (
+        <div className="ft-count"><Clock ms={ph.left} /><span className="ft-count-label">{departureText(ph.dep)}</span></div>
+      ) : ph.phase === 'flying' ? (
+        <div className="ft-count"><Clock ms={ph.left} /><span className="ft-count-label">para pousar{ph.dep.act?.end ? ` (${ph.dep.act.end} no destino)` : ''}</span></div>
+      ) : (
+        <div className="ft-big"><b>Dia {dayN}</b><span>de {total}</span></div>
+      )}
       <div className="ft-meta">{fmtDay(trip.start)} → {fmtDay(trip.end)} · {total} dias · {trip.activity_count} atividades</div>
-      {going && (
+      {ph.phase === 'during' && (
         <div className="ft-next">
           {next ? <>{next === cur ? 'Agora' : 'A seguir'}: <b>{next.start ? `${next.start} · ` : ''}{next.title}</b></> : todays.length ? 'Tudo feito por hoje.' : 'Nada planejado para hoje.'}
         </div>
       )}
-      {!going && (
+      {ph.phase !== 'during' && (
         <div className="ft-next">
           {check.length > 0 ? <>Checklist: <b>{checkDone} de {check.length}</b> itens prontos</> : 'Monte o checklist de documentos, reservas e mala.'}
           {firstDay.length > 0 && <> · primeiro dia, {fmtDayLong(trip.start)}: {firstDay.length} {firstDay.length === 1 ? 'atividade' : 'atividades'}</>}

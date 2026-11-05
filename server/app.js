@@ -591,7 +591,10 @@ app.get('/api/trips', h(async (_req, res) => {
   res.json(await db.all(`
     SELECT t.*,
       (SELECT COUNT(*) FROM activities a WHERE a.trip_id = t.id) AS activity_count,
-      (SELECT COUNT(*) FROM activities a WHERE a.trip_id = t.id AND a.done = 1) AS done_count
+      (SELECT COUNT(*) FROM activities a WHERE a.trip_id = t.id AND a.done = 1) AS done_count,
+      (SELECT json_object('day', a.day, 'start', a.start, 'end', a.end, 'end_day', a.end_day, 'kind', a.kind, 'start_tz', a.start_tz, 'end_tz', a.end_tz, 'from_code', a.from_code)
+        FROM activities a WHERE a.trip_id = t.id AND a.day = t.start AND a.start IS NOT NULL AND a.start <> ''
+        ORDER BY (a.kind = 'flight') DESC, a.start LIMIT 1) AS first_act
     FROM trips t ORDER BY t.start DESC, t.id DESC`));
 }));
 

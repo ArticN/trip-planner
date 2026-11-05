@@ -15,6 +15,16 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.53',
+    date: '2026-11-05',
+    title: 'Contagem regressiva até a hora do voo',
+    items: [
+      'A contagem para a viagem agora vai até a hora real de saída: o voo do primeiro dia, no horário de onde ele sai. Antes ela contava pelo calendário do destino e, no Japão, já mostrava um dia a menos.',
+      'Em vez de só os dias, a contagem mostra dias, horas, minutos e segundos (DD:HH:MM:SS) e anda a cada segundo, na tela inicial e no cabeçalho do roteiro.',
+      'Entre a decolagem e o pouso aparece “Em voo” com o tempo que falta para pousar; depois volta o “Dia N da viagem”.',
+    ],
+  },
+  {
     version: '1.52',
     date: '2026-11-05',
     title: 'Pronto para usar na rua',

@@ -22,3 +22,25 @@ export function useNow(tz) {
   }, [tz]);
   return now;
 }
+
+// relógio de segundos (Date.now) que só anda enquanto falta algo para `untilMs` e o app está visível.
+// Quem usa deve ser um componente pequeno: ele re-renderiza a cada segundo até o instante chegar.
+export function useSecondClock(untilMs) {
+  const [t, setT] = useState(Date.now);
+  const live = untilMs != null && t < untilMs;
+  useEffect(() => {
+    if (!live) return undefined;
+    let id = null;
+    const tick = () => setT(Date.now());
+    const loop = () => { id = setTimeout(() => { tick(); loop(); }, 1000 - (Date.now() % 1000) + 20); };
+    const onVis = () => {
+      clearTimeout(id);
+      if (document.visibilityState === 'visible') { tick(); loop(); }
+    };
+    tick();
+    if (document.visibilityState !== 'hidden') loop();
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearTimeout(id); document.removeEventListener('visibilitychange', onVis); };
+  }, [live]);
+  return t;
+}
