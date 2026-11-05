@@ -25,6 +25,7 @@ import { EditModal, StaysModal, BudgetModal, CitiesModal, TripModal, ShareModal,
 import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import { useNow } from './useNow.js';
+import { CountdownPill } from './Countdown.jsx';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, orderBySlots, SLOTS, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
   principals, collapseAlts, altGroups, altKey, newAltKey,
@@ -725,10 +726,8 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
   if (sel === 'notas') return <Notes data={data} setData={setData} onBack={() => go('trip')} />;
   if (sel === 'diario') return <Journal key={openPhoto || 'album'} data={data} setData={setData} initialPhoto={openPhoto} onBack={() => { setOpenPhoto(null); go('trip'); }} />;
 
-  const today = now.day;
-  const countdown = today < trip.start ? `Faltam ${daysBetween(today, trip.start)} dias`
-    : today <= trip.end ? `Dia ${daysBetween(trip.start, today) + 1} da viagem` : 'Viagem concluída';
 
+  const today = now.day;
   const draftHidden = picking;
 
   return (
@@ -742,7 +741,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             {trip.subtitle && <div className="brand-sub">{trip.subtitle}</div>}
           </div>
         </div>
-        <div className="countdown">{countdown}</div>
+        <CountdownPill trip={trip} activities={data.activities} />
         <span className="spacer" />
         <button className="icon-btn" onClick={() => setModal('search')} title="Buscar na viagem (/)" aria-label="Buscar na viagem">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>

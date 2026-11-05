@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import { PLATFORMS, parseVideo, videoOf, embedUrl, pageUrl, coverUrls } from './video.js';
 import { preparePhoto } from './photos.js';
-import { rangeDays, fmtDay, fmtDayLong, nowIn, daysBetween, principals } from './util.js';
+import { rangeDays, fmtDay, fmtDayLong, nowIn, daysBetween, principals, departureOf } from './util.js';
 import { matchActivity, autoCaption, techSheet, hasPlace } from './photoMeta.js';
 
 // ── Diário de viagem: um álbum de fotos montado em páginas livres. Cada página pode ter um dia
@@ -236,7 +236,9 @@ export default function Journal({ data, setData = null, onBack, readOnly = false
   const nPhotos = (data.photos || []).length;
   const nCities = new Set(visible.filter(hasContent).map((p) => cityOf(p.day)?.key).filter(Boolean)).size;
   const cover = (albumList.length ? albumList : allList).slice(0, 3);
-  const countdown = today < trip.start ? `Faltam ${daysBetween(today, trip.start)} dias para a primeira foto` : today <= trip.end ? `Hoje é o ${daysBetween(trip.start, today) + 1}º dia` : `${fmtDay(trip.start)} a ${fmtDay(trip.end)}`;
+  const leftMs = departureOf(trip, data.activities || []).ms - Date.now();
+  const leftDays = Math.floor(leftMs / 86400000);
+  const countdown = leftMs > 0 ? (leftDays >= 1 ? `Faltam ${leftDays} ${leftDays === 1 ? 'dia' : 'dias'} para a primeira foto` : 'A primeira foto é hoje') : today <= trip.end ? `Hoje é o ${daysBetween(trip.start, today) + 1}º dia` : `${fmtDay(trip.start)} a ${fmtDay(trip.end)}`;
   const canEdit = !readOnly && editing;
 
   // ── livro: fora do modo Editar, o álbum mostra uma página por vez (a capa é a primeira) e vira a página

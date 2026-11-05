@@ -52,6 +52,33 @@ export function nowIn(tz) {
   try { p = Object.fromEntries(new Intl.DateTimeFormat('en-US', tz ? { ...opt, timeZone: tz } : opt).formatToParts(new Date()).map((x) => [x.type, x.value])); } catch { p = Object.fromEntries(new Intl.DateTimeFormat('en-US', opt).formatToParts(new Date()).map((x) => [x.type, x.value])); }
   return { day: `${p.year}-${p.month}-${p.day}`, min: Number(p.hour) * 60 + Number(p.minute) };
 }
+// "parede" (dia + hora) → instante, no fuso dado; sem fuso, no do aparelho
+const wallMs = (day, time, tz) => (tz ? zonedMs(day, time, tz) : new Date(`${day}T${time}`).getTime());
+// saída da viagem: o voo do primeiro dia (ou, sem voo, a primeira atividade com hora nesse dia), no fuso de onde sai.
+// Sem nenhuma hora no primeiro dia, meia-noite do primeiro dia no fuso da viagem. arriveMs = pouso, se a saída é um voo.
+export function departureOf(trip, activities = []) {
+  const first = activities.filter((a) => a.day === trip.start && a.start)
+    .sort((a, b) => (b.kind === 'flight') - (a.kind === 'flight') || a.start.localeCompare(b.start))[0];
+  if (!first) return { ms: wallMs(trip.start, '00:00', trip.tz), arriveMs: null, act: null, tz: trip.tz || null };
+  const tz = actTz(first, trip.tz);
+  const ms = wallMs(first.day, first.start, tz.start);
+  const arriveMs = first.kind === 'flight' && first.end ? wallMs(endDayOf(first), first.end, tz.end) : null;
+  return { ms, arriveMs: arriveMs > ms ? arriveMs : null, act: first, tz: tz.start };
+}
+// em que pé está a viagem no instante nowMs: antes da saída, em voo (até o pouso), durante ou depois
+export function tripPhase(trip, dep, nowMs) {
+  if (nowMs < dep.ms) return { phase: 'before', left: dep.ms - nowMs };
+  if (dep.arriveMs && nowMs < dep.arriveMs) return { phase: 'flying', left: dep.arriveMs - nowMs };
+  return { phase: nowIn(trip.tz).day > trip.end ? 'after' : 'during', left: 0 };
+}
+// milissegundos → dias, horas, minutos e segundos (para a contagem regressiva)
+export function splitMs(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 };
+}
+const two = (n) => String(n).padStart(2, '0');
+// DD:HH:MM:SS
+export const fmtClock = (ms) => { const p = splitMs(ms); return `${two(p.d)}:${two(p.h)}:${two(p.m)}:${two(p.s)}`; };
 // link de rota no Google Maps até a atividade
 export const directionsUrl = (a) => `https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}`;
 

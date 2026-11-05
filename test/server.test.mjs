@@ -48,6 +48,19 @@ test('sem login a API recusa; senha errada recusa; senha certa entra', async () 
   assert.ok(tripId);
 });
 
+test('a lista de viagens traz a saída do primeiro dia, preferindo o voo', async () => {
+  await call('POST', `/api/trips/${tripId}/activities`, { day: '2026-11-06', start: '14:00', title: 'Ir para o aeroporto', kind: 'move' });
+  const f = await call('POST', `/api/trips/${tripId}/activities`, { day: '2026-11-06', end_day: '2026-11-08', start: '19:25', end: '10:20', title: 'Voo', kind: 'flight', start_tz: 'America/Sao_Paulo', end_tz: 'Asia/Tokyo' });
+  const t = (await call('GET', '/api/trips')).json.find((x) => x.id === tripId);
+  const a = JSON.parse(t.first_act);
+  assert.equal(a.kind, 'flight');
+  assert.equal(a.start, '19:25');
+  assert.equal(a.start_tz, 'America/Sao_Paulo');
+  assert.equal(a.end_day, '2026-11-08');
+  await call('DELETE', `/api/activities/${f.json.id}`);
+  assert.equal(JSON.parse((await call('GET', '/api/trips')).json.find((x) => x.id === tripId).first_act).start, '14:00');
+});
+
 test('mesma edição enviada duas vezes (X-Op-Id) é salva uma vez só', async () => {
   const op = 'op-teste-0001';
   const a = await call('POST', `/api/trips/${tripId}/activities`, { day: '2026-11-07', title: 'Ramen' }, { 'X-Op-Id': op });

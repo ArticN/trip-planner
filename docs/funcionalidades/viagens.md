@@ -81,10 +81,14 @@ Voos, escalas, o mapa do dia e o resto do roteiro funcionam igual nos dois tipos
 
 ## Tela inicial
 
-- **Viagem em destaque**: a que está acontecendo ou a próxima. Antes da viagem mostra quantos dias faltam, o progresso
-  do checklist e quantas atividades tem o primeiro dia. Durante a viagem mostra "Dia N de M", a próxima atividade de hoje
+- **Viagem em destaque**: a que está acontecendo ou a próxima. Antes da viagem mostra uma contagem regressiva
+  **DD:HH:MM:SS** que anda a cada segundo, o progresso do checklist e quantas atividades tem o primeiro dia.
+  Desde a v1.53 a contagem vai até a **hora real de saída**: o voo do primeiro dia (no fuso de onde ele sai) ou,
+  sem voo, a primeira atividade com hora nesse dia; sem nenhuma hora, meia-noite do primeiro dia no fuso da viagem.
+  Entre a decolagem e o pouso aparece **Em voo** com o tempo para pousar. Durante a viagem mostra "Dia N de M", a próxima atividade de hoje
   e o botão **Abrir o dia de hoje**.
-- **Próximas viagens** e **Concluídas**, com contagem regressiva ou "Dia N da viagem" em cada cartão.
+- **Próximas viagens** e **Concluídas**, com contagem regressiva (dias inteiros até a saída) ou "Dia N da viagem" em
+  cada cartão. No cabeçalho do roteiro (computador) a mesma contagem aparece como "Faltam DD:HH:MM:SS".
 - **Importar backup**, [Meu mapa](mapa.md#meu-mapa), [Novidades](app.md#novidades) e [Aparência](app.md#aparência).
 - Sem nenhuma viagem, a tela oferece **ou carregue um roteiro de exemplo**, que cria a viagem fictícia para você explorar.
 
