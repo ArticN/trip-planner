@@ -4,6 +4,7 @@ import { db } from './db.js';
 import * as exemplo from './examples/exemplo.js';
 import * as japaoSolo from './guides/japao-solo.js';
 import { buildIcs } from '../web/src/ics.js';
+import { planImport, orderDay } from './importItems.js';
 
 // viagens de exemplo que o usuário pode carregar na tela inicial
 const EXAMPLES = { exemplo };
@@ -859,6 +860,62 @@ app.post('/api/activities/:aid/unschedule', h(async (req, res) => {
   const sort = await nextSort('ideas', 'trip_id = ?', [a.trip_id]);
   const [ins] = await db.batch([insIdea(a.trip_id, { ...a, sort }), ['UPDATE files SET idea_id = last_insert_rowid(), activity_id = NULL WHERE activity_id = ?', [a.id]], ['DELETE FROM activities WHERE id = ?', [a.id]]]);
   res.status(201).json(await db.get('SELECT * FROM ideas WHERE id = ?', [ins.lastInsertRowid]));
+}));
+
+// ── importar atividades/ideias de um JSON para dentro desta viagem (o formato está em server/importItems.js).
+// ?preview=1 só mostra o que vai acontecer; sem ele grava tudo num lote (se algum item tiver erro, nada é gravado).
+app.post('/api/trips/:id/import-items', needTrip, h(async (req, res) => {
+  const tid = req.tripId;
+  const [trip, cities, activities, ideas] = await Promise.all([
+    db.get('SELECT id, start, end FROM trips WHERE id = ?', [tid]),
+    db.all('SELECT key, name FROM cities WHERE trip_id = ?', [tid]),
+    db.all('SELECT * FROM activities WHERE trip_id = ? ORDER BY day, sort, id', [tid]),
+    db.all('SELECT * FROM ideas WHERE trip_id = ? ORDER BY sort, id', [tid]),
+  ]);
+  const day = typeof req.query.day === 'string' && req.query.day ? req.query.day : null;
+  const plan = planImport(req.body?.data ?? req.body, { trip, cities, activities, ideas }, day);
+  if (plan.error) return res.status(400).json({ error: plan.error });
+  const preview = 'preview' in req.query;
+  if (preview || plan.summary.error) return res.status(preview ? 200 : 400).json({ ...plan, applied: false });
+
+  // ordem final de cada dia que recebe item: os que ficam na ordem atual, os que chegam pelo horário
+  const leaving = new Set(plan.items.filter((x) => x.type === 'activity' && (x.action === 'delete' || x.action === 'to_idea' || (x.action === 'update' && x.day !== x.fromDay))).map((x) => x.id));
+  const incoming = plan.items.map((x, i) => ({ ...x, ref: `n:${i}` })).filter((x) => x.action === 'create' && x.type === 'activity' || x.action === 'to_activity' || (x.action === 'update' && x.type === 'activity' && x.day !== x.fromDay));
+  const sortOf = new Map(); // ref → sort novo
+  const list = [];
+  for (const d of [...new Set(incoming.map((x) => x.day))]) {
+    const stay = activities.filter((a) => a.day === d && !leaving.has(a.id)).map((a) => ({ ref: `a:${a.id}`, start: a.start, sort: a.sort }));
+    const order = orderDay(stay, incoming.filter((x) => x.day === d).map((x) => ({ ref: x.ref, start: x.row?.start ?? x.patch?.start ?? activities.find((a) => a.id === x.id)?.start })));
+    order.forEach((ref, i) => {
+      sortOf.set(ref, i);
+      const old = stay.find((s) => s.ref === ref);
+      if (old && old.sort !== i) list.push(['UPDATE activities SET sort = ? WHERE id = ? AND trip_id = ?', [i, Number(ref.slice(2)), tid]]);
+    });
+  }
+  let ideaSort = ideas.reduce((m, x) => Math.max(m, x.sort ?? 0), -1) + 1;
+  plan.items.forEach((x, i) => {
+    const ref = `n:${i}`;
+    const table = x.type === 'activity' ? 'activities' : 'ideas';
+    const fk = x.type === 'activity' ? 'activity_id' : 'idea_id';
+    if (x.action === 'create' && x.type === 'activity') list.push(insAct(tid, { ...x.row, sort: sortOf.get(ref), done: x.row.done ? 1 : 0 }));
+    else if (x.action === 'create') list.push(insIdea(tid, { ...x.row, sort: ideaSort++ }));
+    else if (x.action === 'update') {
+      // só os campos que mudam (o resto do item, e a ordem refeita acima, ficam como estão)
+      const only = Object.fromEntries(x.changed.map((k) => [k, x.patch[k]]));
+      const patch = sortOf.has(ref) ? { ...only, sort: sortOf.get(ref) } : only;
+      const keys = Object.keys(patch);
+      list.push([`UPDATE ${table} SET ${setList(keys)} WHERE id = ? AND trip_id = ?`, [...pick(patch, keys), x.id, tid]]);
+    } else if (x.action === 'delete') {
+      list.push([`DELETE FROM files WHERE ${fk} = ?`, [x.id]], [`DELETE FROM ${table} WHERE id = ? AND trip_id = ?`, [x.id, tid]]);
+    } else if (x.action === 'to_idea' || x.action === 'to_activity') {
+      // os anexos acompanham o item (last_insert_rowid é o do item recém-criado, no mesmo lote)
+      list.push(x.action === 'to_idea' ? insIdea(tid, { ...x.row, sort: ideaSort++ }) : insAct(tid, { ...x.row, sort: sortOf.get(ref), done: 0 }),
+        [`UPDATE files SET ${x.action === 'to_idea' ? 'idea_id = last_insert_rowid(), activity_id = NULL' : 'activity_id = last_insert_rowid(), idea_id = NULL'} WHERE ${fk} = ?`, [x.id]],
+        [`DELETE FROM ${table} WHERE id = ? AND trip_id = ?`, [x.id, tid]]);
+    }
+  });
+  if (list.length) await db.batch(list);
+  res.json({ ...plan, applied: true });
 }));
 
 // ── atividades

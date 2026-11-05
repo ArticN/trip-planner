@@ -15,6 +15,16 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.54',
+    date: '2026-11-05',
+    title: 'Importar atividades sem criar outra viagem',
+    items: [
+      'Novo “Importar atividades (JSON)” no menu ⋯ da viagem: cole ou escolha um JSON com uma atividade, um dia ou vários, e os itens entram nesta mesma viagem. Os links compartilhados, a agenda, os anexos e as fotos continuam iguais.',
+      'Antes de gravar, “Conferir” mostra o que vai acontecer com cada item: nova, atualiza, apaga, vai para as ideias, já existe ou erro. Se algum item tiver erro, nada é gravado.',
+      'Item com o id do backup atualiza só os campos enviados; sem id entra como novo, no lugar certo pelo horário. Dá para apagar, mandar para as ideias e agendar ideias, e os repetidos são pulados.',
+    ],
+  },
+  {
     version: '1.53',
     date: '2026-11-05',
     title: 'Contagem regressiva até a hora do voo',

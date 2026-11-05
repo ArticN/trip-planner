@@ -26,6 +26,7 @@ import { useReminders, notifyOn, setNotify } from './reminders.js';
 import { useSheet, useIsMobile, SheetHandle, heightOf } from './Sheet.jsx';
 import { useNow } from './useNow.js';
 import { CountdownPill } from './Countdown.jsx';
+import ImportItemsModal from './ImportItems.jsx';
 import {
   KIND_KEYS, KINDS, findConflicts, sortByTime, orderBySlots, SLOTS, rangeDays, daysBetween, dayNum, dayWeek, fmtDay, fmtDayLong, hasCoords, makeFx, haversine, nowIn, passDone,
   principals, collapseAlts, altGroups, altKey, newAltKey,
@@ -711,6 +712,12 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
     onTripsChanged();
     onHome();
   };
+  const onImported = async (r) => {
+    const s = r.summary;
+    setModal(null);
+    await reload();
+    say(`Importado: ${s.create} ${s.create === 1 ? 'novo' : 'novos'}, ${s.update} ${s.update === 1 ? 'atualizado' : 'atualizados'}${s.move ? `, ${s.move} movido${s.move === 1 ? '' : 's'}` : ''}${s.delete ? `, ${s.delete} apagado${s.delete === 1 ? '' : 's'}` : ''}`);
+  };
   const duplicateTrip = async () => {
     const d = await api.duplicateTrip(tripId);
     onTripsChanged();
@@ -777,6 +784,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
             <button onClick={() => window.print()}>Imprimir ou salvar PDF</button>
             <button onClick={() => downloadIcs(trip, acts, cityMap)}>Exportar para agenda (.ics)</button>
             <a href={`/api/trips/${tripId}/export`}>Exportar backup (JSON)</a>
+            <button onClick={() => setModal('import')}>Importar atividades (JSON)</button>
           </div>
         </details>
       </header>
@@ -954,6 +962,7 @@ export default function TripView({ tripId, sel, onNavigate, onHome, onTripsChang
       {modal === 'look' && <AppearanceModal trip={trip} onTripAccent={(accent) => patchTrip({ accent })} onClose={() => setModal(null)} />}
       {modal === 'reminders' && <RemindersModal trip={trip} onSave={patchTrip} onCalendar={setCalendar} notify={notify} onNotify={async (on) => setNotifyState(await setNotify(on))} onClose={() => setModal(null)} />}
       {modal === 'offline' && <OfflineMapModal cities={data.cities} onClose={() => setModal(null)} />}
+      {modal === 'import' && <ImportItemsModal tripId={tripId} days={days} initialDay={sel === 'trip' ? null : sel} onDone={onImported} onClose={() => setModal(null)} />}
       {modal === 'share' && <ShareModal trip={trip} links={data.shares || []} onCreate={createShare} onUpdate={updateShare} onRemove={removeShare} onClose={() => setModal(null)} />}
       {toast && !undo && <div className="toast">{toast}</div>}
       {undo && (
