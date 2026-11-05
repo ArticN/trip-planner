@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
 import { lazyPage } from './lazyPage.jsx';
 import { daysBetween, fmtDay, fmtDayLong, nowIn, toMin } from './util.js';
+import { useNow } from './useNow.js';
 import AppearanceModal from './Look.jsx';
 import Mark from './Mark.jsx';
 import WhatsNew from './WhatsNew.jsx';
@@ -103,7 +104,7 @@ export default function Home({ version, onOpen, onChanged }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.8-.3-.9-.1-2.2 1.2-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z" /><circle cx="7.5" cy="11" r="1.2" fill="currentColor" /><circle cx="10.5" cy="7" r="1.2" fill="currentColor" /><circle cx="15" cy="7.5" r="1.2" fill="currentColor" /></svg>
         </button>
         <button className="ghost" onClick={() => fileRef.current.click()}>Importar<span className="hide-sm"> backup</span></button>
-        <button className="primary" onClick={newTrip}>+ Nova viagem</button>
+        <button className="primary" onClick={newTrip} aria-label="Nova viagem">+ Nova<span className="hide-sm"> viagem</span></button>
         <input ref={fileRef} type="file" accept="application/json" hidden onChange={onImport} />
       </header>
 
@@ -146,13 +147,14 @@ export default function Home({ version, onOpen, onChanged }) {
 
 // cartão grande da viagem em andamento (com a próxima atividade) ou da próxima viagem
 function Featured({ trip, detail, onOpen }) {
-  const now = nowIn(trip.tz);
+  const now = useNow(trip.tz);
   const total = daysBetween(trip.start, trip.end) + 1;
   const going = now.day >= trip.start;
   const dayN = daysBetween(trip.start, now.day) + 1;
   const acts = detail?.activities || [];
   const todays = acts.filter((a) => a.day === now.day).sort((a, b) => a.sort - b.sort);
-  const next = todays.find((a) => !a.done && a.start && toMin(a.start) >= now.min) || todays.find((a) => !a.done);
+  const cur = todays.find((a) => !a.done && a.start && a.end && toMin(a.start) <= now.min && now.min < toMin(a.end));
+  const next = cur || todays.find((a) => !a.done && a.start && toMin(a.start) >= now.min) || todays.find((a) => !a.done);
   const check = detail?.checklist || [];
   const checkDone = check.filter((c) => c.done).length;
   const firstDay = acts.filter((a) => a.day === trip.start);
@@ -166,7 +168,7 @@ function Featured({ trip, detail, onOpen }) {
       <div className="ft-meta">{fmtDay(trip.start)} → {fmtDay(trip.end)} · {total} dias · {trip.activity_count} atividades</div>
       {going && (
         <div className="ft-next">
-          {next ? <>A seguir: <b>{next.start ? `${next.start} · ` : ''}{next.title}</b></> : todays.length ? 'Tudo feito por hoje.' : 'Nada planejado para hoje.'}
+          {next ? <>{next === cur ? 'Agora' : 'A seguir'}: <b>{next.start ? `${next.start} · ` : ''}{next.title}</b></> : todays.length ? 'Tudo feito por hoje.' : 'Nada planejado para hoje.'}
         </div>
       )}
       {!going && (

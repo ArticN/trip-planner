@@ -144,4 +144,8 @@ Durante a viagem (pelo fuso do destino):
 - O dia de hoje fica destacado na barra de dias e na lista; os que já passaram ficam mais apagados.
 - O roteiro de hoje mostra o painel **Agora**, como a placa de uma estação: a atividade em andamento (ou a próxima não
   feita) em destaque, com a anterior e a seguinte ao lado. O ingresso correspondente ganha a etiqueta "Agora" ou "Próxima".
+  Desde a v1.52 o painel fica logo abaixo do título do dia (no celular aparece sem rolar), diz quanto falta ("termina
+  em 40min", "começa em 1h10") e tem **Como chegar** para a atividade em destaque.
+- O relógio anda sozinho: o "Agora" troca de atividade na hora certa com o app aberto, e se o dia vira (ou o app volta
+  do fundo no dia seguinte) quem estava no dia de hoje passa para o novo dia. Quem estava olhando outro dia fica onde está.
 - **Como chegar** em cada atividade abre a rota no Google Maps.

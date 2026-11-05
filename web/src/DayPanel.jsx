@@ -275,6 +275,44 @@ export default function DayPanel({
   // dia só de ida ou volta: os blocos vazios ficam escondidos
   const onlyTravel = (ida || volta) && inSlots.length === 0;
 
+  // hoje: painel de estação no topo do dia (anterior pequena, a atual grande, a seguinte pequena)
+  const nowBoard = (() => {
+    if (nowId == null) return null;
+    const i = visible.findIndex((a) => a.id === nowId);
+    const cur = visible[i];
+    const before = visible[i - 1];
+    const after = visible[i + 1];
+    const side = (a, label) => (a ? (
+      <button className="nb-side" onClick={() => onSelect(a.id)} aria-label={`${label}: ${a.start ? `${a.start}, ` : ''}${a.title}`}>
+        <small>{a.start || label}</small>
+        <span>{a.title}</span>
+      </button>
+    ) : <span className="nb-side empty" />);
+    const started = toMin(cur.start) <= now;
+    // quanto falta: para acabar a atual ou para começar a próxima
+    const left = started ? (cur.end ? toMin(cur.end) - now : null) : toMin(cur.start) - now;
+    const when = left != null && left > 0 ? `${started ? 'termina' : 'começa'} em ${fmtDuration(left)}` : '';
+    return (
+      <div className="now-board" aria-label="Agora">
+        {side(before, 'Antes')}
+        <div className="nb-cur" style={{ '--c': (KINDS[cur.kind] || KINDS.sight).color }}>
+          <button onClick={() => onSelect(cur.id)}>
+            <small>{nowLabel(cur)}{cur.start ? ` · ${cur.start}${cur.end ? `–${cur.end}` : ''}` : ''}</small>
+            <b>{cur.title}</b>
+            {cur.location && <span>{cur.location}</span>}
+          </button>
+          {(when || hasCoords(cur)) && (
+            <div className="nb-foot">
+              {when && <span>{when}</span>}
+              {hasCoords(cur) && <a href={directionsUrl(cur)} target="_blank" rel="noreferrer">Como chegar</a>}
+            </div>
+          )}
+        </div>
+        {side(after, 'Depois')}
+      </div>
+    );
+  })();
+
   return (
     <div className="daypanel">
       <div className="day-head">
@@ -286,6 +324,7 @@ export default function DayPanel({
           </div>
           <button className="icon-btn" onClick={onNext} disabled={!hasNext} title="Próximo dia (→)">›</button>
         </div>
+        {nowBoard}
         {onSaveDayInfo && <DayInfo key={day} info={dayInfo} onSave={onSaveDayInfo} />}
         <div className="chips">
           {cities.map((k) => (
@@ -362,31 +401,6 @@ export default function DayPanel({
           <br />Use <b>＋ Atividade</b> pra começar.
         </div>
       )}
-
-      {nowId != null && (() => {
-        // painel de estação: anterior pequena, a atual grande, a seguinte pequena
-        const i = visible.findIndex((a) => a.id === nowId);
-        const cur = visible[i];
-        const before = visible[i - 1];
-        const after = visible[i + 1];
-        const side = (a, label) => (a ? (
-          <button className="nb-side" onClick={() => onSelect(a.id)}>
-            <small>{label}{a.start ? ` · ${a.start}` : ''}</small>
-            <span>{a.title}</span>
-          </button>
-        ) : <span className="nb-side empty" />);
-        return (
-          <div className="now-board" aria-label="Agora">
-            {side(before, 'Antes')}
-            <button className="nb-cur" style={{ '--c': (KINDS[cur.kind] || KINDS.sight).color }} onClick={() => onSelect(cur.id)}>
-              <small>{nowLabel(cur)}{cur.start ? ` · ${cur.start}${cur.end ? `–${cur.end}` : ''}` : ''}</small>
-              <b>{cur.title}</b>
-              {cur.location && <span>{cur.location}</span>}
-            </button>
-            {side(after, 'Depois')}
-          </div>
-        );
-      })()}
 
       {travelBox(ida, false)}
       {!onlyTravel && (

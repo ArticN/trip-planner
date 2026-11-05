@@ -15,6 +15,18 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.52',
+    date: '2026-11-05',
+    title: 'Pronto para usar na rua',
+    items: [
+      'Novo botão “Onde estou” no mapa: um ponto azul mostra onde você está, pelo GPS do celular, mesmo sem internet.',
+      'O painel “Agora” do dia de hoje subiu para logo abaixo do título do dia, diz quanto falta (“termina em 40min”, “começa em 1h10”) e tem “Como chegar”.',
+      'O relógio anda sozinho: com o app aberto, o “Agora” troca de atividade na hora certa, e quando o dia vira o app passa para o novo dia.',
+      'Na tela inicial, a viagem em andamento mostra a atividade de agora, e não só a próxima.',
+      'Nome comprido da viagem não quebra mais o cabeçalho, e no celular o nome “Trip Planner” volta a aparecer na tela inicial.',
+    ],
+  },
+  {
     version: '1.51',
     date: '2026-11-04',
     title: 'Mais rápido e mais leve por dentro',

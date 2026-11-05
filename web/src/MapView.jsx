@@ -175,6 +175,84 @@ function drawLeg(group, l, accent) {
   if (l.km > 0.15) arrow(group, path);
 }
 
+// "onde estou": ponto azul com o raio de precisão, pelo GPS do aparelho (funciona sem internet).
+// Primeiro toque liga e centraliza; os seguintes só centralizam de novo. Com o app no fundo, o GPS pausa.
+function useLocate(mapRef, padRef) {
+  const [on, setOn] = useState(false);
+  const [msg, setMsg] = useState('');
+  const st = useRef({ watch: null, fix: null, group: null, center: false });
+  const draw = (fix) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const s = st.current;
+    if (!s.group) {
+      // painel próprio acima dos pinos (o mapa desenha em canvas, que fica por baixo deles)
+      if (!map.getPane('me')) map.createPane('me').style.zIndex = 650;
+      s.renderer = L.svg({ pane: 'me' });
+      s.group = L.layerGroup().addTo(map);
+    }
+    s.group.clearLayers();
+    const ll = [fix.lat, fix.lng];
+    if (fix.acc > 15) L.circle(ll, { radius: fix.acc, pane: 'me', renderer: s.renderer, interactive: false, color: '#2f7cf6', weight: 1, opacity: 0.5, fillColor: '#2f7cf6', fillOpacity: 0.12 }).addTo(s.group);
+    L.circleMarker(ll, { radius: 8, pane: 'me', renderer: s.renderer, interactive: false, color: '#fff', weight: 3, fillColor: '#2f7cf6', fillOpacity: 1 }).addTo(s.group);
+  };
+  const center = (fix) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const mb = map.options.maxBounds;
+    if (mb && !mb.contains([fix.lat, fix.lng])) { setMsg('Você está fora da área do mapa desta viagem.'); return; }
+    // no celular o painel do roteiro cobre a parte de baixo: o ponto fica no meio do que sobra
+    const z = Math.max(map.getZoom(), 16);
+    const at = map.unproject(map.project([fix.lat, fix.lng], z).add([0, (padRef.current || 0) / 2]), z);
+    map.flyTo(at, z, { duration: 0.6 });
+  };
+  const start = () => {
+    const s = st.current;
+    if (s.watch != null || !navigator.geolocation) return;
+    s.watch = navigator.geolocation.watchPosition((p) => {
+      const fix = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy || 0 };
+      s.fix = fix;
+      draw(fix);
+      setMsg('');
+      if (s.center) { s.center = false; center(fix); }
+    }, (e) => {
+      if (e.code === 1) { stop(); setOn(false); setMsg('Sem permissão de localização. Libere nas configurações do navegador.'); } else if (!s.fix) setMsg('Procurando o sinal do GPS…');
+    }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+  };
+  const stop = () => {
+    const s = st.current;
+    if (s.watch != null) navigator.geolocation.clearWatch(s.watch);
+    s.watch = null;
+  };
+  const press = () => {
+    if (!navigator.geolocation) { setMsg('Este aparelho não informa a localização.'); return; }
+    const s = st.current;
+    setOn(true);
+    if (s.fix) center(s.fix); else { s.center = true; setMsg('Procurando você…'); }
+    start();
+  };
+  useEffect(() => {
+    if (!on) return undefined;
+    const vis = () => { if (document.visibilityState === 'visible') start(); else stop(); };
+    document.addEventListener('visibilitychange', vis);
+    return () => document.removeEventListener('visibilitychange', vis);
+  }, [on]);
+  useEffect(() => { if (!msg || msg.startsWith('Procurando')) return undefined; const t = setTimeout(() => setMsg(''), 5000); return () => clearTimeout(t); }, [msg]);
+  useEffect(() => () => { stop(); st.current.group?.remove(); }, []);
+  return { on, msg, press };
+}
+
+function LocateButton({ loc }) {
+  return (
+    <>
+      <button className={`locate-btn${loc.on ? ' on' : ''}`} onClick={loc.press} aria-pressed={loc.on} aria-label="Mostrar onde estou" title="Onde estou">
+        <LayerIcon><circle cx="12" cy="12" r="3.2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /><circle cx="12" cy="12" r="7" /></LayerIcon>
+      </button>
+      {loc.msg && <div className="locate-msg" role="status">{loc.msg}</div>}
+    </>
+  );
+}
+
 export default function MapView({
   mode, items, alts = [], onAltPick, stays, cities, stayByDay, checkout = null, selectedId, onSelect, onEdit, editPositions, onMove,
   picking, onPick, flyTarget, fitKey, cityFocus, showStays, labelNumbers, ideas = [], onIdea, centerRef, onBackground, padBottom = 0,
@@ -196,6 +274,9 @@ export default function MapView({
   // tipo de mapa: botão próprio (o controle do Leaflet ficava atrás da barra da rota)
   const basesRef = useRef({});
   const [baseKey, setBaseKey] = useState(() => { try { return localStorage.getItem(BASE_KEY) || 'map'; } catch { return 'map'; } });
+  const padRef = useRef(0);
+  padRef.current = padBottom;
+  const loc = useLocate(mapRef, padRef);
   const pickBase = (k) => {
     const map = mapRef.current;
     const bases = basesRef.current;
@@ -676,6 +757,7 @@ export default function MapView({
         </div>
       )}
       <BasePicker value={baseKey} onPick={pickBase} />
+      <LocateButton loc={loc} />
     </>
   );
 }
