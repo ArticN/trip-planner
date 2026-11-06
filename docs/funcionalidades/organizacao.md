@@ -56,6 +56,12 @@ da viagem: os anexados às atividades (pelo editor ou aqui) e os guardados diret
 **Adicionar PDF ou foto**. Cada item da lista também tem **📎 Anexar**. Cada arquivo mostra o dia e o item, e
 "disponível offline" quando já está guardado no aparelho.
 
+- **Salvar no aparelho** (v1.56): o botão ⤓ de cada arquivo salva uma cópia fora do planner. No celular abre a folha
+  de compartilhar do sistema (Salvar em Arquivos, Wallet para .pkpass, Drive, WhatsApp…); no computador baixa o arquivo.
+  **Salvar todos no celular** manda todos de uma vez para a folha de compartilhar, e **Baixar todos em .zip** junta
+  tudo num .zip só (nomes começam pelo dia do item). Funciona sem internet para os arquivos já guardados no aparelho e
+  inclui os que ainda não subiram; o que não estiver guardado aparece no aviso "Ficaram de fora".
+
 - **Sem internet**: o arquivo escolhido fica guardado no aparelho ("só neste aparelho") e sobe sozinho quando a
   internet voltar, junto com as edições pendentes (aparece em ⋯ › Dados offline e backups, onde dá para descartar).
   Funciona até para uma atividade criada sem internet.

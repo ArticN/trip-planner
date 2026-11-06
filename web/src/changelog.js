@@ -15,6 +15,15 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.56',
+    date: '2026-11-06',
+    title: 'Salvar os ingressos no celular',
+    items: [
+      'Em Ingressos › Arquivos dos ingressos, cada arquivo ganhou o botão ⤓ para salvar uma cópia no aparelho. No celular abre a folha de compartilhar (Salvar em Arquivos, Wallet, Drive…); no computador, baixa o arquivo.',
+      'Novos “Salvar todos no celular” e “Baixar todos em .zip”, para levar todos os ingressos de uma vez. Funcionam sem internet com os arquivos que já estão guardados no aparelho.',
+    ],
+  },
+  {
     version: '1.55',
     date: '2026-11-06',
     title: 'Opções no mesmo horário pelo importar',

@@ -1896,6 +1896,10 @@ input.dj-lb-cap:focus-visible { outline: none; box-shadow: none; background: #f2
 .tk-msg { margin: 6px 0 0; color: var(--ink-2); }
 .tk-msg.bad { color: var(--danger, #d64545); }
 .tk-files { margin-top: 12px; }
+.tk-save { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0 0; }
+.tk-save button.btn-like { background: none; color: inherit; font: inherit; min-height: 40px; }
+.tk-save button:disabled { opacity: 0.6; cursor: default; }
+.tk-files .tk-dl { font-size: 16px; line-height: 1; }
 .tk-files button.file-a { border: 0; font: inherit; text-align: left; cursor: pointer; }
 .tk-files small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tk-off { font-style: normal; color: var(--cat-3); }
