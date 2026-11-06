@@ -268,3 +268,17 @@ test('importar: apagar e recriar no mesmo arquivo não perde o item; sort do bac
   assert.deepEqual(d.map((x) => x.title), ['A', 'N', 'Museu']);
   assert.equal(d.find((x) => x.title === 'Museu').notes, 'novo');
 });
+
+test('importar atividades: alt em texto entra no carrossel de opções', async () => {
+  const t = await call('POST', '/api/trips', { name: 'Importar alt', start: '2026-11-10', end: '2026-11-15' });
+  const tid = t.json.trip?.id ?? t.json.id;
+  const main = await call('POST', `/api/trips/${tid}/activities`, { day: '2026-11-12', start: '19:00', title: 'Jantar: ramen' });
+  const r = await call('POST', `/api/trips/${tid}/import-items`, { activities: [
+    { id: main.json.id, alt: 'jantar12' },
+    { day: '2026-11-12', start: '19:00', title: 'Jantar (opção): pizza', alt: 'jantar12' },
+  ] });
+  assert.equal(r.status, 200);
+  const acts = (await call('GET', `/api/trips/${tid}`)).json.activities;
+  assert.deepEqual(acts.map((x) => x.alt), ['jantar12', 'jantar12']);
+});
+
