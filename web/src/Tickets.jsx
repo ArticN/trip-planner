@@ -6,6 +6,7 @@ import { api } from './api.js';
 import { FileIcon, fmtSize, prepareFiles } from './Attachments.jsx';
 import { Icon } from './icons.jsx';
 import { sync, usePendingUploads } from './offline/index.js';
+import { makeZip, safeName } from './zip.js';
 
 const isImage = (t) => /^image\/(png|jpeg|gif|webp|avif)$/.test(t || '');
 const ACCEPT = 'application/pdf,image/*,.pkpass';
@@ -41,6 +42,44 @@ async function openLocal(u) {
   window.open(url, '_blank', 'noopener');
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
+
+// conteúdo de um anexo: o que está no servidor vem do cache do service worker (funciona offline);
+// o que ainda não subiu vem do IndexedDB
+async function blobOf(f, local) {
+  if (local) {
+    const b = await sync.uploadBlob(f.id);
+    if (!b) throw new Error('não está mais no aparelho');
+    return b;
+  }
+  const r = await fetch(api.fileUrl(f.id));
+  if (!r.ok) throw new Error(navigator.onLine ? `erro ${r.status}` : 'ainda não foi guardado no aparelho');
+  return r.blob();
+}
+
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // alguns navegadores trocam nome com acento por "download"
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// no celular, a folha de compartilhar do sistema é o caminho para "Salvar em Arquivos", Wallet, Drive…
+const touch = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+const canShareFiles = (files) => {
+  try { return !!navigator.canShare?.({ files }); } catch { return false; }
+};
+async function shareOrSave(files) {
+  if (touch() && canShareFiles(files)) {
+    try { await navigator.share({ files }); return 'share'; } catch (x) { if (x?.name === 'AbortError') return 'abort'; }
+  }
+  for (const f of files) saveBlob(f, f.name);
+  return 'save';
+}
+const asFile = (blob, name, type) => new File([blob], name, { type: type || blob.type || 'application/octet-stream' });
 
 // ── página de ingressos e reservas: o que já foi comprado, o que falta comprar (com quando a venda abre e onde),
 // o que só precisa se escolher aquela opção e o que se paga na entrada. Fora do link de compartilhamento,
@@ -177,6 +216,7 @@ function Kpi({ v, l }) {
 // Ficam guardados no aparelho para abrir sem internet e nunca aparecem no link de visitante.
 function TicketFiles({ entries, files, waiting, data, msg, busy, cached, upload, remove }) {
   const [to, setTo] = useState('');
+  const trip = data.trip;
   const acts = useMemo(() => new Map((data.activities || []).map((a) => [a.id, a])), [data.activities]);
   const ideas = useMemo(() => new Map((data.ideas || []).map((a) => [a.id, a])), [data.ideas]);
   const checks = useMemo(() => new Map((data.checklist || []).map((c) => [c.id, c])), [data.checklist]);
@@ -201,6 +241,41 @@ function TicketFiles({ entries, files, waiting, data, msg, busy, cached, upload,
     const target = to.startsWith('a') ? { activity: Number(to.slice(1)) } : to.startsWith('c') ? { check: Number(to.slice(1)) } : null;
     upload(target, list);
   };
+  const [saving, setSaving] = useState(false);
+  const [note, setNote] = useState(null);
+  const nameOf = (f, o) => (o.day ? `${o.day} ${f.name}` : f.name);
+  const saveOne = async ({ f, o, local }) => {
+    setNote(null);
+    try {
+      const b = await blobOf(f, local);
+      await shareOrSave([asFile(b, safeName(nameOf(f, o)), f.type)]);
+    } catch (x) { setNote({ text: `Não consegui salvar ${f.name}: ${x.message}`, bad: true }); }
+  };
+  // todos de uma vez: no celular, pela folha de compartilhar (Salvar em Arquivos); se não der, um .zip só
+  const saveAll = async (zip) => {
+    setSaving(true);
+    setNote(null);
+    const used = new Set();
+    const got = [];
+    const fail = [];
+    for (const r of rows) {
+      try { got.push(asFile(await blobOf(r.f, r.local), safeName(nameOf(r.f, r.o), used), r.f.type)); } catch (x) { fail.push(`${r.f.name} (${x.message})`); }
+    }
+    try {
+      if (got.length) {
+        if (!zip && touch() && canShareFiles(got)) {
+          await shareOrSave(got);
+        } else {
+          const data = await Promise.all(got.map(async (f) => ({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) })));
+          saveBlob(new Blob([makeZip(data)], { type: 'application/zip' }), `${safeName(`Ingressos ${trip?.name || ''}`.trim())}.zip`);
+        }
+      }
+      setNote(fail.length ? { text: `Ficaram de fora: ${fail.join(', ')}. Abra a viagem com internet para guardá-los.`, bad: true }
+        : { text: `${got.length} ${got.length === 1 ? 'arquivo pronto' : 'arquivos prontos'} para salvar.` });
+    } catch (x) { setNote({ text: `Não consegui salvar: ${x.message}`, bad: true }); }
+    setSaving(false);
+  };
+  const shareable = typeof navigator !== 'undefined' && !!navigator.canShare && touch();
   return (
     <section id="tk-arquivos">
       <h2 className="an-h">Arquivos dos ingressos</h2>
@@ -219,6 +294,15 @@ function TicketFiles({ entries, files, waiting, data, msg, busy, cached, upload,
         </label>
       </div>
       {msg && <p className={`small tk-msg${msg.bad ? ' bad' : ''}`} role="status">{msg.text}</p>}
+      {rows.length > 0 && (
+        <div className="tk-save">
+          {shareable && <button type="button" className="btn-like" disabled={saving} onClick={() => saveAll(false)}>{saving ? 'Preparando…' : `Salvar todos no celular (${rows.length})`}</button>}
+          <button type="button" className={shareable ? 'linkish small' : 'btn-like'} disabled={saving} onClick={() => saveAll(true)}>
+            {saving && !shareable ? 'Preparando…' : `Baixar todos em .zip (${rows.length})`}
+          </button>
+        </div>
+      )}
+      {note && <p className={`small tk-msg${note.bad ? ' bad' : ''}`} role="status">{note.text}</p>}
       {rows.length > 0 ? (
         <ul className="file-list tk-files">
           {rows.map(({ f, o, local }) => {
@@ -241,6 +325,8 @@ function TicketFiles({ entries, files, waiting, data, msg, busy, cached, upload,
                 {local
                   ? <button type="button" className="file-a" onClick={() => openLocal(f)}>{inner}</button>
                   : <a href={api.fileUrl(f.id)} target="_blank" rel="noreferrer">{inner}</a>}
+                <button type="button" className="icon-btn sm tk-dl" aria-label={`Salvar ${f.name} no aparelho`} title="Salvar no aparelho"
+                  onClick={() => saveOne({ f, o, local })}>⤓</button>
                 <button type="button" className="icon-btn sm" aria-label={`Remover ${f.name}`} title="Remover"
                   onClick={() => (local ? window.confirm(`Descartar ${f.name}? Ele ainda não subiu.`) && sync.cancelUpload(f.id) : remove(f))}>
                   <Icon name="x" size={14} />
