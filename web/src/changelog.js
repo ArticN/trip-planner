@@ -15,6 +15,14 @@ export const IDEAS = [
 // e atualiza a página da área em docs/funcionalidades/ (o que mudou, como usar e as limitações).
 export const CHANGELOG = [
   {
+    version: '1.55',
+    date: '2026-11-06',
+    title: 'Opções no mesmo horário pelo importar',
+    items: [
+      'O “Importar atividades (JSON)” agora aceita o campo alt em texto (por exemplo "jantar10"), do mesmo jeito que o backup exporta. Assim, dá para importar opções que entram no carrossel de um horário que já existe.',
+    ],
+  },
+  {
     version: '1.54',
     date: '2026-11-05',
     title: 'Importar atividades sem criar outra viagem',

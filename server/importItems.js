@@ -96,10 +96,16 @@ function cleanFields(raw, fields, ctx) {
       v = cleanLinks(v);
     } else if (f === 'done') {
       v = v ? 1 : 0;
-    } else if (f === 'route' || f === 'alt') {
+    } else if (f === 'alt') {
+      // chave do carrossel de opções: texto simples (ex.: "jantar10"), igual ao que o backup exporta
       if (empty(v)) v = null;
-      else if (typeof v === 'string') { try { JSON.parse(v); } catch { return { error: `${f}: JSON inválido` }; } }
-      else if (typeof v !== 'object') return { error: `${f}: precisa ser um objeto` };
+      else if (typeof v === 'number') v = String(v);
+      else if (typeof v !== 'string') return { error: 'alt: precisa ser texto' };
+      else v = v.trim() || null;
+    } else if (f === 'route') {
+      if (empty(v)) v = null;
+      else if (typeof v === 'string') { try { JSON.parse(v); } catch { return { error: 'route: JSON inválido' }; } }
+      else if (typeof v !== 'object') return { error: 'route: precisa ser um objeto' };
     } else if (empty(v)) v = null;
     else if (typeof v !== 'string' && typeof v !== 'number') return { error: `${f}: precisa ser texto` };
     patch[f] = v;
